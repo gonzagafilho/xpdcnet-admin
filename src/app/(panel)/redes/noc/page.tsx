@@ -104,6 +104,20 @@ export default function RedesNocPage() {
     }>
   >([]);
 
+  const [events, setEvents] = useState<
+    Array<{
+      time: string;
+      level: "info" | "success" | "warning";
+      message: string;
+    }>
+  >([
+    {
+      time: new Date().toLocaleTimeString(),
+      level: "success",
+      message: "Realtime engine online",
+    },
+  ]);
+
   const load = useCallback(async () => {
     try {
       setError(null);
@@ -163,6 +177,25 @@ export default function RedesNocPage() {
         const payload = JSON.parse(event.data);
 
         setData(payload);
+
+        setEvents((prev) => {
+          const next = [
+            {
+              time: new Date().toLocaleTimeString(),
+              level:
+                ((payload?.queue?.failed ?? 0) > 0
+                  ? "warning"
+                  : "success") as "warning" | "success",
+              message:
+                (payload?.queue?.failed ?? 0) > 0
+                  ? "Failed jobs detectados"
+                  : "Queue saudável",
+            },
+            ...prev,
+          ];
+
+          return next.slice(0, 10);
+        });
 
         setHistory((prev) => {
           const next = [
@@ -394,6 +427,50 @@ export default function RedesNocPage() {
       </div>
 
 
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                  Live Event Stream
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  Eventos operacionais realtime do core distribuído.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                STREAM
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {events.map((event, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-start gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
+                >
+                  <div
+                    className={`mt-1 h-2.5 w-2.5 rounded-full ${
+                      event.level === "success"
+                        ? "bg-emerald-500"
+                        : event.level === "warning"
+                          ? "bg-amber-500"
+                          : "bg-sky-500"
+                    }`}
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-slate-800">
+                      {event.message}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {event.time}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-center justify-between">
             <div>
