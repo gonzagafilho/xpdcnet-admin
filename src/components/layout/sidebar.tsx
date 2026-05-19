@@ -61,6 +61,7 @@ const navGroups: NavGroup[] = [
     label: "Redes",
     icon: Network,
     children: [
+      { label: "NOC Realtime", href: "/redes/noc" },
       { label: "Servidores", href: "/redes/servidores" },
       { label: "Agentes remotos", href: "/redes/agents" },
       { label: "Logs operacionais", href: "/redes/logs" },
