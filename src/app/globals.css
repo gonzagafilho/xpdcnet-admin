@@ -2,20 +2,48 @@
 @tailwind components;
 @tailwind utilities;
 
+/**
+ * XPDCNET — Design system visual (painel operacional)
+ * Superfícies: página cinza claro; cards brancos; bordas slate suaves.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f5f6f8;
+  --foreground: #0f172a;
+  --xp-surface-page: #f5f6f8;
+  --xp-surface-card: #ffffff;
+  --xp-border: #e2e8f0;
+  --xp-border-strong: #cbd5e1;
+  --xp-text-primary: #0f172a;
+  --xp-text-secondary: #475569;
+  --xp-text-muted: #64748b;
+  --xp-accent-nav: #0f172a;
+  --xp-ring: #94a3b8;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: light;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  /** Bloco de página reutilizável: fundo card + borda + sombra leve */
+  .xp-card-surface {
+    @apply rounded-xl border border-slate-200 bg-white shadow-sm;
+  }
+
+  /** Título de secção dentro do painel */
+  .xp-section-title {
+    @apply text-base font-semibold tracking-tight text-slate-900;
+  }
+
+  .xp-section-subtitle {
+    @apply text-sm text-slate-600;
+  }
 }
