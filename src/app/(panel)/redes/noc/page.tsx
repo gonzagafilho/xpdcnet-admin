@@ -14,6 +14,16 @@ import {
 } from "lucide-react";
 
 
+import {
+  LineChart,
+  Line,
+  ResponsiveContainer,
+  Tooltip,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+} from "recharts";
+
 import { apiFetch, ApiRequestError } from "@/lib/api-client";
 
 type QueueHealthResponse = {
@@ -85,6 +95,15 @@ export default function RedesNocPage() {
 
   const [, setStreamConnected] = useState(false);
 
+  const [history, setHistory] = useState<
+    Array<{
+      time: string;
+      pending: number;
+      processing: number;
+      failed: number;
+    }>
+  >([]);
+
   const load = useCallback(async () => {
     try {
       setError(null);
@@ -144,6 +163,20 @@ export default function RedesNocPage() {
         const payload = JSON.parse(event.data);
 
         setData(payload);
+
+        setHistory((prev) => {
+          const next = [
+            ...prev,
+            {
+              time: new Date().toLocaleTimeString(),
+              pending: payload?.queue?.pending ?? 0,
+              processing: payload?.queue?.processing ?? 0,
+              failed: payload?.queue?.failed ?? 0,
+            },
+          ];
+
+          return next.slice(-20);
+        });
 
         setLoading(false);
 
@@ -360,6 +393,38 @@ export default function RedesNocPage() {
 
       </div>
 
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                Queue Timeline
+              </h3>
+              <p className="mt-1 text-sm text-slate-500">
+                Fluxo operacional realtime da fila distribuída.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+              LIVE
+            </div>
+          </div>
+
+          <div className="h-[320px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={history}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="time" />
+                <YAxis />
+                <Tooltip />
+                <Line type="monotone" dataKey="pending" stroke="#2563eb" strokeWidth={3} dot={false} />
+                <Line type="monotone" dataKey="processing" stroke="#16a34a" strokeWidth={3} dot={false} />
+                <Line type="monotone" dataKey="failed" stroke="#dc2626" strokeWidth={3} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
     </div>
   );
 }
