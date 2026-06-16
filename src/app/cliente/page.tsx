@@ -31,6 +31,7 @@ import {
   UserRound,
   Wifi,
 } from "lucide-react";
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -43,7 +44,7 @@ import {
   setCustomerToken,
 } from "@/lib/customer-app-api";
 
-type TabKey = "dashboard" | "plan" | "connection" | "speedTest" | "invoices" | "payment" | "support" | "tickets" | "notifications";
+type TabKey = "dashboard" | "plan" | "connection" | "pppoe" | "speedTest" | "invoices" | "payment" | "support" | "tickets" | "notifications";
 
 type CustomerLoginResponse = {
   token: string;
@@ -112,6 +113,28 @@ type ConnectionInfo = {
   lastCommand?: { kind: string; status: string; success?: boolean | null; completedAt?: string | null; updatedAt?: string | null } | null;
   mikrotikSync?: { enabled: boolean; state: string; lastSuccessAt: string | null; lastAttemptAt: string | null };
   alerts?: { type: string; severity: string; message: string }[];
+};
+
+
+type PppoeInfo = {
+  status: "online" | "offline" | "unknown" | string;
+  usernameMasked: string;
+  currentIp: string | null;
+  serverName: string | null;
+  uptime: string | null;
+  connectedAt: string | null;
+  lastUpdateAt: string | null;
+  trafficNow: {
+    downloadMbps: number | null;
+    uploadMbps: number | null;
+  };
+  quality: {
+    pingMs: number | null;
+    jitterMs: number | null;
+    packetLoss: number | null;
+  };
+  series: { time: string; downloadMbps: number | null; uploadMbps: number | null }[];
+  alerts: { type: string; severity: string; message: string }[];
 };
 
 type InvoiceItem = {
@@ -192,6 +215,7 @@ const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ className?
   { key: "dashboard", label: "Início", icon: Home },
   { key: "plan", label: "Meu Plano", icon: ShieldCheck },
   { key: "connection", label: "Minha Conexão", icon: Wifi },
+  { key: "pppoe", label: "PPPoE", icon: Router },
   { key: "speedTest", label: "Speed Test", icon: Gauge },
   { key: "invoices", label: "Minhas Faturas", icon: FileText },
   { key: "payment", label: "PIX / Segunda Via", icon: CreditCard },
@@ -482,6 +506,7 @@ export default function ClientePage() {
   const [executiveDashboard, setExecutiveDashboard] = useState<ExecutiveDashboard | null>(null);
   const [plan, setPlan] = useState<PlanResponse | null>(null);
   const [connection, setConnection] = useState<ConnectionInfo | null>(null);
+  const [pppoe, setPppoe] = useState<PppoeInfo | null>(null);
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>("");
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
@@ -529,11 +554,12 @@ export default function ClientePage() {
     try {
       setLoadingTickets(true);
       setLoadingNotifications(true);
-      const [me, executive, planData, connData, invoiceData, ticketData, notificationData, unreadData] = await Promise.all([
+      const [me, executive, planData, connData, pppoeData, invoiceData, ticketData, notificationData, unreadData] = await Promise.all([
         customerApiFetch<Dashboard>("/customer-app/me"),
         customerApiFetch<ExecutiveDashboard>("/customer-app/dashboard"),
         customerApiFetch<PlanResponse>("/customer-app/plan"),
         customerApiFetch<ConnectionInfo>("/customer-app/connection"),
+        customerApiFetch<PppoeInfo>("/customer-app/pppoe"),
         customerApiFetch<{ items: InvoiceItem[] }>("/customer-app/invoices?limit=24"),
         customerApiFetch<{ items: Ticket[] }>("/customer-app/support/tickets?limit=20"),
         customerApiFetch<{ items: CustomerNotification[] }>("/customer-app/notifications?limit=50"),
@@ -543,6 +569,7 @@ export default function ClientePage() {
       setExecutiveDashboard(executive);
       setPlan(planData);
       setConnection(connData);
+      setPppoe(pppoeData);
       setInvoices(invoiceData.items || []);
       setTickets(ticketData.items || []);
       setNotifications(notificationData.items || []);
@@ -640,6 +667,7 @@ export default function ClientePage() {
     setExecutiveDashboard(null);
     setPlan(null);
     setConnection(null);
+    setPppoe(null);
     setInvoices([]);
     setTickets([]);
     setNotifications([]);
@@ -849,6 +877,7 @@ export default function ClientePage() {
           {tab === "dashboard" ? <DashboardView dashboard={dashboard} executive={executiveDashboard} setTab={setTab} /> : null}
           {tab === "plan" ? <PlanView plan={plan} /> : null}
           {tab === "connection" ? <ConnectionView connection={connection} /> : null}
+          {tab === "pppoe" ? <PppoeView data={pppoe} /> : null}
           {tab === "speedTest" ? <SpeedTestView /> : null}
           {tab === "invoices" ? <InvoicesView invoices={invoices} onPayment={(id) => { setSelectedInvoiceId(id); setTab("payment"); }} /> : null}
           {tab === "payment" ? (
@@ -1109,6 +1138,97 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
   );
 }
 
+function PppoeView({ data }: { data: PppoeInfo | null }) {
+  if (!data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>PPPoE</CardTitle>
+          <CardDescription>Carregando dados da sua sessão.</CardDescription>
+        </CardHeader>
+        <CardContent><p className="text-sm text-slate-500">Aguarde...</p></CardContent>
+      </Card>
+    );
+  }
+
+  const chartData = (data.series || []).filter((item) => item.downloadMbps != null || item.uploadMbps != null);
+  const statusTone = toneForStatus(data.status);
+
+  return (
+    <div className="space-y-5">
+      <Card className="border-slate-200 bg-slate-950 text-white">
+        <CardContent className="space-y-5 p-5 sm:p-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-emerald-300">PPPoE do Cliente</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight">Sua sessão de acesso</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">Dados somente leitura da última coleta disponível.</p>
+            </div>
+            <Badge tone={statusTone}>{statusLabel(data.status)}</Badge>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <ExecutiveCard title="Usuário" value={data.usernameMasked || "-"} hint="PPPoE mascarado" icon={UserRound} tone="slate" />
+            <ExecutiveCard title="IP atual" value={data.currentIp || "-"} hint="Última sessão conhecida" icon={Wifi} tone={data.currentIp ? "green" : "slate"} />
+            <ExecutiveCard title="Servidor" value={data.serverName || "-"} hint="Equipamento vinculado" icon={Router} tone={data.serverName ? "green" : "slate"} />
+            <ExecutiveCard title="Conectado" value={data.uptime || "-"} hint={data.connectedAt ? dateTime(data.connectedAt) : "Tempo da sessão"} icon={Clock} tone={data.uptime ? "green" : "slate"} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MetricCard title="Download atual" value={speedValue(data.trafficNow?.downloadMbps)} hint="Último ponto por cliente" icon={Download} />
+        <MetricCard title="Upload atual" value={speedValue(data.trafficNow?.uploadMbps)} hint="Último ponto por cliente" icon={Upload} />
+        <MetricCard title="Ping" value={latencyValue(data.quality?.pingMs)} hint="Última qualidade conhecida" icon={TimerReset} />
+        <MetricCard title="Jitter" value={latencyValue(data.quality?.jitterMs)} hint="Variação de latência" icon={Activity} />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle>Tráfego PPPoE</CardTitle>
+              <CardDescription>Últimos pontos conhecidos de download e upload da sua sessão.</CardDescription>
+            </div>
+            <span className="text-sm text-slate-500">Atualizado em {dateTime(data.lastUpdateAt)}</span>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {chartData.length ? (
+            <div className="h-72 min-h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%" minHeight={260}>
+                <LineChart data={chartData} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="time" tickLine={false} axisLine={false} />
+                  <YAxis tickLine={false} axisLine={false} width={44} />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="downloadMbps" name="Download Mbps" stroke="#10b981" strokeWidth={2} dot={false} connectNulls />
+                  <Line type="monotone" dataKey="uploadMbps" name="Upload Mbps" stroke="#0f172a" strokeWidth={2} dot={false} connectNulls />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
+              <Activity className="mx-auto mb-2 h-6 w-6 text-slate-400" />
+              Sem dados recentes para o gráfico.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Alertas</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          {data.alerts?.length ? data.alerts.map((alert) => (
+            <div key={`${alert.type}-${alert.message}`} className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{alert.message}</span>
+            </div>
+          )) : <p className="text-sm text-slate-500">Nenhum alerta de PPPoE no momento.</p>}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 function SpeedTestMetricCard({
   title,
   value,
