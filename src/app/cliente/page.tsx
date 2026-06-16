@@ -4,8 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
+  Bell,
   Banknote,
   CalendarDays,
+  CheckCheck,
   CircleHelp,
   Clock,
   Copy,
@@ -37,7 +39,7 @@ import {
   setCustomerToken,
 } from "@/lib/customer-app-api";
 
-type TabKey = "dashboard" | "plan" | "connection" | "invoices" | "payment" | "support" | "tickets";
+type TabKey = "dashboard" | "plan" | "connection" | "invoices" | "payment" | "support" | "tickets" | "notifications";
 
 type CustomerLoginResponse = {
   token: string;
@@ -147,7 +149,18 @@ type ExecutiveDashboard = {
   plan: { name: string; speed: string };
   billing: { pendingInvoices: number; nextDueDate: string | null; overdueInvoices: number };
   support: { openTickets: number };
+  notifications?: { unreadCount: number };
   connection: { lastUpdateAt: string | null };
+};
+
+type CustomerNotification = {
+  _id: string;
+  type: "billing" | "support" | "network" | "system" | string;
+  title: string;
+  message: string;
+  isRead: boolean;
+  createdAt: string | null;
+  readAt?: string | null;
 };
 
 const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -158,6 +171,7 @@ const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ className?
   { key: "payment", label: "PIX / Segunda Via", icon: CreditCard },
   { key: "support", label: "Suporte", icon: Headphones },
   { key: "tickets", label: "Protocolos", icon: CircleHelp },
+  { key: "notifications", label: "Notificações", icon: Bell },
 ];
 
 function money(value?: number | null) {
@@ -286,6 +300,26 @@ function scoreText(score?: number | null) {
   return `${Math.max(0, Math.min(100, Math.round(score)))}%`;
 }
 
+function notificationTypeLabel(type?: string) {
+  const map: Record<string, string> = {
+    billing: "Financeiro",
+    support: "Suporte",
+    network: "Rede",
+    system: "Sistema",
+  };
+  return map[String(type || "")] || "Sistema";
+}
+
+function notificationTypeClass(type?: string) {
+  const map: Record<string, string> = {
+    billing: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    support: "border-blue-200 bg-blue-50 text-blue-700",
+    network: "border-amber-200 bg-amber-50 text-amber-700",
+    system: "border-slate-200 bg-slate-50 text-slate-700",
+  };
+  return map[String(type || "")] || map.system;
+}
+
 
 export default function ClientePage() {
   const [tokenReady, setTokenReady] = useState(false);
@@ -306,6 +340,9 @@ export default function ClientePage() {
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [notifications, setNotifications] = useState<CustomerNotification[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [selectedTicketId, setSelectedTicketId] = useState<string>("");
   const [ticketDetail, setTicketDetail] = useState<Ticket | null>(null);
   const [loadingTickets, setLoadingTickets] = useState(false);
@@ -326,6 +363,8 @@ export default function ClientePage() {
       setLoggedIn(false);
       setDashboard(null);
       setExecutiveDashboard(null);
+      setNotifications([]);
+      setUnreadNotifications(0);
       setLoginError("Sua sessão expirou. Entre novamente.");
       return true;
     }
@@ -337,13 +376,16 @@ export default function ClientePage() {
     setDataError("");
     try {
       setLoadingTickets(true);
-      const [me, executive, planData, connData, invoiceData, ticketData] = await Promise.all([
+      setLoadingNotifications(true);
+      const [me, executive, planData, connData, invoiceData, ticketData, notificationData, unreadData] = await Promise.all([
         customerApiFetch<Dashboard>("/customer-app/me"),
         customerApiFetch<ExecutiveDashboard>("/customer-app/dashboard"),
         customerApiFetch<PlanResponse>("/customer-app/plan"),
         customerApiFetch<ConnectionInfo>("/customer-app/connection"),
         customerApiFetch<{ items: InvoiceItem[] }>("/customer-app/invoices?limit=24"),
         customerApiFetch<{ items: Ticket[] }>("/customer-app/support/tickets?limit=20"),
+        customerApiFetch<{ items: CustomerNotification[] }>("/customer-app/notifications?limit=50"),
+        customerApiFetch<{ unreadCount: number }>("/customer-app/notifications/unread-count"),
       ]);
       setDashboard(me);
       setExecutiveDashboard(executive);
@@ -351,6 +393,8 @@ export default function ClientePage() {
       setConnection(connData);
       setInvoices(invoiceData.items || []);
       setTickets(ticketData.items || []);
+      setNotifications(notificationData.items || []);
+      setUnreadNotifications(Number(unreadData.unreadCount || executive.notifications?.unreadCount || 0));
       setSelectedTicketId((current) => current || ticketData.items?.[0]?._id || "");
       const firstPayable = (invoiceData.items || []).find((item) => item.hasBillingInvoice) || invoiceData.items?.[0];
       setSelectedInvoiceId((current) => current || firstPayable?._id || "");
@@ -360,6 +404,7 @@ export default function ClientePage() {
     } finally {
       setLoadingData(false);
       setLoadingTickets(false);
+      setLoadingNotifications(false);
     }
   }, [handleAuthError]);
 
@@ -421,6 +466,8 @@ export default function ClientePage() {
     setConnection(null);
     setInvoices([]);
     setTickets([]);
+    setNotifications([]);
+    setUnreadNotifications(0);
     setPayment(null);
     setCopyStatus("");
     setTicketDetail(null);
@@ -454,6 +501,46 @@ export default function ClientePage() {
     } finally {
       setOpeningTicket(false);
       setLoadingTickets(false);
+    }
+  }
+
+  async function refreshNotifications() {
+    setLoadingNotifications(true);
+    try {
+      const [notificationData, unreadData] = await Promise.all([
+        customerApiFetch<{ items: CustomerNotification[] }>("/customer-app/notifications?limit=50"),
+        customerApiFetch<{ unreadCount: number }>("/customer-app/notifications/unread-count"),
+      ]);
+      setNotifications(notificationData.items || []);
+      setUnreadNotifications(Number(unreadData.unreadCount || 0));
+      setExecutiveDashboard((current) => current ? { ...current, notifications: { unreadCount: Number(unreadData.unreadCount || 0) } } : current);
+    } catch (err) {
+      if (!handleAuthError(err)) setDataError(err instanceof Error ? err.message : "Falha ao carregar notificações.");
+    } finally {
+      setLoadingNotifications(false);
+    }
+  }
+
+  async function markNotificationRead(notification: CustomerNotification) {
+    if (notification.isRead) return;
+    try {
+      const updated = await customerApiFetch<CustomerNotification>(`/customer-app/notifications/${notification._id}/read`, { method: "PATCH" });
+      setNotifications((items) => items.map((item) => item._id === updated._id ? updated : item));
+      setUnreadNotifications((count) => Math.max(0, count - 1));
+      setExecutiveDashboard((current) => current ? { ...current, notifications: { unreadCount: Math.max(0, (current.notifications?.unreadCount || 0) - 1) } } : current);
+    } catch (err) {
+      if (!handleAuthError(err)) setDataError(err instanceof Error ? err.message : "Falha ao marcar notificação.");
+    }
+  }
+
+  async function markAllNotificationsRead() {
+    try {
+      await customerApiFetch<{ updated: number }>("/customer-app/notifications/read-all", { method: "PATCH" });
+      setNotifications((items) => items.map((item) => ({ ...item, isRead: true, readAt: item.readAt || new Date().toISOString() })));
+      setUnreadNotifications(0);
+      setExecutiveDashboard((current) => current ? { ...current, notifications: { unreadCount: 0 } } : current);
+    } catch (err) {
+      if (!handleAuthError(err)) setDataError(err instanceof Error ? err.message : "Falha ao marcar notificações.");
     }
   }
 
@@ -527,6 +614,10 @@ export default function ClientePage() {
             <h1 className="text-2xl font-semibold tracking-tight">Olá, {firstName}</h1>
           </div>
           <div className="flex items-center gap-2">
+            <Button variant="outline" onClick={() => setTab("notifications")} className="relative">
+              <Bell className="h-4 w-4" />
+              {unreadNotifications > 0 ? <span className="ml-1 font-semibold">{unreadNotifications}</span> : null}
+            </Button>
             <Button variant="outline" onClick={() => void loadAll()} disabled={loadingData}>Atualizar</Button>
             <Button variant="ghost" onClick={logout}><LogOut className="h-4 w-4" /> Sair</Button>
           </div>
@@ -591,6 +682,16 @@ export default function ClientePage() {
               loadingTicketDetail={loadingTicketDetail}
             />
           ) : null}
+          {tab === "notifications" ? (
+            <NotificationsView
+              notifications={notifications}
+              unreadCount={unreadNotifications}
+              loading={loadingNotifications}
+              onRefresh={refreshNotifications}
+              onRead={markNotificationRead}
+              onReadAll={markAllNotificationsRead}
+            />
+          ) : null}
         </section>
       </div>
     </main>
@@ -651,6 +752,7 @@ function DashboardView({ dashboard, executive, setTab }: { dashboard: Dashboard 
     plan: { name: dashboard.plan?.name || "", speed: dashboard.plan?.speedMbps ? `${dashboard.plan.speedMbps} Mbps` : "" },
     billing: { pendingInvoices: dashboard.financialSummary.openInvoices, nextDueDate: dashboard.mainDueDate, overdueInvoices: dashboard.financialSummary.overdueInvoices },
     support: { openTickets: 0 },
+    notifications: { unreadCount: 0 },
     connection: { lastUpdateAt: dashboard.connection.lastUpdateAt || dashboard.connection.lastSession?.sampledAt || null },
   };
   return (
@@ -664,13 +766,14 @@ function DashboardView({ dashboard, executive, setTab }: { dashboard: Dashboard 
             </div>
             <p className="text-sm text-slate-300">Última atualização: {dateTime(summary.connection.lastUpdateAt)}</p>
           </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
             <ExecutiveCard title="Internet" value={statusLabel(summary.internet.status)} hint="Status atual" icon={Wifi} tone={toneForStatus(summary.internet.status)} />
             <ExecutiveCard title="Plano" value={summary.plan.name || "Não informado"} hint={summary.plan.speed || "Velocidade não informada"} icon={ShieldCheck} tone="green" />
             <ExecutiveCard title="Próximo vencimento" value={date(summary.billing.nextDueDate)} hint="Fatura em aberto" icon={CalendarDays} tone={summary.billing.overdueInvoices > 0 ? "red" : summary.billing.pendingInvoices > 0 ? "amber" : "green"} />
             <ExecutiveCard title="Financeiro" value={`${summary.billing.pendingInvoices} pendente(s)`} hint={`${summary.billing.overdueInvoices} vencida(s)`} icon={Banknote} tone={billingTone(summary.billing.pendingInvoices, summary.billing.overdueInvoices)} />
             <ExecutiveCard title="Chamados" value={String(summary.support.openTickets)} hint="Abertos ou em atendimento" icon={Headphones} tone={summary.support.openTickets > 0 ? "amber" : "green"} />
             <ExecutiveCard title="Saúde" value={scoreText(summary.internet.healthScore)} hint="Rede vinculada" icon={Activity} tone={healthTone(summary.internet.healthScore)} />
+            <ExecutiveCard title="Notificações" value={String(summary.notifications?.unreadCount || 0)} hint="Não lidas" icon={Bell} tone={(summary.notifications?.unreadCount || 0) > 0 ? "amber" : "green"} />
           </div>
         </CardContent>
       </Card>
@@ -1163,5 +1266,72 @@ function TicketsView({
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+
+function NotificationsView({
+  notifications,
+  unreadCount,
+  loading,
+  onRefresh,
+  onRead,
+  onReadAll,
+}: {
+  notifications: CustomerNotification[];
+  unreadCount: number;
+  loading: boolean;
+  onRefresh: () => void;
+  onRead: (notification: CustomerNotification) => void;
+  onReadAll: () => void;
+}) {
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>Notificações</CardTitle>
+            <CardDescription>Eventos importantes da sua conta.</CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" onClick={onRefresh} disabled={loading}>Atualizar</Button>
+            <Button variant="outline" size="sm" onClick={onReadAll} disabled={!unreadCount || loading}>
+              <CheckCheck className="h-4 w-4" /> Marcar todas como lidas
+            </Button>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {loading ? <p className="text-sm text-slate-500">Carregando notificações...</p> : null}
+        {!loading && !notifications.length ? (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
+            <Inbox className="mx-auto mb-2 h-6 w-6 text-slate-400" />
+            Nenhuma notificação encontrada
+          </div>
+        ) : null}
+        {notifications.map((notification) => (
+          <button
+            key={notification._id}
+            type="button"
+            onClick={() => void onRead(notification)}
+            className={`w-full rounded-lg border p-4 text-left transition ${notification.isRead ? "border-slate-200 bg-white hover:bg-slate-50" : "border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50"}`}
+          >
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex h-7 items-center rounded-full border px-2.5 text-xs font-medium ${notificationTypeClass(notification.type)}`}>
+                    {notificationTypeLabel(notification.type)}
+                  </span>
+                  {!notification.isRead ? <span className="text-xs font-medium text-emerald-700">Não lida</span> : null}
+                </div>
+                <p className="mt-3 font-semibold text-slate-950">{notification.title}</p>
+                <p className="mt-1 text-sm text-slate-600">{notification.message}</p>
+              </div>
+              <p className="shrink-0 text-sm text-slate-500">{dateTime(notification.createdAt)}</p>
+            </div>
+          </button>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
