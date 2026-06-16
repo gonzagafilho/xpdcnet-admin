@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="DC NET Cliente">
+  <rect width="512" height="512" rx="112" fill="#050505"/>
+  <circle cx="256" cy="256" r="196" fill="#10b981"/>
+  <path fill="#fff" d="M154 142h76c82 0 136 47 136 114s-54 114-136 114h-76V142Zm78 166c43 0 70-20 70-52s-27-52-70-52h-14v104h14Z"/>
+  <rect x="365" y="292" width="28" height="72" rx="8" fill="#065f46"/>
+  <rect x="407" y="244" width="28" height="120" rx="8" fill="#065f46"/>
+  <rect x="449" y="196" width="28" height="168" rx="8" fill="#065f46"/>
+</svg>
