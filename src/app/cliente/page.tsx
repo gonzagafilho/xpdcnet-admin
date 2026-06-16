@@ -46,6 +46,12 @@ type CustomerLoginResponse = {
   client: { _id: string; fullName: string; status: string };
 };
 
+type CustomerOtpRequestResponse = {
+  ok: boolean;
+  message: string;
+  devCode?: string;
+};
+
 type Dashboard = {
   client: { _id: string; fullName: string; email?: string; phone?: string; status: string; dueDay?: number | null; monthlyPrice?: number };
   plan: Plan | null;
@@ -327,6 +333,10 @@ export default function ClientePage() {
   const [document, setDocument] = useState("");
   const [phone, setPhone] = useState("");
   const [loginError, setLoginError] = useState("");
+  const [loginMessage, setLoginMessage] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpRequested, setOtpRequested] = useState(false);
+  const [otpDevCode, setOtpDevCode] = useState("");
   const [loadingLogin, setLoadingLogin] = useState(false);
   const [tab, setTab] = useState<TabKey>("dashboard");
 
@@ -365,6 +375,10 @@ export default function ClientePage() {
       setExecutiveDashboard(null);
       setNotifications([]);
       setUnreadNotifications(0);
+      setLoginMessage("");
+      setOtpCode("");
+      setOtpRequested(false);
+      setOtpDevCode("");
       setLoginError("Sua sessão expirou. Entre novamente.");
       return true;
     }
@@ -440,21 +454,45 @@ export default function ClientePage() {
   async function login(e: React.FormEvent) {
     e.preventDefault();
     setLoginError("");
+    setLoginMessage("");
     setLoadingLogin(true);
     try {
-      const res = await customerApiFetch<CustomerLoginResponse>("/customer-app/auth/login", {
+      if (!otpRequested) {
+        const res = await customerApiFetch<CustomerOtpRequestResponse>("/customer-app/auth/request-otp", {
+          auth: false,
+          method: "POST",
+          body: JSON.stringify({ document, phone }),
+        });
+        setOtpRequested(true);
+        setOtpDevCode(res.devCode || "");
+        setLoginMessage(res.message || "Código enviado para o WhatsApp informado.");
+        return;
+      }
+
+      const res = await customerApiFetch<CustomerLoginResponse>("/customer-app/auth/verify-otp", {
         auth: false,
         method: "POST",
-        body: JSON.stringify({ document, phone }),
+        body: JSON.stringify({ document, phone, code: otpCode }),
       });
       setCustomerToken(res.token);
       setLoggedIn(true);
+      setOtpCode("");
+      setOtpRequested(false);
+      setOtpDevCode("");
       await loadAll();
     } catch (err) {
       setLoginError(err instanceof Error ? err.message : "Não foi possível entrar.");
     } finally {
       setLoadingLogin(false);
     }
+  }
+
+  function resetOtpLogin() {
+    setOtpRequested(false);
+    setOtpCode("");
+    setOtpDevCode("");
+    setLoginError("");
+    setLoginMessage("");
   }
 
   function logout() {
@@ -473,6 +511,10 @@ export default function ClientePage() {
     setTicketDetail(null);
     setSelectedTicketId("");
     setLastProtocol("");
+    setLoginMessage("");
+    setOtpCode("");
+    setOtpRequested(false);
+    setOtpDevCode("");
     setTab("dashboard");
   }
 
@@ -586,16 +628,37 @@ export default function ClientePage() {
                 <form onSubmit={login} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="customer-document">CPF/CNPJ</Label>
-                    <Input id="customer-document" inputMode="numeric" autoComplete="off" value={document} onChange={(e) => setDocument(e.target.value)} required />
+                    <Input id="customer-document" inputMode="numeric" autoComplete="off" value={document} onChange={(e) => setDocument(e.target.value)} disabled={otpRequested} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="customer-phone">WhatsApp</Label>
-                    <Input id="customer-phone" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+                    <Input id="customer-phone" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={otpRequested} required />
                   </div>
+                  {otpRequested ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="customer-otp">Código de 6 dígitos</Label>
+                      <Input
+                        id="customer-otp"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        value={otpCode}
+                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        required
+                      />
+                    </div>
+                  ) : null}
+                  {loginMessage ? <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{loginMessage}</p> : null}
+                  {otpDevCode ? <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Código de teste: {otpDevCode}</p> : null}
                   {loginError ? <p className="text-sm text-red-600">{loginError}</p> : null}
-                  <Button type="submit" className="h-11 w-full bg-emerald-600 hover:bg-emerald-700" disabled={loadingLogin}>
-                    {loadingLogin ? "Entrando..." : "Entrar"}
+                  <Button type="submit" className="h-11 w-full bg-emerald-600 hover:bg-emerald-700" disabled={loadingLogin || (otpRequested && otpCode.length !== 6)}>
+                    {loadingLogin ? "Aguarde..." : otpRequested ? "Entrar" : "Receber código"}
                   </Button>
+                  {otpRequested ? (
+                    <Button type="button" variant="ghost" className="h-10 w-full" onClick={resetOtpLogin} disabled={loadingLogin}>
+                      Corrigir CPF/CNPJ ou WhatsApp
+                    </Button>
+                  ) : null}
                 </form>
               </CardContent>
             </Card>
