@@ -10,8 +10,10 @@ import {
   FileText,
   Headphones,
   Home,
+  Inbox,
   LogOut,
   MessageSquarePlus,
+  PhoneCall,
   QrCode,
   Router,
   ShieldCheck,
@@ -190,6 +192,23 @@ function isPayableInvoice(invoice: InvoiceItem) {
   return ["pending", "overdue"].includes(invoice.status);
 }
 
+function supportStatusTone(status?: string): "green" | "red" | "amber" | "slate" {
+  if (["resolved", "closed"].includes(String(status))) return "green";
+  if (["in_progress"].includes(String(status))) return "amber";
+  if (["open"].includes(String(status))) return "slate";
+  return "slate";
+}
+
+function supportStatusText(status?: string) {
+  const map: Record<string, string> = {
+    open: "Aberto",
+    in_progress: "Em atendimento",
+    resolved: "Resolvido",
+    closed: "Fechado",
+  };
+  return map[String(status || "")] || status || "-";
+}
+
 
 export default function ClientePage() {
   const [tokenReady, setTokenReady] = useState(false);
@@ -209,9 +228,15 @@ export default function ClientePage() {
   const [loadingPayment, setLoadingPayment] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [selectedTicketId, setSelectedTicketId] = useState<string>("");
+  const [ticketDetail, setTicketDetail] = useState<Ticket | null>(null);
+  const [loadingTickets, setLoadingTickets] = useState(false);
+  const [loadingTicketDetail, setLoadingTicketDetail] = useState(false);
   const [supportSubject, setSupportSubject] = useState("");
   const [supportMessage, setSupportMessage] = useState("");
   const [supportStatus, setSupportStatus] = useState("");
+  const [lastProtocol, setLastProtocol] = useState("");
+  const [openingTicket, setOpeningTicket] = useState(false);
   const [loadingData, setLoadingData] = useState(false);
   const [dataError, setDataError] = useState("");
 
@@ -232,6 +257,7 @@ export default function ClientePage() {
     setLoadingData(true);
     setDataError("");
     try {
+      setLoadingTickets(true);
       const [me, planData, connData, invoiceData, ticketData] = await Promise.all([
         customerApiFetch<Dashboard>("/customer-app/me"),
         customerApiFetch<PlanResponse>("/customer-app/plan"),
@@ -244,6 +270,7 @@ export default function ClientePage() {
       setConnection(connData);
       setInvoices(invoiceData.items || []);
       setTickets(ticketData.items || []);
+      setSelectedTicketId((current) => current || ticketData.items?.[0]?._id || "");
       const firstPayable = (invoiceData.items || []).find((item) => item.hasBillingInvoice) || invoiceData.items?.[0];
       setSelectedInvoiceId((current) => current || firstPayable?._id || "");
       setLoggedIn(true);
@@ -251,6 +278,7 @@ export default function ClientePage() {
       if (!handleAuthError(err)) setDataError(err instanceof Error ? err.message : "Falha ao carregar dados.");
     } finally {
       setLoadingData(false);
+      setLoadingTickets(false);
     }
   }, [handleAuthError]);
 
@@ -271,6 +299,17 @@ export default function ClientePage() {
       })
       .finally(() => setLoadingPayment(false));
   }, [selectedInvoiceId, loggedIn, handleAuthError]);
+
+  useEffect(() => {
+    if (!selectedTicketId || !loggedIn) return;
+    setLoadingTicketDetail(true);
+    customerApiFetch<Ticket>(`/customer-app/support/tickets/${selectedTicketId}`)
+      .then(setTicketDetail)
+      .catch((err) => {
+        if (!handleAuthError(err)) setTicketDetail(null);
+      })
+      .finally(() => setLoadingTicketDetail(false));
+  }, [selectedTicketId, loggedIn, handleAuthError]);
 
   async function login(e: React.FormEvent) {
     e.preventDefault();
@@ -302,25 +341,37 @@ export default function ClientePage() {
     setTickets([]);
     setPayment(null);
     setCopyStatus("");
+    setTicketDetail(null);
+    setSelectedTicketId("");
+    setLastProtocol("");
     setTab("dashboard");
   }
 
   async function createTicket(e: React.FormEvent) {
     e.preventDefault();
     setSupportStatus("");
+    setLastProtocol("");
+    setOpeningTicket(true);
     try {
-      await customerApiFetch<Ticket>("/customer-app/support/tickets", {
+      const created = await customerApiFetch<Ticket>("/customer-app/support/tickets", {
         method: "POST",
         body: JSON.stringify({ subject: supportSubject, message: supportMessage }),
       });
       setSupportSubject("");
       setSupportMessage("");
-      setSupportStatus("Protocolo aberto com sucesso.");
+      setSupportStatus("Chamado aberto com sucesso");
+      setLastProtocol(created.protocol || "");
+      setSelectedTicketId(created._id);
+      setTicketDetail(created);
+      setLoadingTickets(true);
       const data = await customerApiFetch<{ items: Ticket[] }>("/customer-app/support/tickets?limit=20");
       setTickets(data.items || []);
       setTab("tickets");
     } catch (err) {
-      if (!handleAuthError(err)) setSupportStatus(err instanceof Error ? err.message : "Falha ao abrir protocolo.");
+      if (!handleAuthError(err)) setSupportStatus(err instanceof Error ? err.message : "Falha ao abrir chamado.");
+    } finally {
+      setOpeningTicket(false);
+      setLoadingTickets(false);
     }
   }
 
@@ -441,12 +492,23 @@ export default function ClientePage() {
               subject={supportSubject}
               message={supportMessage}
               status={supportStatus}
+              lastProtocol={lastProtocol}
+              loading={openingTicket}
               setSubject={setSupportSubject}
               setMessage={setSupportMessage}
               onSubmit={createTicket}
             />
           ) : null}
-          {tab === "tickets" ? <TicketsView tickets={tickets} /> : null}
+          {tab === "tickets" ? (
+            <TicketsView
+              tickets={tickets}
+              selectedTicketId={selectedTicketId}
+              setSelectedTicketId={setSelectedTicketId}
+              ticketDetail={ticketDetail}
+              loadingTickets={loadingTickets}
+              loadingTicketDetail={loadingTicketDetail}
+            />
+          ) : null}
         </section>
       </div>
     </main>
@@ -721,38 +783,182 @@ function PaymentView({
   );
 }
 
-function SupportView({ subject, message, status, setSubject, setMessage, onSubmit }: { subject: string; message: string; status: string; setSubject: (value: string) => void; setMessage: (value: string) => void; onSubmit: (event: React.FormEvent) => void }) {
+function SupportView({
+  subject,
+  message,
+  status,
+  lastProtocol,
+  loading,
+  setSubject,
+  setMessage,
+  onSubmit,
+}: {
+  subject: string;
+  message: string;
+  status: string;
+  lastProtocol: string;
+  loading: boolean;
+  setSubject: (value: string) => void;
+  setMessage: (value: string) => void;
+  onSubmit: (event: React.FormEvent) => void;
+}) {
   return (
-    <Card>
-      <CardHeader><CardTitle>Suporte</CardTitle><CardDescription>Abra um protocolo para atendimento.</CardDescription></CardHeader>
-      <CardContent>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2"><Label>Assunto</Label><Input value={subject} onChange={(e) => setSubject(e.target.value)} required /></div>
-          <div className="space-y-2"><Label>Mensagem</Label><textarea className="min-h-32 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-400" value={message} onChange={(e) => setMessage(e.target.value)} required /></div>
-          {status ? <p className="text-sm text-slate-600">{status}</p> : null}
-          <Button type="submit" className="bg-emerald-600 hover:bg-emerald-700"><MessageSquarePlus className="h-4 w-4" /> Abrir protocolo</Button>
-        </form>
-      </CardContent>
-    </Card>
+    <div className="grid gap-5 lg:grid-cols-[1fr_0.8fr]">
+      <Card>
+        <CardHeader>
+          <CardTitle>Suporte</CardTitle>
+          <CardDescription>Descreva sua solicitação para abrir um chamado.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={onSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="support-subject">Assunto</Label>
+              <Input
+                id="support-subject"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="Ex.: Internet oscilando"
+                maxLength={160}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="support-message">Mensagem</Label>
+              <textarea
+                id="support-message"
+                className="min-h-36 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none transition focus:ring-2 focus:ring-emerald-500"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Conte o que está acontecendo. Quanto mais detalhes, melhor."
+                maxLength={4000}
+                required
+              />
+              <p className="text-xs text-slate-500">{message.length}/4000 caracteres</p>
+            </div>
+            {status ? (
+              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                <p className="font-medium">{status}</p>
+                {lastProtocol ? <p className="mt-1">Protocolo: {lastProtocol}</p> : null}
+              </div>
+            ) : null}
+            <Button type="submit" className="h-11 bg-emerald-600 hover:bg-emerald-700" disabled={loading}>
+              <MessageSquarePlus className="h-4 w-4" /> {loading ? "Abrindo chamado..." : "Abrir Chamado"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Atendimento DC NET</CardTitle>
+          <CardDescription>Seu protocolo fica salvo para acompanhamento.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 text-sm text-slate-600">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            <PhoneCall className="mb-2 h-5 w-5 text-emerald-600" />
+            Informe um assunto curto e uma mensagem clara para agilizar o atendimento.
+          </div>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+            Você pode acompanhar a situação na aba Protocolos logo após abrir o chamado.
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
-function TicketsView({ tickets }: { tickets: Ticket[] }) {
+function TicketsView({
+  tickets,
+  selectedTicketId,
+  setSelectedTicketId,
+  ticketDetail,
+  loadingTickets,
+  loadingTicketDetail,
+}: {
+  tickets: Ticket[];
+  selectedTicketId: string;
+  setSelectedTicketId: (value: string) => void;
+  ticketDetail: Ticket | null;
+  loadingTickets: boolean;
+  loadingTicketDetail: boolean;
+}) {
   return (
-    <Card>
-      <CardHeader><CardTitle>Protocolos</CardTitle><CardDescription>Acompanhe suas solicitações.</CardDescription></CardHeader>
-      <CardContent className="space-y-3">
-        {tickets.map((ticket) => (
-          <div key={ticket._id} className="rounded-lg border border-slate-200 p-3">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div><p className="font-medium">{ticket.subject}</p><p className="text-sm text-slate-500">Protocolo {ticket.protocol} · {date(ticket.createdAt)}</p></div>
-              <Badge tone={toneForStatus(ticket.status)}>{statusLabel(ticket.status)}</Badge>
+    <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+      <Card>
+        <CardHeader>
+          <CardTitle>Protocolos</CardTitle>
+          <CardDescription>Acompanhe suas solicitações de suporte.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {loadingTickets ? <p className="text-sm text-slate-500">Carregando protocolos...</p> : null}
+          {!loadingTickets && !tickets.length ? (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
+              <Inbox className="mx-auto mb-2 h-6 w-6 text-slate-400" />
+              Nenhum protocolo encontrado
             </div>
-            <p className="mt-3 text-sm text-slate-600">{ticket.message}</p>
-          </div>
-        ))}
-        {!tickets.length ? <p className="text-sm text-slate-500">Nenhum protocolo encontrado.</p> : null}
-      </CardContent>
-    </Card>
+          ) : null}
+          {tickets.map((ticket) => (
+            <button
+              key={ticket._id}
+              type="button"
+              onClick={() => setSelectedTicketId(ticket._id)}
+              className={`w-full rounded-lg border p-3 text-left transition ${
+                selectedTicketId === ticket._id ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white hover:bg-slate-50"
+              }`}
+            >
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Protocolo {ticket.protocol}</p>
+                  <p className="mt-1 truncate font-medium text-slate-950">{ticket.subject}</p>
+                  <p className="mt-1 text-sm text-slate-500">Aberto em {date(ticket.createdAt)}</p>
+                </div>
+                <Badge tone={supportStatusTone(ticket.status)}>{supportStatusText(ticket.status)}</Badge>
+              </div>
+            </button>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Detalhes do protocolo</CardTitle>
+          <CardDescription>Informações do chamado selecionado.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingTicketDetail ? <p className="text-sm text-slate-500">Carregando protocolo...</p> : null}
+          {!loadingTicketDetail && !ticketDetail ? (
+            <p className="text-sm text-slate-500">Selecione um protocolo para ver os detalhes.</p>
+          ) : null}
+          {!loadingTicketDetail && ticketDetail ? (
+            <div className="space-y-4">
+              <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Protocolo</p>
+                  <p className="mt-1 text-lg font-semibold text-slate-950">{ticketDetail.protocol}</p>
+                </div>
+                <Badge tone={supportStatusTone(ticketDetail.status)}>{supportStatusText(ticketDetail.status)}</Badge>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-900">Assunto</p>
+                <p className="mt-1 text-sm text-slate-600">{ticketDetail.subject}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-slate-900">Mensagem</p>
+                <p className="mt-1 whitespace-pre-wrap rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700">{ticketDetail.message}</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-slate-200 p-3">
+                  <p className="text-xs text-slate-500">Data de abertura</p>
+                  <p className="mt-1 text-sm font-medium">{date(ticketDetail.createdAt)}</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 p-3">
+                  <p className="text-xs text-slate-500">Última atualização</p>
+                  <p className="mt-1 text-sm font-medium">{date(ticketDetail.updatedAt)}</p>
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
