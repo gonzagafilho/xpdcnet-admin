@@ -5,6 +5,7 @@ import {
   Activity,
   AlertTriangle,
   Banknote,
+  CalendarDays,
   CircleHelp,
   Clock,
   Copy,
@@ -140,6 +141,15 @@ type Ticket = {
   updatedAt: string;
 };
 
+type ExecutiveDashboard = {
+  client: { fullName: string; status: string };
+  internet: { status: "online" | "offline" | "unknown" | string; healthScore: number | null };
+  plan: { name: string; speed: string };
+  billing: { pendingInvoices: number; nextDueDate: string | null; overdueInvoices: number };
+  support: { openTickets: number };
+  connection: { lastUpdateAt: string | null };
+};
+
 const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "dashboard", label: "Início", icon: Home },
   { key: "plan", label: "Meu Plano", icon: ShieldCheck },
@@ -258,6 +268,24 @@ function connectionTone(connection: ConnectionInfo): "green" | "red" | "amber" |
   return "slate";
 }
 
+function healthTone(score?: number | null): "green" | "red" | "amber" | "slate" {
+  if (score == null) return "slate";
+  if (score >= 85) return "green";
+  if (score >= 55) return "amber";
+  return "red";
+}
+
+function billingTone(pending: number, overdue: number): "green" | "red" | "amber" | "slate" {
+  if (overdue > 0) return "red";
+  if (pending > 0) return "amber";
+  return "green";
+}
+
+function scoreText(score?: number | null) {
+  if (score == null) return "Sem dados";
+  return `${Math.max(0, Math.min(100, Math.round(score)))}%`;
+}
+
 
 export default function ClientePage() {
   const [tokenReady, setTokenReady] = useState(false);
@@ -269,6 +297,7 @@ export default function ClientePage() {
   const [tab, setTab] = useState<TabKey>("dashboard");
 
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [executiveDashboard, setExecutiveDashboard] = useState<ExecutiveDashboard | null>(null);
   const [plan, setPlan] = useState<PlanResponse | null>(null);
   const [connection, setConnection] = useState<ConnectionInfo | null>(null);
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
@@ -296,6 +325,7 @@ export default function ClientePage() {
       clearCustomerToken();
       setLoggedIn(false);
       setDashboard(null);
+      setExecutiveDashboard(null);
       setLoginError("Sua sessão expirou. Entre novamente.");
       return true;
     }
@@ -307,14 +337,16 @@ export default function ClientePage() {
     setDataError("");
     try {
       setLoadingTickets(true);
-      const [me, planData, connData, invoiceData, ticketData] = await Promise.all([
+      const [me, executive, planData, connData, invoiceData, ticketData] = await Promise.all([
         customerApiFetch<Dashboard>("/customer-app/me"),
+        customerApiFetch<ExecutiveDashboard>("/customer-app/dashboard"),
         customerApiFetch<PlanResponse>("/customer-app/plan"),
         customerApiFetch<ConnectionInfo>("/customer-app/connection"),
         customerApiFetch<{ items: InvoiceItem[] }>("/customer-app/invoices?limit=24"),
         customerApiFetch<{ items: Ticket[] }>("/customer-app/support/tickets?limit=20"),
       ]);
       setDashboard(me);
+      setExecutiveDashboard(executive);
       setPlan(planData);
       setConnection(connData);
       setInvoices(invoiceData.items || []);
@@ -384,6 +416,7 @@ export default function ClientePage() {
     clearCustomerToken();
     setLoggedIn(false);
     setDashboard(null);
+    setExecutiveDashboard(null);
     setPlan(null);
     setConnection(null);
     setInvoices([]);
@@ -521,7 +554,7 @@ export default function ClientePage() {
 
         <section className="space-y-5">
           {dataError ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{dataError}</div> : null}
-          {tab === "dashboard" ? <DashboardView dashboard={dashboard} setTab={setTab} /> : null}
+          {tab === "dashboard" ? <DashboardView dashboard={dashboard} executive={executiveDashboard} setTab={setTab} /> : null}
           {tab === "plan" ? <PlanView plan={plan} /> : null}
           {tab === "connection" ? <ConnectionView connection={connection} /> : null}
           {tab === "invoices" ? <InvoicesView invoices={invoices} onPayment={(id) => { setSelectedInvoiceId(id); setTab("payment"); }} /> : null}
@@ -579,16 +612,68 @@ function MetricCard({ title, value, hint, icon: Icon }: { title: string; value: 
   );
 }
 
-function DashboardView({ dashboard, setTab }: { dashboard: Dashboard | null; setTab: (tab: TabKey) => void }) {
+function ExecutiveCard({
+  title,
+  value,
+  hint,
+  icon: Icon,
+  tone,
+}: {
+  title: string;
+  value: string;
+  hint: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: "green" | "red" | "amber" | "slate";
+}) {
+  const cls = {
+    green: "border-emerald-400/30 bg-emerald-400/10 text-emerald-100",
+    red: "border-red-400/30 bg-red-400/10 text-red-100",
+    amber: "border-amber-400/30 bg-amber-400/10 text-amber-100",
+    slate: "border-slate-500/40 bg-white/5 text-slate-100",
+  }[tone];
+  return (
+    <div className={`rounded-lg border p-3 ${cls}`}>
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-medium uppercase text-white/60">{title}</p>
+        <Icon className="h-4 w-4 shrink-0" />
+      </div>
+      <p className="mt-3 truncate text-lg font-semibold tracking-tight text-white">{value}</p>
+      <p className="mt-1 truncate text-xs text-white/65">{hint}</p>
+    </div>
+  );
+}
+
+function DashboardView({ dashboard, executive, setTab }: { dashboard: Dashboard | null; executive: ExecutiveDashboard | null; setTab: (tab: TabKey) => void }) {
   if (!dashboard) return null;
+  const summary = executive || {
+    client: { fullName: dashboard.client.fullName, status: dashboard.client.status },
+    internet: { status: dashboard.connection.status, healthScore: dashboard.connection.networkNode?.healthScore ?? null },
+    plan: { name: dashboard.plan?.name || "", speed: dashboard.plan?.speedMbps ? `${dashboard.plan.speedMbps} Mbps` : "" },
+    billing: { pendingInvoices: dashboard.financialSummary.openInvoices, nextDueDate: dashboard.mainDueDate, overdueInvoices: dashboard.financialSummary.overdueInvoices },
+    support: { openTickets: 0 },
+    connection: { lastUpdateAt: dashboard.connection.lastUpdateAt || dashboard.connection.lastSession?.sampledAt || null },
+  };
   return (
     <div className="space-y-5">
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard title="Meu Plano" value={dashboard.plan?.name || "-"} hint={`${dashboard.plan?.speedMbps || 0} Mbps`} icon={ShieldCheck} />
-        <MetricCard title="Minha Conexão" value={statusLabel(dashboard.connection.status)} hint="Última leitura disponível" icon={Router} />
-        <MetricCard title="Próximo Vencimento" value={date(dashboard.mainDueDate)} hint="Fatura em aberto mais próxima" icon={FileText} />
-        <MetricCard title="Faturas Pendentes" value={String(dashboard.financialSummary.openInvoices)} hint={money(dashboard.financialSummary.openAmount)} icon={Banknote} />
-      </div>
+      <Card className="border-slate-200 bg-slate-950 text-white">
+        <CardContent className="space-y-5 p-5 sm:p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-emerald-300">Bem-vindo, {summary.client.fullName?.split(" ")[0] || "cliente"}</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight">Resumo da sua conta</h2>
+            </div>
+            <p className="text-sm text-slate-300">Última atualização: {dateTime(summary.connection.lastUpdateAt)}</p>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+            <ExecutiveCard title="Internet" value={statusLabel(summary.internet.status)} hint="Status atual" icon={Wifi} tone={toneForStatus(summary.internet.status)} />
+            <ExecutiveCard title="Plano" value={summary.plan.name || "Não informado"} hint={summary.plan.speed || "Velocidade não informada"} icon={ShieldCheck} tone="green" />
+            <ExecutiveCard title="Próximo vencimento" value={date(summary.billing.nextDueDate)} hint="Fatura em aberto" icon={CalendarDays} tone={summary.billing.overdueInvoices > 0 ? "red" : summary.billing.pendingInvoices > 0 ? "amber" : "green"} />
+            <ExecutiveCard title="Financeiro" value={`${summary.billing.pendingInvoices} pendente(s)`} hint={`${summary.billing.overdueInvoices} vencida(s)`} icon={Banknote} tone={billingTone(summary.billing.pendingInvoices, summary.billing.overdueInvoices)} />
+            <ExecutiveCard title="Chamados" value={String(summary.support.openTickets)} hint="Abertos ou em atendimento" icon={Headphones} tone={summary.support.openTickets > 0 ? "amber" : "green"} />
+            <ExecutiveCard title="Saúde" value={scoreText(summary.internet.healthScore)} hint="Rede vinculada" icon={Activity} tone={healthTone(summary.internet.healthScore)} />
+          </div>
+        </CardContent>
+      </Card>
       <Card>
         <CardHeader>
           <CardTitle>Atalhos</CardTitle>
