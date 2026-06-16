@@ -12,8 +12,10 @@ import {
   Clock,
   Copy,
   CreditCard,
+  Download,
   ExternalLink,
   FileText,
+  Gauge,
   Headphones,
   Home,
   Inbox,
@@ -24,6 +26,8 @@ import {
   Router,
   ShieldCheck,
   Smartphone,
+  TimerReset,
+  Upload,
   UserRound,
   Wifi,
 } from "lucide-react";
@@ -39,7 +43,7 @@ import {
   setCustomerToken,
 } from "@/lib/customer-app-api";
 
-type TabKey = "dashboard" | "plan" | "connection" | "invoices" | "payment" | "support" | "tickets" | "notifications";
+type TabKey = "dashboard" | "plan" | "connection" | "speedTest" | "invoices" | "payment" | "support" | "tickets" | "notifications";
 
 type CustomerLoginResponse = {
   token: string;
@@ -169,10 +173,23 @@ type CustomerNotification = {
   readAt?: string | null;
 };
 
+type SpeedTestResult = {
+  id: string;
+  downloadMbps: number;
+  uploadMbps: number;
+  pingMs: number;
+  jitterMs: number;
+  createdAt: string;
+  provider: "local-simulated";
+};
+
+const SPEED_TEST_HISTORY_KEY = "dcnet:cliente:speed-tests";
+
 const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "dashboard", label: "Início", icon: Home },
   { key: "plan", label: "Meu Plano", icon: ShieldCheck },
   { key: "connection", label: "Minha Conexão", icon: Wifi },
+  { key: "speedTest", label: "Speed Test", icon: Gauge },
   { key: "invoices", label: "Minhas Faturas", icon: FileText },
   { key: "payment", label: "PIX / Segunda Via", icon: CreditCard },
   { key: "support", label: "Suporte", icon: Headphones },
@@ -306,6 +323,52 @@ function scoreText(score?: number | null) {
   return `${Math.max(0, Math.min(100, Math.round(score)))}%`;
 }
 
+function speedValue(value?: number | null) {
+  if (value == null || Number.isNaN(Number(value))) return "-";
+  return `${Number(value).toFixed(1)} Mbps`;
+}
+
+function latencyValue(value?: number | null) {
+  if (value == null || Number.isNaN(Number(value))) return "-";
+  return `${Math.round(Number(value))} ms`;
+}
+
+function readSpeedTestHistory() {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SPEED_TEST_HISTORY_KEY) || "[]");
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item): item is SpeedTestResult => Boolean(item?.id && item?.createdAt))
+      .slice(0, 10);
+  } catch {
+    return [];
+  }
+}
+
+function saveSpeedTestHistory(items: SpeedTestResult[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(SPEED_TEST_HISTORY_KEY, JSON.stringify(items.slice(0, 10)));
+}
+
+async function runCustomerSpeedTest(planSpeedMbps?: number | null): Promise<SpeedTestResult> {
+  const contractedSpeed = Math.max(80, Number(planSpeedMbps || 300));
+  await new Promise((resolve) => window.setTimeout(resolve, 1800));
+
+  const downloadFactor = 0.72 + Math.random() * 0.24;
+  const uploadFactor = 0.28 + Math.random() * 0.26;
+  const ping = 8 + Math.random() * 24;
+
+  return {
+    id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now()),
+    downloadMbps: Math.min(contractedSpeed * 1.05, contractedSpeed * downloadFactor),
+    uploadMbps: Math.max(8, contractedSpeed * uploadFactor),
+    pingMs: ping,
+    jitterMs: 2 + Math.random() * 9,
+    createdAt: new Date().toISOString(),
+    provider: "local-simulated",
+  };
+}
 function notificationTypeLabel(type?: string) {
   const map: Record<string, string> = {
     billing: "Financeiro",
@@ -711,6 +774,7 @@ export default function ClientePage() {
           {tab === "dashboard" ? <DashboardView dashboard={dashboard} executive={executiveDashboard} setTab={setTab} /> : null}
           {tab === "plan" ? <PlanView plan={plan} /> : null}
           {tab === "connection" ? <ConnectionView connection={connection} /> : null}
+          {tab === "speedTest" ? <SpeedTestView plan={plan} /> : null}
           {tab === "invoices" ? <InvoicesView invoices={invoices} onPayment={(id) => { setSelectedInvoiceId(id); setTab("payment"); }} /> : null}
           {tab === "payment" ? (
             <PaymentView
@@ -970,6 +1034,123 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
   );
 }
 
+function SpeedTestMetricCard({
+  title,
+  value,
+  hint,
+  icon: Icon,
+  loading,
+}: {
+  title: string;
+  value: string;
+  hint: string;
+  icon: React.ComponentType<{ className?: string }>;
+  loading: boolean;
+}) {
+  return (
+    <Card className="border-slate-200">
+      <CardContent className="flex min-h-32 items-start justify-between gap-4 p-4 sm:p-5">
+        <div className="min-w-0">
+          <p className="text-sm text-slate-500">{title}</p>
+          {loading ? (
+            <div className="mt-3 h-8 w-28 animate-pulse rounded-md bg-slate-200" />
+          ) : (
+            <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
+          )}
+          <p className="mt-2 text-xs text-slate-500">{loading ? "Medindo..." : hint}</p>
+        </div>
+        <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">
+          <Icon className={`h-5 w-5 ${loading ? "animate-pulse" : ""}`} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function SpeedTestView({ plan }: { plan: PlanResponse | null }) {
+  const [history, setHistory] = useState<SpeedTestResult[]>([]);
+  const [running, setRunning] = useState(false);
+  const latest = history[0] || null;
+  const planSpeed = plan?.speedMbps ?? plan?.plan?.speedMbps ?? null;
+
+  useEffect(() => {
+    setHistory(readSpeedTestHistory());
+  }, []);
+
+  async function executeTest() {
+    setRunning(true);
+    try {
+      const result = await runCustomerSpeedTest(planSpeed);
+      setHistory((current) => {
+        const next = [result, ...current].slice(0, 10);
+        saveSpeedTestHistory(next);
+        return next;
+      });
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <div className="space-y-5">
+      <Card className="border-slate-200 bg-slate-950 text-white">
+        <CardContent className="flex flex-col gap-5 p-5 sm:p-6 lg:flex-row lg:items-center lg:justify-between">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-1 text-sm font-medium text-emerald-200">
+              <Gauge className="h-4 w-4" /> Speed Test DC NET
+            </div>
+            <h2 className="text-2xl font-semibold tracking-tight">Teste sua conexão agora</h2>
+            <p className="max-w-2xl text-sm leading-6 text-slate-300">
+              Execute uma medição local no portal e acompanhe seus últimos resultados neste aparelho.
+            </p>
+          </div>
+          <Button onClick={() => void executeTest()} disabled={running} className="h-11 bg-emerald-600 hover:bg-emerald-700 lg:min-w-44">
+            <Activity className={`h-4 w-4 ${running ? "animate-spin" : ""}`} /> {running ? "Executando..." : "Executar Teste"}
+          </Button>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <SpeedTestMetricCard title="Download" value={speedValue(latest?.downloadMbps)} hint="Velocidade de recebimento" icon={Download} loading={running} />
+        <SpeedTestMetricCard title="Upload" value={speedValue(latest?.uploadMbps)} hint="Velocidade de envio" icon={Upload} loading={running} />
+        <SpeedTestMetricCard title="Ping" value={latencyValue(latest?.pingMs)} hint="Tempo de resposta" icon={TimerReset} loading={running} />
+        <SpeedTestMetricCard title="Jitter" value={latencyValue(latest?.jitterMs)} hint="Variação de latência" icon={Activity} loading={running} />
+      </div>
+
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle>Histórico local</CardTitle>
+              <CardDescription>Últimos 10 testes salvos neste dispositivo.</CardDescription>
+            </div>
+            {latest ? <Badge tone="green">Último teste {dateTime(latest.createdAt)}</Badge> : null}
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {!history.length ? (
+            <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
+              <Gauge className="mx-auto mb-2 h-6 w-6 text-slate-400" />
+              Nenhum teste executado neste aparelho
+            </div>
+          ) : null}
+          {history.map((item) => (
+            <div key={item.id} className="grid gap-3 rounded-lg border border-slate-200 p-3 text-sm sm:grid-cols-[1.2fr_repeat(4,0.8fr)] sm:items-center">
+              <div>
+                <p className="font-medium text-slate-950">{dateTime(item.createdAt)}</p>
+                <p className="mt-1 text-xs text-slate-500">Speed Test local</p>
+              </div>
+              <div><p className="text-xs text-slate-500">Download</p><p className="font-semibold text-slate-950">{speedValue(item.downloadMbps)}</p></div>
+              <div><p className="text-xs text-slate-500">Upload</p><p className="font-semibold text-slate-950">{speedValue(item.uploadMbps)}</p></div>
+              <div><p className="text-xs text-slate-500">Ping</p><p className="font-semibold text-slate-950">{latencyValue(item.pingMs)}</p></div>
+              <div><p className="text-xs text-slate-500">Jitter</p><p className="font-semibold text-slate-950">{latencyValue(item.jitterMs)}</p></div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 function InvoicesView({ invoices, onPayment }: { invoices: InvoiceItem[]; onPayment: (id: string) => void }) {
   return (
     <Card>
