@@ -137,6 +137,22 @@ type PppoeInfo = {
   alerts: { type: string; severity: string; message: string }[];
 };
 
+type PppoeUsageBucket = {
+  downloadGB: number;
+  uploadGB: number;
+  totalGB: number;
+};
+
+type PppoeHistory = {
+  today: PppoeUsageBucket;
+  yesterday: PppoeUsageBucket;
+  month: PppoeUsageBucket;
+  series7d: ({ date: string } & PppoeUsageBucket)[];
+  series30d: ({ date: string } & PppoeUsageBucket)[];
+  source: "snapshot" | "empty" | string;
+  message: string;
+};
+
 type InvoiceItem = {
   _id: string;
   amount: number;
@@ -359,6 +375,14 @@ function latencyValue(value?: number | null) {
   if (value == null || Number.isNaN(Number(value))) return "-";
   return `${Math.round(Number(value))} ms`;
 }
+function dataGb(value?: number | null) {
+  if (value == null || Number.isNaN(Number(value))) return "0 GB";
+  return `${Number(value).toFixed(3)} GB`;
+}
+
+function hasUsageSeries(items?: PppoeHistory["series7d"]) {
+  return Boolean(items?.some((item) => Number(item.totalGB || 0) > 0));
+}
 
 function readSpeedTestHistory() {
   if (typeof window === "undefined") return [];
@@ -507,6 +531,7 @@ export default function ClientePage() {
   const [plan, setPlan] = useState<PlanResponse | null>(null);
   const [connection, setConnection] = useState<ConnectionInfo | null>(null);
   const [pppoe, setPppoe] = useState<PppoeInfo | null>(null);
+  const [pppoeHistory, setPppoeHistory] = useState<PppoeHistory | null>(null);
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>("");
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
@@ -554,12 +579,13 @@ export default function ClientePage() {
     try {
       setLoadingTickets(true);
       setLoadingNotifications(true);
-      const [me, executive, planData, connData, pppoeData, invoiceData, ticketData, notificationData, unreadData] = await Promise.all([
+      const [me, executive, planData, connData, pppoeData, pppoeHistoryData, invoiceData, ticketData, notificationData, unreadData] = await Promise.all([
         customerApiFetch<Dashboard>("/customer-app/me"),
         customerApiFetch<ExecutiveDashboard>("/customer-app/dashboard"),
         customerApiFetch<PlanResponse>("/customer-app/plan"),
         customerApiFetch<ConnectionInfo>("/customer-app/connection"),
         customerApiFetch<PppoeInfo>("/customer-app/pppoe"),
+        customerApiFetch<PppoeHistory>("/customer-app/pppoe/history"),
         customerApiFetch<{ items: InvoiceItem[] }>("/customer-app/invoices?limit=24"),
         customerApiFetch<{ items: Ticket[] }>("/customer-app/support/tickets?limit=20"),
         customerApiFetch<{ items: CustomerNotification[] }>("/customer-app/notifications?limit=50"),
@@ -570,6 +596,7 @@ export default function ClientePage() {
       setPlan(planData);
       setConnection(connData);
       setPppoe(pppoeData);
+      setPppoeHistory(pppoeHistoryData);
       setInvoices(invoiceData.items || []);
       setTickets(ticketData.items || []);
       setNotifications(notificationData.items || []);
@@ -668,6 +695,7 @@ export default function ClientePage() {
     setPlan(null);
     setConnection(null);
     setPppoe(null);
+    setPppoeHistory(null);
     setInvoices([]);
     setTickets([]);
     setNotifications([]);
@@ -877,7 +905,7 @@ export default function ClientePage() {
           {tab === "dashboard" ? <DashboardView dashboard={dashboard} executive={executiveDashboard} setTab={setTab} /> : null}
           {tab === "plan" ? <PlanView plan={plan} /> : null}
           {tab === "connection" ? <ConnectionView connection={connection} /> : null}
-          {tab === "pppoe" ? <PppoeView data={pppoe} /> : null}
+          {tab === "pppoe" ? <PppoeView data={pppoe} history={pppoeHistory} /> : null}
           {tab === "speedTest" ? <SpeedTestView /> : null}
           {tab === "invoices" ? <InvoicesView invoices={invoices} onPayment={(id) => { setSelectedInvoiceId(id); setTab("payment"); }} /> : null}
           {tab === "payment" ? (
@@ -1138,7 +1166,48 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
   );
 }
 
-function PppoeView({ data }: { data: PppoeInfo | null }) {
+function PppoeConsumptionChart({ title, description, data }: { title: string; description: string; data: PppoeHistory["series7d"] }) {
+  if (!hasUsageSeries(data)) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
+            <Activity className="mx-auto mb-2 h-6 w-6 text-slate-400" />
+            Sem histórico de consumo recente.
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="h-72 min-h-72 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="date" tickLine={false} axisLine={false} />
+              <YAxis tickLine={false} axisLine={false} width={44} />
+              <Tooltip formatter={(value) => dataGb(Number(value))} />
+              <Line type="monotone" dataKey="downloadGB" name="Download" stroke="#10b981" strokeWidth={2} dot={false} connectNulls />
+              <Line type="monotone" dataKey="uploadGB" name="Upload" stroke="#0f172a" strokeWidth={2} dot={false} connectNulls />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+function PppoeView({ data, history }: { data: PppoeInfo | null; history: PppoeHistory | null }) {
   if (!data) {
     return (
       <Card>
@@ -1215,6 +1284,33 @@ function PppoeView({ data }: { data: PppoeInfo | null }) {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Histórico de Consumo</CardTitle>
+          <CardDescription>{history?.message || "Consumo calculado pelos snapshots PPPoE disponíveis."}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <MetricCard title="Download Hoje" value={dataGb(history?.today.downloadGB)} hint="Consumo recebido hoje" icon={Download} />
+          <MetricCard title="Upload Hoje" value={dataGb(history?.today.uploadGB)} hint="Consumo enviado hoje" icon={Upload} />
+          <MetricCard title="Total Hoje" value={dataGb(history?.today.totalGB)} hint="Download + upload" icon={Activity} />
+          <MetricCard title="Download Mês" value={dataGb(history?.month.downloadGB)} hint="Acumulado do mês" icon={Download} />
+          <MetricCard title="Upload Mês" value={dataGb(history?.month.uploadGB)} hint="Acumulado do mês" icon={Upload} />
+          <MetricCard title="Total Mês" value={dataGb(history?.month.totalGB)} hint="Download + upload" icon={Activity} />
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-5 xl:grid-cols-2">
+        <PppoeConsumptionChart
+          title="Consumo dos últimos 7 dias"
+          description="Download e upload por dia."
+          data={history?.series7d || []}
+        />
+        <PppoeConsumptionChart
+          title="Consumo dos últimos 30 dias"
+          description="Visão mensal diária do consumo PPPoE."
+          data={history?.series30d || []}
+        />
+      </div>
       <Card>
         <CardHeader><CardTitle>Alertas</CardTitle></CardHeader>
         <CardContent className="space-y-3">
