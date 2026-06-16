@@ -153,6 +153,28 @@ type PppoeHistory = {
   message: string;
 };
 
+type PppoeLive = {
+  status: "online" | "offline" | "unknown" | string;
+  downloadMbps: number;
+  uploadMbps: number;
+  currentIp: string | null;
+  uptime: string | null;
+  pingMs: number | null;
+  jitterMs: number | null;
+  packetLoss: number | null;
+  lastUpdateAt: string | null;
+  source: "snapshot" | "empty" | string;
+  message: string;
+};
+
+type PppoeLivePoint = {
+  time: string;
+  downloadMbps: number;
+  uploadMbps: number;
+};
+
+type PppoeLiveState = "idle" | "loading" | "fresh" | "empty" | "error";
+
 type InvoiceItem = {
   _id: string;
   amount: number;
@@ -252,6 +274,11 @@ function date(value?: string | null) {
 function dateTime(value?: string | null) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
+}
+
+function timeLabel(value?: string | null) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).format(new Date(value));
 }
 
 function statusLabel(status?: string) {
@@ -382,6 +409,22 @@ function dataGb(value?: number | null) {
 
 function hasUsageSeries(items?: PppoeHistory["series7d"]) {
   return Boolean(items?.some((item) => Number(item.totalGB || 0) > 0));
+}
+
+function pppoeLivePointFromData(data: PppoeLive): PppoeLivePoint {
+  return {
+    time: timeLabel(new Date().toISOString()),
+    downloadMbps: Number(data.downloadMbps || 0),
+    uploadMbps: Number(data.uploadMbps || 0),
+  };
+}
+
+function liveStatusText(status: PppoeLiveState, data: PppoeLive | null) {
+  if (status === "loading") return "Atualizando...";
+  if (status === "error") return "Falha ao atualizar; mantendo último dado.";
+  if (status === "empty" || data?.source === "empty") return "Sem dados recentes";
+  if (status === "fresh") return "Atualizado agora";
+  return "Aguardando atualização";
 }
 
 function readSpeedTestHistory() {
@@ -532,6 +575,9 @@ export default function ClientePage() {
   const [connection, setConnection] = useState<ConnectionInfo | null>(null);
   const [pppoe, setPppoe] = useState<PppoeInfo | null>(null);
   const [pppoeHistory, setPppoeHistory] = useState<PppoeHistory | null>(null);
+  const [pppoeLive, setPppoeLive] = useState<PppoeLive | null>(null);
+  const [pppoeLivePoints, setPppoeLivePoints] = useState<PppoeLivePoint[]>([]);
+  const [pppoeLiveState, setPppoeLiveState] = useState<PppoeLiveState>("idle");
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>("");
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
@@ -579,13 +625,14 @@ export default function ClientePage() {
     try {
       setLoadingTickets(true);
       setLoadingNotifications(true);
-      const [me, executive, planData, connData, pppoeData, pppoeHistoryData, invoiceData, ticketData, notificationData, unreadData] = await Promise.all([
+      const [me, executive, planData, connData, pppoeData, pppoeHistoryData, pppoeLiveData, invoiceData, ticketData, notificationData, unreadData] = await Promise.all([
         customerApiFetch<Dashboard>("/customer-app/me"),
         customerApiFetch<ExecutiveDashboard>("/customer-app/dashboard"),
         customerApiFetch<PlanResponse>("/customer-app/plan"),
         customerApiFetch<ConnectionInfo>("/customer-app/connection"),
         customerApiFetch<PppoeInfo>("/customer-app/pppoe"),
         customerApiFetch<PppoeHistory>("/customer-app/pppoe/history"),
+        customerApiFetch<PppoeLive>("/customer-app/pppoe/live"),
         customerApiFetch<{ items: InvoiceItem[] }>("/customer-app/invoices?limit=24"),
         customerApiFetch<{ items: Ticket[] }>("/customer-app/support/tickets?limit=20"),
         customerApiFetch<{ items: CustomerNotification[] }>("/customer-app/notifications?limit=50"),
@@ -597,6 +644,9 @@ export default function ClientePage() {
       setConnection(connData);
       setPppoe(pppoeData);
       setPppoeHistory(pppoeHistoryData);
+      setPppoeLive(pppoeLiveData);
+      setPppoeLiveState(pppoeLiveData.source === "empty" ? "empty" : "fresh");
+      setPppoeLivePoints(pppoeLiveData.source === "empty" ? [] : [pppoeLivePointFromData(pppoeLiveData)]);
       setInvoices(invoiceData.items || []);
       setTickets(ticketData.items || []);
       setNotifications(notificationData.items || []);
@@ -614,11 +664,32 @@ export default function ClientePage() {
     }
   }, [handleAuthError]);
 
+  const loadPppoeLive = useCallback(async (silent = false) => {
+    if (!silent) setPppoeLiveState("loading");
+    try {
+      const liveData = await customerApiFetch<PppoeLive>("/customer-app/pppoe/live");
+      setPppoeLive(liveData);
+      setPppoeLiveState(liveData.source === "empty" ? "empty" : "fresh");
+      if (liveData.source !== "empty") {
+        setPppoeLivePoints((items) => [...items, pppoeLivePointFromData(liveData)].slice(-60));
+      }
+    } catch (err) {
+      if (!handleAuthError(err)) setPppoeLiveState("error");
+    }
+  }, [handleAuthError]);
+
   useEffect(() => {
     const token = getCustomerToken();
     setTokenReady(true);
     if (token) void loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    if (!loggedIn || tab !== "pppoe") return undefined;
+    void loadPppoeLive();
+    const timer = window.setInterval(() => void loadPppoeLive(), 5000);
+    return () => window.clearInterval(timer);
+  }, [loggedIn, tab, loadPppoeLive]);
 
   useEffect(() => {
     if (!selectedInvoiceId || !loggedIn) return;
@@ -696,6 +767,9 @@ export default function ClientePage() {
     setConnection(null);
     setPppoe(null);
     setPppoeHistory(null);
+    setPppoeLive(null);
+    setPppoeLivePoints([]);
+    setPppoeLiveState("idle");
     setInvoices([]);
     setTickets([]);
     setNotifications([]);
@@ -905,7 +979,7 @@ export default function ClientePage() {
           {tab === "dashboard" ? <DashboardView dashboard={dashboard} executive={executiveDashboard} setTab={setTab} /> : null}
           {tab === "plan" ? <PlanView plan={plan} /> : null}
           {tab === "connection" ? <ConnectionView connection={connection} /> : null}
-          {tab === "pppoe" ? <PppoeView data={pppoe} history={pppoeHistory} /> : null}
+          {tab === "pppoe" ? <PppoeView data={pppoe} history={pppoeHistory} live={pppoeLive} livePoints={pppoeLivePoints} liveState={pppoeLiveState} /> : null}
           {tab === "speedTest" ? <SpeedTestView /> : null}
           {tab === "invoices" ? <InvoicesView invoices={invoices} onPayment={(id) => { setSelectedInvoiceId(id); setTab("payment"); }} /> : null}
           {tab === "payment" ? (
@@ -1166,6 +1240,68 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
   );
 }
 
+function PppoeLivePanel({ live, points, state }: { live: PppoeLive | null; points: PppoeLivePoint[]; state: PppoeLiveState }) {
+  const hasChartPoints = points.length > 0;
+  const statusTone = toneForStatus(live?.status);
+  const noticeClass = state === "error"
+    ? "border-amber-200 bg-amber-50 text-amber-800"
+    : "border-slate-200 bg-slate-50 text-slate-600";
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <CardTitle>Tempo Real</CardTitle>
+            <CardDescription>Atualização automática a cada 5 segundos usando snapshots persistidos.</CardDescription>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
+            <Badge tone={statusTone}>{statusLabel(live?.status)}</Badge>
+            <span>{liveStatusText(state, live)}</span>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {state === "error" || live?.message ? (
+          <div className={"flex gap-3 rounded-lg border p-3 text-sm " + noticeClass}>
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{state === "error" ? "Não foi possível atualizar agora. O último dado conhecido foi mantido." : live?.message}</span>
+          </div>
+        ) : null}
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <MetricCard title="Download atual" value={speedValue(live?.downloadMbps)} hint="Último snapshot disponível" icon={Download} />
+          <MetricCard title="Upload atual" value={speedValue(live?.uploadMbps)} hint="Último snapshot disponível" icon={Upload} />
+          <MetricCard title="Ping" value={latencyValue(live?.pingMs)} hint="Latência conhecida" icon={TimerReset} />
+          <MetricCard title="Jitter" value={latencyValue(live?.jitterMs)} hint="Variação de latência" icon={Activity} />
+          <MetricCard title="IP atual" value={live?.currentIp || "-"} hint="Sessão PPPoE" icon={Wifi} />
+          <MetricCard title="Tempo conectado" value={live?.uptime || "-"} hint={live?.lastUpdateAt ? "Atualizado em " + dateTime(live.lastUpdateAt) : "Sem atualização recente"} icon={Clock} />
+        </div>
+
+        {hasChartPoints ? (
+          <div className="h-72 min-h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={points} margin={{ top: 12, right: 16, left: 0, bottom: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="time" tickLine={false} axisLine={false} />
+                <YAxis tickLine={false} axisLine={false} width={44} />
+                <Tooltip formatter={(value) => speedValue(Number(value))} />
+                <Line type="monotone" dataKey="downloadMbps" name="Download" stroke="#10b981" strokeWidth={2} dot={false} connectNulls />
+                <Line type="monotone" dataKey="uploadMbps" name="Upload" stroke="#0f172a" strokeWidth={2} dot={false} connectNulls />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
+            <Activity className="mx-auto mb-2 h-6 w-6 text-slate-400" />
+            Sem pontos recentes para o gráfico em tempo real.
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function PppoeConsumptionChart({ title, description, data }: { title: string; description: string; data: PppoeHistory["series7d"] }) {
   if (!hasUsageSeries(data)) {
     return (
@@ -1207,7 +1343,19 @@ function PppoeConsumptionChart({ title, description, data }: { title: string; de
     </Card>
   );
 }
-function PppoeView({ data, history }: { data: PppoeInfo | null; history: PppoeHistory | null }) {
+function PppoeView({
+  data,
+  history,
+  live,
+  livePoints,
+  liveState,
+}: {
+  data: PppoeInfo | null;
+  history: PppoeHistory | null;
+  live: PppoeLive | null;
+  livePoints: PppoeLivePoint[];
+  liveState: PppoeLiveState;
+}) {
   if (!data) {
     return (
       <Card>
@@ -1243,6 +1391,8 @@ function PppoeView({ data, history }: { data: PppoeInfo | null; history: PppoeHi
           </div>
         </CardContent>
       </Card>
+
+      <PppoeLivePanel live={live} points={livePoints} state={liveState} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <MetricCard title="Download atual" value={speedValue(data.trafficNow?.downloadMbps)} hint="Último ponto por cliente" icon={Download} />
