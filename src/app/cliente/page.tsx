@@ -2,8 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Activity,
+  AlertTriangle,
   Banknote,
   CircleHelp,
+  Clock,
   Copy,
   CreditCard,
   ExternalLink,
@@ -18,6 +21,7 @@ import {
   Router,
   ShieldCheck,
   Smartphone,
+  UserRound,
   Wifi,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -77,9 +81,22 @@ type PlanResponse = {
 
 type ConnectionInfo = {
   status: "online" | "offline" | "unknown" | string;
+  plan?: Plan | null;
+  access?: { authType: string; usernameMasked: string };
   server: { _id: string; name: string; isActive: boolean } | null;
   networkNode: { _id: string; name: string; status: string; healthLevel?: string | null; healthScore?: number | null; agentLastSeenAt?: string | null } | null;
   lastSession: { sampledAt: string | null; activePppTotal: number | null; pppSecretCount: number | null } | null;
+  lastSignal?: {
+    sampledAt: string | null;
+    source: string;
+    health?: string | null;
+    cpuPercent?: number | null;
+    pppOnline?: number | null;
+    totalRxMbps?: number | null;
+    totalTxMbps?: number | null;
+  } | null;
+  lastUpdateAt?: string | null;
+  lastCommand?: { kind: string; status: string; success?: boolean | null; completedAt?: string | null; updatedAt?: string | null } | null;
   mikrotikSync?: { enabled: boolean; state: string; lastSuccessAt: string | null; lastAttemptAt: string | null };
   alerts?: { type: string; severity: string; message: string }[];
 };
@@ -140,6 +157,11 @@ function money(value?: number | null) {
 function date(value?: string | null) {
   if (!value) return "-";
   return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short" }).format(new Date(value));
+}
+
+function dateTime(value?: string | null) {
+  if (!value) return "-";
+  return new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(new Date(value));
 }
 
 function statusLabel(status?: string) {
@@ -207,6 +229,33 @@ function supportStatusText(status?: string) {
     closed: "Fechado",
   };
   return map[String(status || "")] || status || "-";
+}
+
+function connectionMessage(status?: string) {
+  if (status === "online") return "Conexão ativa na última leitura.";
+  if (status === "offline") return "Não encontramos sessão ativa na última leitura.";
+  return "Dados de conexão indisponíveis no momento.";
+}
+
+function healthLabel(value?: string | null) {
+  const map: Record<string, string> = {
+    healthy: "Normal",
+    warning: "Atenção",
+    critical: "Crítico",
+  };
+  return map[String(value || "")] || value || "Indisponível";
+}
+
+function metricValue(value?: number | null, suffix = "") {
+  if (value == null || Number.isNaN(Number(value))) return "-";
+  return `${Number(value)}${suffix}`;
+}
+
+function connectionTone(connection: ConnectionInfo): "green" | "red" | "amber" | "slate" {
+  if (connection.status === "online" && !connection.alerts?.length) return "green";
+  if (connection.status === "offline") return "red";
+  if (connection.alerts?.length) return "amber";
+  return "slate";
 }
 
 
@@ -579,22 +628,91 @@ function PlanView({ plan }: { plan: PlanResponse | null }) {
 
 function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
   if (!connection) return null;
+  const plan = connection.plan;
+  const speed = plan?.speedMbps ? `${plan.speedMbps} Mbps` : "Velocidade não informada";
+  const equipment = connection.server?.name || connection.networkNode?.name || "Não informado";
+  const lastUpdate = connection.lastUpdateAt || connection.lastSignal?.sampledAt || connection.lastSession?.sampledAt || connection.networkNode?.agentLastSeenAt || null;
+  const traffic = connection.lastSignal?.totalRxMbps != null || connection.lastSignal?.totalTxMbps != null
+    ? `${metricValue(connection.lastSignal?.totalRxMbps, " Mbps")} down · ${metricValue(connection.lastSignal?.totalTxMbps, " Mbps")} up`
+    : "Sem leitura recente";
+
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
+    <div className="space-y-5">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <Card>
+          <CardContent className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm text-slate-500">Status da conexão</p>
+              <div className="mt-2"><Badge tone={connectionTone(connection)}>{statusLabel(connection.status)}</Badge></div>
+              <p className="mt-3 text-sm text-slate-600">{connectionMessage(connection.status)}</p>
+            </div>
+            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Wifi className="h-5 w-5" /></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm text-slate-500">Plano</p>
+              <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{plan?.name || "Não informado"}</p>
+              <p className="mt-1 text-sm text-slate-500">{speed}</p>
+            </div>
+            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><ShieldCheck className="h-5 w-5" /></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm text-slate-500">Usuário de acesso</p>
+              <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{connection.access?.usernameMasked || "Não informado"}</p>
+              <p className="mt-1 text-sm text-slate-500">{connection.access?.authType?.toUpperCase() || "Acesso"}</p>
+            </div>
+            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><UserRound className="h-5 w-5" /></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm text-slate-500">Servidor/equipamento</p>
+              <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{equipment}</p>
+              <p className="mt-1 text-sm text-slate-500">{connection.networkNode?.healthLevel ? healthLabel(connection.networkNode.healthLevel) : "Vínculo operacional"}</p>
+            </div>
+            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Router className="h-5 w-5" /></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm text-slate-500">Última atualização</p>
+              <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{dateTime(lastUpdate)}</p>
+              <p className="mt-1 text-sm text-slate-500">{connection.lastSignal ? "Leitura NOC disponível" : "Aguardando leitura"}</p>
+            </div>
+            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Clock className="h-5 w-5" /></div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-sm text-slate-500">Sinal e sessões</p>
+              <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{metricValue(connection.lastSession?.activePppTotal ?? connection.lastSignal?.pppOnline)}</p>
+              <p className="mt-1 text-sm text-slate-500">PPPoE online · {traffic}</p>
+            </div>
+            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Activity className="h-5 w-5" /></div>
+          </CardContent>
+        </Card>
+      </div>
+
       <Card>
-        <CardHeader><CardTitle>Minha Conexão</CardTitle><CardDescription>Status baseado na última leitura disponível.</CardDescription></CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between"><span>Status</span><Badge tone={toneForStatus(connection.status)}>{statusLabel(connection.status)}</Badge></div>
-          <div className="flex items-center justify-between"><span>Equipamento</span><span className="font-medium">{connection.server?.name || "Não informado"}</span></div>
-          <div className="flex items-center justify-between"><span>Ponto de rede</span><span className="font-medium">{connection.networkNode?.name || "Não informado"}</span></div>
-          <div className="flex items-center justify-between"><span>Última leitura</span><span className="font-medium">{date(connection.lastSession?.sampledAt)}</span></div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader><CardTitle>Sessões</CardTitle><CardDescription>Resumo sem comandos em tempo real.</CardDescription></CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-2">
-          <MetricCard title="PPPoE online" value={String(connection.lastSession?.activePppTotal ?? "-")} hint="No equipamento vinculado" icon={Router} />
-          <MetricCard title="Identidades" value={String(connection.lastSession?.pppSecretCount ?? "-")} hint="Último snapshot" icon={ShieldCheck} />
+        <CardHeader>
+          <CardTitle>Alertas</CardTitle>
+          <CardDescription>Situações identificadas na última leitura disponível.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {connection.alerts?.length ? connection.alerts.map((alert) => (
+            <div key={`${alert.type}-${alert.message}`} className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{alert.message}</span>
+            </div>
+          )) : <p className="text-sm text-slate-500">Nenhum alerta de conexão no momento.</p>}
         </CardContent>
       </Card>
     </div>
