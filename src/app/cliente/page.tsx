@@ -180,9 +180,12 @@ type SpeedTestResult = {
   pingMs: number;
   jitterMs: number;
   createdAt: string;
-  provider: "local-simulated";
+  provider: "dcnet-speedtest";
 };
 
+type SpeedTestStep = "idle" | "ping" | "download" | "upload" | "finishing";
+
+const SPEED_TEST_BASE_URL = "https://speed.dcinfinity.net.br";
 const SPEED_TEST_HISTORY_KEY = "dcnet:cliente:speed-tests";
 
 const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -351,22 +354,94 @@ function saveSpeedTestHistory(items: SpeedTestResult[]) {
   window.localStorage.setItem(SPEED_TEST_HISTORY_KEY, JSON.stringify(items.slice(0, 10)));
 }
 
-async function runCustomerSpeedTest(planSpeedMbps?: number | null): Promise<SpeedTestResult> {
-  const contractedSpeed = Math.max(80, Number(planSpeedMbps || 300));
-  await new Promise((resolve) => window.setTimeout(resolve, 1800));
+function speedTestUrl(path: string) {
+  return `${SPEED_TEST_BASE_URL}${path}`;
+}
 
-  const downloadFactor = 0.72 + Math.random() * 0.24;
-  const uploadFactor = 0.28 + Math.random() * 0.26;
-  const ping = 8 + Math.random() * 24;
+function speedTestErrorMessage(error: unknown) {
+  if (error instanceof DOMException && error.name === "AbortError") return "Tempo limite excedido ao conectar ao servidor de Speed Test.";
+  if (error instanceof TypeError) return "Servidor de Speed Test indisponível ou bloqueado por CORS.";
+  if (error instanceof Error) return error.message;
+  return "Não foi possível executar o Speed Test agora.";
+}
+
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 15000) {
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal, cache: "no-store" });
+    if (!response.ok) throw new Error("Servidor de Speed Test respondeu com erro.");
+    return response;
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+async function measureSpeedTestLatency(samples = 6) {
+  const measures: number[] = [];
+  for (let i = 0; i < samples; i += 1) {
+    const startedAt = performance.now();
+    await fetchWithTimeout(speedTestUrl(`/empty?cache=${Date.now()}-${i}`), undefined, 5000);
+    measures.push(performance.now() - startedAt);
+  }
+  const ping = measures.reduce((sum, value) => sum + value, 0) / measures.length;
+  const jitter = measures.reduce((sum, value) => sum + Math.abs(value - ping), 0) / measures.length;
+  return { ping, jitter };
+}
+
+async function measureSpeedTestDownload() {
+  const startedAt = performance.now();
+  const response = await fetchWithTimeout(speedTestUrl(`/garbage?ckSize=32&cache=${Date.now()}`), undefined, 30000);
+  let bytes = 0;
+
+  if (response.body) {
+    const reader = response.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      bytes += value.byteLength;
+    }
+  } else {
+    bytes = (await response.arrayBuffer()).byteLength;
+  }
+
+  const seconds = Math.max((performance.now() - startedAt) / 1000, 0.001);
+  return (bytes * 8) / seconds / 1000000;
+}
+
+async function measureSpeedTestUpload() {
+  const bytes = 8 * 1024 * 1024;
+  const payload = new Uint8Array(bytes);
+  const startedAt = performance.now();
+  await fetchWithTimeout(speedTestUrl(`/upload?cache=${Date.now()}`), {
+    method: "POST",
+    body: payload,
+  }, 30000);
+  const seconds = Math.max((performance.now() - startedAt) / 1000, 0.001);
+  return (bytes * 8) / seconds / 1000000;
+}
+
+async function runCustomerSpeedTest(onStep: (step: SpeedTestStep) => void): Promise<SpeedTestResult> {
+  onStep("ping");
+  const latency = await measureSpeedTestLatency();
+
+  onStep("download");
+  const downloadMbps = await measureSpeedTestDownload();
+
+  onStep("upload");
+  const uploadMbps = await measureSpeedTestUpload();
+
+  onStep("finishing");
+  await new Promise((resolve) => window.setTimeout(resolve, 250));
 
   return {
     id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now()),
-    downloadMbps: Math.min(contractedSpeed * 1.05, contractedSpeed * downloadFactor),
-    uploadMbps: Math.max(8, contractedSpeed * uploadFactor),
-    pingMs: ping,
-    jitterMs: 2 + Math.random() * 9,
+    downloadMbps,
+    uploadMbps,
+    pingMs: latency.ping,
+    jitterMs: latency.jitter,
     createdAt: new Date().toISOString(),
-    provider: "local-simulated",
+    provider: "dcnet-speedtest",
   };
 }
 function notificationTypeLabel(type?: string) {
@@ -774,7 +849,7 @@ export default function ClientePage() {
           {tab === "dashboard" ? <DashboardView dashboard={dashboard} executive={executiveDashboard} setTab={setTab} /> : null}
           {tab === "plan" ? <PlanView plan={plan} /> : null}
           {tab === "connection" ? <ConnectionView connection={connection} /> : null}
-          {tab === "speedTest" ? <SpeedTestView plan={plan} /> : null}
+          {tab === "speedTest" ? <SpeedTestView /> : null}
           {tab === "invoices" ? <InvoicesView invoices={invoices} onPayment={(id) => { setSelectedInvoiceId(id); setTab("payment"); }} /> : null}
           {tab === "payment" ? (
             <PaymentView
@@ -1067,11 +1142,19 @@ function SpeedTestMetricCard({
   );
 }
 
-function SpeedTestView({ plan }: { plan: PlanResponse | null }) {
+function SpeedTestView() {
   const [history, setHistory] = useState<SpeedTestResult[]>([]);
   const [running, setRunning] = useState(false);
+  const [step, setStep] = useState<SpeedTestStep>("idle");
+  const [error, setError] = useState("");
   const latest = history[0] || null;
-  const planSpeed = plan?.speedMbps ?? plan?.plan?.speedMbps ?? null;
+  const progressText: Record<SpeedTestStep, string> = {
+    idle: "Pronto para iniciar",
+    ping: "Medindo ping",
+    download: "Medindo download",
+    upload: "Medindo upload",
+    finishing: "Finalizando",
+  };
 
   useEffect(() => {
     setHistory(readSpeedTestHistory());
@@ -1079,15 +1162,19 @@ function SpeedTestView({ plan }: { plan: PlanResponse | null }) {
 
   async function executeTest() {
     setRunning(true);
+    setError("");
     try {
-      const result = await runCustomerSpeedTest(planSpeed);
+      const result = await runCustomerSpeedTest(setStep);
       setHistory((current) => {
         const next = [result, ...current].slice(0, 10);
         saveSpeedTestHistory(next);
         return next;
       });
+    } catch (err) {
+      setError(speedTestErrorMessage(err));
     } finally {
       setRunning(false);
+      setStep("idle");
     }
   }
 
@@ -1101,14 +1188,28 @@ function SpeedTestView({ plan }: { plan: PlanResponse | null }) {
             </div>
             <h2 className="text-2xl font-semibold tracking-tight">Teste sua conexão agora</h2>
             <p className="max-w-2xl text-sm leading-6 text-slate-300">
-              Execute uma medição local no portal e acompanhe seus últimos resultados neste aparelho.
+              Execute uma medição real pelo servidor DC NET e acompanhe seus últimos resultados neste aparelho.
             </p>
           </div>
           <Button onClick={() => void executeTest()} disabled={running} className="h-11 bg-emerald-600 hover:bg-emerald-700 lg:min-w-44">
-            <Activity className={`h-4 w-4 ${running ? "animate-spin" : ""}`} /> {running ? "Executando..." : "Executar Teste"}
+            <Activity className={`h-4 w-4 ${running ? "animate-spin" : ""}`} /> {running ? progressText[step] : "Executar Teste"}
           </Button>
         </CardContent>
       </Card>
+
+      {running ? (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800">
+          {progressText[step]}...
+        </div>
+      ) : null}
+
+      {error ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <p className="font-medium">Não foi possível concluir o Speed Test.</p>
+          <p className="mt-1">{error}</p>
+          {latest ? <p className="mt-1 text-xs">Mantendo o último resultado salvo como referência visual.</p> : null}
+        </div>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <SpeedTestMetricCard title="Download" value={speedValue(latest?.downloadMbps)} hint="Velocidade de recebimento" icon={Download} loading={running} />
@@ -1138,7 +1239,7 @@ function SpeedTestView({ plan }: { plan: PlanResponse | null }) {
             <div key={item.id} className="grid gap-3 rounded-lg border border-slate-200 p-3 text-sm sm:grid-cols-[1.2fr_repeat(4,0.8fr)] sm:items-center">
               <div>
                 <p className="font-medium text-slate-950">{dateTime(item.createdAt)}</p>
-                <p className="mt-1 text-xs text-slate-500">Speed Test local</p>
+                <p className="mt-1 text-xs text-slate-500">Servidor DC NET</p>
               </div>
               <div><p className="text-xs text-slate-500">Download</p><p className="font-semibold text-slate-950">{speedValue(item.downloadMbps)}</p></div>
               <div><p className="text-xs text-slate-500">Upload</p><p className="font-semibold text-slate-950">{speedValue(item.uploadMbps)}</p></div>
