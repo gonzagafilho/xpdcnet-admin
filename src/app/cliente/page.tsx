@@ -6,11 +6,13 @@ import {
   CircleHelp,
   Copy,
   CreditCard,
+  ExternalLink,
   FileText,
   Headphones,
   Home,
   LogOut,
   MessageSquarePlus,
+  QrCode,
   Router,
   ShieldCheck,
   Smartphone,
@@ -176,6 +178,19 @@ function toneForStatus(status?: string): "green" | "red" | "amber" | "slate" {
   return "slate";
 }
 
+function invoicePaymentMessage(invoice: InvoiceItem) {
+  if (invoice.status === "paid") return "Fatura paga";
+  if (invoice.status === "overdue") return invoice.hasBillingInvoice ? "Pagamento disponível" : "Fatura vencida";
+  if (invoice.status === "pending") return invoice.hasBillingInvoice ? "Pagamento disponível" : "Segunda via ainda não gerada";
+  if (invoice.status === "cancelled") return "Fatura cancelada";
+  return invoice.hasBillingInvoice ? "Pagamento disponível" : "Segunda via ainda não gerada";
+}
+
+function isPayableInvoice(invoice: InvoiceItem) {
+  return ["pending", "overdue"].includes(invoice.status);
+}
+
+
 export default function ClientePage() {
   const [tokenReady, setTokenReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -191,6 +206,8 @@ export default function ClientePage() {
   const [invoices, setInvoices] = useState<InvoiceItem[]>([]);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<string>("");
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
+  const [loadingPayment, setLoadingPayment] = useState(false);
+  const [copyStatus, setCopyStatus] = useState("");
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [supportSubject, setSupportSubject] = useState("");
   const [supportMessage, setSupportMessage] = useState("");
@@ -245,11 +262,14 @@ export default function ClientePage() {
 
   useEffect(() => {
     if (!selectedInvoiceId || !loggedIn) return;
+    setLoadingPayment(true);
+    setCopyStatus("");
     customerApiFetch<PaymentResponse>(`/customer-app/invoices/${selectedInvoiceId}/payment`)
       .then(setPayment)
       .catch((err) => {
         if (!handleAuthError(err)) setPayment(null);
-      });
+      })
+      .finally(() => setLoadingPayment(false));
   }, [selectedInvoiceId, loggedIn, handleAuthError]);
 
   async function login(e: React.FormEvent) {
@@ -281,6 +301,7 @@ export default function ClientePage() {
     setInvoices([]);
     setTickets([]);
     setPayment(null);
+    setCopyStatus("");
     setTab("dashboard");
   }
 
@@ -404,7 +425,17 @@ export default function ClientePage() {
           {tab === "plan" ? <PlanView plan={plan} /> : null}
           {tab === "connection" ? <ConnectionView connection={connection} /> : null}
           {tab === "invoices" ? <InvoicesView invoices={invoices} onPayment={(id) => { setSelectedInvoiceId(id); setTab("payment"); }} /> : null}
-          {tab === "payment" ? <PaymentView invoices={invoices} selectedInvoiceId={selectedInvoiceId} setSelectedInvoiceId={setSelectedInvoiceId} payment={payment} /> : null}
+          {tab === "payment" ? (
+            <PaymentView
+              invoices={invoices}
+              selectedInvoiceId={selectedInvoiceId}
+              setSelectedInvoiceId={setSelectedInvoiceId}
+              payment={payment}
+              loading={loadingPayment}
+              copyStatus={copyStatus}
+              setCopyStatus={setCopyStatus}
+            />
+          ) : null}
           {tab === "support" ? (
             <SupportView
               subject={supportSubject}
@@ -511,47 +542,182 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
 function InvoicesView({ invoices, onPayment }: { invoices: InvoiceItem[]; onPayment: (id: string) => void }) {
   return (
     <Card>
-      <CardHeader><CardTitle>Minhas Faturas</CardTitle><CardDescription>Histórico financeiro básico.</CardDescription></CardHeader>
+      <CardHeader>
+        <CardTitle>Minhas Faturas</CardTitle>
+        <CardDescription>Status, valores e disponibilidade de segunda via.</CardDescription>
+      </CardHeader>
       <CardContent className="space-y-3">
-        {invoices.map((invoice) => (
-          <div key={invoice._id} className="flex flex-col gap-3 rounded-lg border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-medium">{invoice.competence || invoice.description || "Fatura"}</p>
-              <p className="text-sm text-slate-500">Vencimento {date(invoice.dueDate)} · {money(invoice.amount)}</p>
+        {invoices.map((invoice) => {
+          const available = invoice.hasBillingInvoice;
+          return (
+            <div key={invoice._id} className="flex flex-col gap-3 rounded-lg border border-slate-200 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium">{invoice.competence || invoice.description || "Fatura"}</p>
+                  <Badge tone={toneForStatus(invoice.status)}>{statusLabel(invoice.status)}</Badge>
+                </div>
+                <p className="mt-1 text-sm text-slate-500">Vencimento {date(invoice.dueDate)} · {money(invoice.amount)}</p>
+                <p className={`mt-1 text-xs ${available ? "text-emerald-700" : "text-slate-500"}`}>
+                  {invoicePaymentMessage(invoice)}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => onPayment(invoice._id)} disabled={!isPayableInvoice(invoice) && !available}>
+                {available ? "Ver pagamento" : "Detalhes"}
+              </Button>
             </div>
-            <div className="flex items-center gap-2">
-              <Badge tone={toneForStatus(invoice.status)}>{statusLabel(invoice.status)}</Badge>
-              <Button variant="outline" size="sm" onClick={() => onPayment(invoice._id)}>Pagamento</Button>
-            </div>
-          </div>
-        ))}
+          );
+        })}
         {!invoices.length ? <p className="text-sm text-slate-500">Nenhuma fatura encontrada.</p> : null}
       </CardContent>
     </Card>
   );
 }
 
-function PaymentView({ invoices, selectedInvoiceId, setSelectedInvoiceId, payment }: { invoices: InvoiceItem[]; selectedInvoiceId: string; setSelectedInvoiceId: (id: string) => void; payment: PaymentResponse | null }) {
+function PaymentView({
+  invoices,
+  selectedInvoiceId,
+  setSelectedInvoiceId,
+  payment,
+  loading,
+  copyStatus,
+  setCopyStatus,
+}: {
+  invoices: InvoiceItem[];
+  selectedInvoiceId: string;
+  setSelectedInvoiceId: (id: string) => void;
+  payment: PaymentResponse | null;
+  loading: boolean;
+  copyStatus: string;
+  setCopyStatus: (value: string) => void;
+}) {
+  const payableInvoices = invoices.filter(isPayableInvoice);
+  const selectedInvoice = invoices.find((invoice) => invoice._id === selectedInvoiceId) || payment?.invoice || null;
   const copyText = payment?.payment?.pixCopyPaste || payment?.payment?.pixPayload || "";
+  const paymentAvailable = Boolean(payment?.payment);
+
+  async function copyPix() {
+    if (!copyText) return;
+    await navigator.clipboard.writeText(copyText);
+    setCopyStatus("PIX copiado");
+    window.setTimeout(() => setCopyStatus(""), 2500);
+  }
+
   return (
-    <Card>
-      <CardHeader><CardTitle>PIX / Segunda Via</CardTitle><CardDescription>Dados disponíveis para cobranças já emitidas.</CardDescription></CardHeader>
-      <CardContent className="space-y-4">
-        <select className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm" value={selectedInvoiceId} onChange={(e) => setSelectedInvoiceId(e.target.value)}>
-          <option value="">Selecione uma fatura</option>
-          {invoices.map((invoice) => <option key={invoice._id} value={invoice._id}>{invoice.competence || invoice._id} - {money(invoice.amount)}</option>)}
-        </select>
-        {payment?.payment ? (
-          <div className="space-y-3">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm break-words">{copyText || "PIX não disponível para esta cobrança."}</div>
-            <div className="flex flex-wrap gap-2">
-              <Button variant="outline" onClick={() => copyText && navigator.clipboard.writeText(copyText)} disabled={!copyText}><Copy className="h-4 w-4" /> Copiar PIX</Button>
-              {payment.payment.boletoUrl ? <Button asChild variant="outline"><a href={payment.payment.boletoUrl} target="_blank" rel="noreferrer">Segunda via</a></Button> : null}
+    <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+      <Card>
+        <CardHeader>
+          <CardTitle>PIX / Segunda Via</CardTitle>
+          <CardDescription>Faturas pendentes e vencidas disponíveis para consulta.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {payableInvoices.map((invoice) => (
+            <button
+              type="button"
+              key={invoice._id}
+              onClick={() => setSelectedInvoiceId(invoice._id)}
+              className={`w-full rounded-lg border p-3 text-left transition ${
+                selectedInvoiceId === invoice._id ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white hover:bg-slate-50"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-medium">{invoice.competence || invoice.description || "Fatura"}</p>
+                  <p className="mt-1 text-sm text-slate-500">{money(invoice.amount)} · vence em {date(invoice.dueDate)}</p>
+                  <p className={`mt-1 text-xs ${invoice.hasBillingInvoice ? "text-emerald-700" : "text-slate-500"}`}>
+                    {invoice.hasBillingInvoice ? "Pagamento disponível" : "Segunda via ainda não gerada"}
+                  </p>
+                </div>
+                <Badge tone={toneForStatus(invoice.status)}>{statusLabel(invoice.status)}</Badge>
+              </div>
+              <span className="mt-3 inline-flex h-8 items-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700">
+                Ver pagamento
+              </span>
+            </button>
+          ))}
+          {!payableInvoices.length ? <p className="text-sm text-slate-500">Nenhuma fatura pendente ou vencida no momento.</p> : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Dados de pagamento</CardTitle>
+          <CardDescription>Use apenas os dados exibidos para a fatura selecionada.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!selectedInvoice ? <p className="text-sm text-slate-500">Selecione uma fatura para ver PIX ou segunda via.</p> : null}
+          {selectedInvoice ? (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-slate-200 p-3">
+                <p className="text-xs text-slate-500">Valor</p>
+                <p className="mt-1 font-semibold">{money(selectedInvoice.amount)}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 p-3">
+                <p className="text-xs text-slate-500">Vencimento</p>
+                <p className="mt-1 font-semibold">{date(selectedInvoice.dueDate)}</p>
+              </div>
+              <div className="rounded-lg border border-slate-200 p-3">
+                <p className="text-xs text-slate-500">Status</p>
+                <div className="mt-1"><Badge tone={toneForStatus(selectedInvoice.status)}>{statusLabel(selectedInvoice.status)}</Badge></div>
+              </div>
             </div>
-          </div>
-        ) : <p className="text-sm text-slate-500">Nenhuma cobrança externa associada. O portal não emite nova cobrança nesta fase.</p>}
-      </CardContent>
-    </Card>
+          ) : null}
+
+          {loading ? <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">Carregando pagamento...</div> : null}
+
+          {!loading && selectedInvoice && !paymentAvailable ? (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+              Segunda via ainda não gerada para esta fatura. O portal não emite nova cobrança nesta fase.
+            </div>
+          ) : null}
+
+          {!loading && paymentAvailable ? (
+            <div className="space-y-4">
+              {payment?.payment?.pixQrCodeUrl ? (
+                <div className="flex items-center gap-4 rounded-lg border border-slate-200 p-3">
+                  <div
+                    role="img"
+                    aria-label="QR Code PIX"
+                    className="h-28 w-28 rounded-md border border-slate-200 bg-white bg-contain bg-center bg-no-repeat"
+                    style={{ backgroundImage: `url(${payment.payment.pixQrCodeUrl})` }}
+                  />
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-medium text-slate-900"><QrCode className="h-4 w-4" /> QR Code PIX</div>
+                    <p className="mt-1 text-sm text-slate-500">Aponte a câmera do banco para pagar.</p>
+                  </div>
+                </div>
+              ) : null}
+
+              <div>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <p className="text-sm font-medium text-slate-900">Código PIX copia e cola</p>
+                  {copyStatus ? <span className="text-xs font-medium text-emerald-700">{copyStatus}</span> : null}
+                </div>
+                <div className="max-h-36 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm break-words text-slate-700">
+                  {copyText || "PIX não disponível para esta cobrança."}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" onClick={copyPix} disabled={!copyText}>
+                  <Copy className="h-4 w-4" /> Copiar PIX
+                </Button>
+                {payment?.payment?.boletoUrl ? (
+                  <Button asChild variant="outline">
+                    <a href={payment.payment.boletoUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink className="h-4 w-4" /> Abrir boleto
+                    </a>
+                  </Button>
+                ) : null}
+              </div>
+
+              {!copyText && !payment?.payment?.boletoUrl ? (
+                <p className="text-sm text-slate-500">Pagamento disponível, mas sem PIX ou boleto exibível no momento.</p>
+              ) : null}
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
