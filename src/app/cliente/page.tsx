@@ -1213,19 +1213,19 @@ function PremiumStatusCard({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-28 rounded-3xl border px-3.5 py-3 text-left shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl md:min-h-28 xl:min-h-28 ${toneClass}`}
+      className={`min-h-24 rounded-3xl border px-3 py-2.5 text-left shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl md:min-h-24 xl:min-h-24 ${toneClass}`}
     >
-      <div className="flex h-full flex-col justify-between gap-2.5">
-        <div className="flex items-start justify-between gap-2.5">
+      <div className="flex h-full flex-col justify-between gap-2">
+        <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase leading-4 tracking-wide text-[#020617]">{title}</p>
-            <p className="mt-1.5 break-words text-lg font-bold leading-5 tracking-tight text-[#020617]">{value}</p>
+            <p className="text-[13px] font-bold leading-4 text-[#020617]">{title}</p>
+            <p className="mt-1 break-words text-xl font-extrabold leading-5 tracking-tight text-black">{value}</p>
           </div>
-          <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl shadow-sm ring-1 ${iconClass}`}>
+          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl shadow-sm ring-1 ${iconClass}`}>
             <Icon className="h-4 w-4" />
           </span>
         </div>
-        <p className="text-[13px] font-medium leading-4 text-slate-700">{hint}</p>
+        <p className="text-xs font-medium leading-4 text-slate-700">{hint}</p>
       </div>
     </button>
   );
