@@ -276,15 +276,23 @@ const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ className?
   { key: "plan", label: "Meu Plano", icon: ShieldCheck },
   { key: "connection", label: "Minha Conexão", icon: Wifi },
   { key: "networkMap", label: "Mapa da Conexão", icon: Globe2 },
-  { key: "pppoe", label: "Sua Internet", icon: Router },
+  { key: "pppoe", label: "Internet", icon: Router },
   { key: "speedTest", label: "Speed Test", icon: Gauge },
   { key: "whatsapp", label: "WhatsApp", icon: PhoneCall },
-  { key: "invoices", label: "Minhas Faturas", icon: FileText },
+  { key: "invoices", label: "Faturas", icon: FileText },
   { key: "payment", label: "PIX / Segunda Via", icon: CreditCard },
   { key: "support", label: "Suporte", icon: Headphones },
   { key: "tickets", label: "Protocolos", icon: CircleHelp },
-  { key: "notifications", label: "Notificações", icon: Bell },
+  { key: "notifications", label: "Avisos", icon: Bell },
 ];
+
+const customerNavGroups: { title: string; items: TabKey[] }[] = [
+  { title: "Conta", items: ["dashboard", "plan", "pppoe", "networkMap", "speedTest"] },
+  { title: "Pagamentos", items: ["invoices", "payment"] },
+  { title: "Atendimento", items: ["support", "tickets", "whatsapp", "notifications"] },
+];
+
+const tabByKey = new Map(tabs.map((item) => [item.key, item]));
 
 function money(value?: number | null) {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
@@ -1044,22 +1052,40 @@ export default function ClientePage() {
       </header>
 
       <div className="mx-auto grid max-w-7xl gap-5 px-4 py-5 sm:px-6 lg:grid-cols-[240px_1fr] lg:px-8">
-        <nav className="flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 lg:flex-col lg:overflow-visible">
-          {tabs.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.key}
-                type="button"
-                onClick={() => setTab(item.key)}
-                className={`flex h-10 shrink-0 items-center gap-2 rounded-md px-3 text-left text-sm font-medium transition ${
-                  tab === item.key ? "bg-slate-950 text-white" : "text-slate-600 hover:bg-slate-100 hover:text-slate-950"
-                }`}
-              >
-                <Icon className="h-4 w-4" /> {item.label}
-              </button>
-            );
-          })}
+        <nav className="flex gap-3 overflow-x-auto rounded-[28px] border border-slate-200/80 bg-white/95 p-3 shadow-lg shadow-slate-950/5 lg:sticky lg:top-5 lg:flex-col lg:overflow-visible">
+          {customerNavGroups.map((group, groupIndex) => (
+            <div key={group.title} className="flex shrink-0 gap-2 lg:flex-col">
+              <p className="hidden px-2 text-[11px] font-bold tracking-wide text-slate-500 lg:block">{group.title}</p>
+              <div className="flex gap-2 lg:flex-col">
+                {group.items.map((key) => {
+                  const item = tabByKey.get(key);
+                  if (!item) return null;
+                  const Icon = item.icon;
+                  const active = tab === item.key;
+                  return (
+                    <button
+                      key={item.key}
+                      type="button"
+                      onClick={() => setTab(item.key)}
+                      className={`group flex h-12 shrink-0 items-center gap-2.5 rounded-2xl px-3 text-left text-sm font-semibold transition lg:w-full ${
+                        active
+                          ? "bg-[linear-gradient(135deg,#020617_0%,#064e3b_100%)] text-white shadow-lg shadow-emerald-950/15"
+                          : "text-[#020617] hover:bg-slate-50 hover:shadow-sm"
+                      }`}
+                    >
+                      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl transition ${
+                        active ? "bg-white/15 text-emerald-100" : "bg-emerald-50 text-emerald-700 group-hover:bg-emerald-100"
+                      }`}>
+                        <Icon className="h-4 w-4" />
+                      </span>
+                      <span className="whitespace-nowrap lg:whitespace-normal">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {groupIndex < customerNavGroups.length - 1 ? <div className="hidden h-px bg-slate-200/80 lg:block" /> : null}
+            </div>
+          ))}
         </nav>
 
         <section className="space-y-5">
