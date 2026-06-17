@@ -276,7 +276,7 @@ const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ className?
   { key: "plan", label: "Meu Plano", icon: ShieldCheck },
   { key: "connection", label: "Minha Conexão", icon: Wifi },
   { key: "networkMap", label: "Mapa da Conexão", icon: Globe2 },
-  { key: "pppoe", label: "PPPoE", icon: Router },
+  { key: "pppoe", label: "Sua Internet", icon: Router },
   { key: "speedTest", label: "Speed Test", icon: Gauge },
   { key: "whatsapp", label: "WhatsApp", icon: PhoneCall },
   { key: "invoices", label: "Minhas Faturas", icon: FileText },
@@ -317,7 +317,7 @@ function statusLabel(status?: string) {
     suspended: "Suspenso",
     online: "Online",
     offline: "Offline",
-    unknown: "Indisponível",
+    unknown: "Atualizando informações",
     open: "Aberto",
     in_progress: "Em atendimento",
     resolved: "Resolvido",
@@ -373,9 +373,9 @@ function supportStatusText(status?: string) {
 }
 
 function connectionMessage(status?: string) {
-  if (status === "online") return "Conexão ativa na última leitura.";
-  if (status === "offline") return "Não encontramos sessão ativa na última leitura.";
-  return "Dados de conexão indisponíveis no momento.";
+  if (status === "online") return "Conexão ativa.";
+  if (status === "offline") return "Não encontramos sua internet ativa na última consulta.";
+  return "Estamos atualizando as informações da sua internet.";
 }
 
 function healthLabel(value?: string | null) {
@@ -384,7 +384,7 @@ function healthLabel(value?: string | null) {
     warning: "Atenção",
     critical: "Crítico",
   };
-  return map[String(value || "")] || value || "Indisponível";
+  return map[String(value || "")] || value || "Atualizando informações";
 }
 
 function metricValue(value?: number | null, suffix = "") {
@@ -413,7 +413,7 @@ function billingTone(pending: number, overdue: number): "green" | "red" | "amber
 }
 
 function scoreText(score?: number | null) {
-  if (score == null) return "Sem dados";
+  if (score == null) return "Atualizando informações";
   return `${Math.max(0, Math.min(100, Math.round(score)))}%`;
 }
 
@@ -445,10 +445,10 @@ function pppoeLivePointFromData(data: PppoeLive): PppoeLivePoint {
 
 function liveStatusText(status: PppoeLiveState, data: PppoeLive | null) {
   if (status === "loading") return "Atualizando...";
-  if (status === "error") return "Falha ao atualizar; mantendo último dado.";
-  if (status === "empty" || data?.source === "empty") return "Sem dados recentes";
-  if (status === "fresh") return "Atualizado agora";
-  return "Aguardando atualização";
+  if (status === "error") return "Não foi possível atualizar agora; mantendo a última informação.";
+  if (status === "empty" || data?.source === "empty") return "Atualizando informações";
+  if (status === "fresh") return "Última consulta agora";
+  return "Atualizando informações";
 }
 
 function networkMapIcon(type?: string) {
@@ -472,6 +472,18 @@ function networkNodeClass(status?: string) {
   if (status === "online") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (status === "offline") return "border-red-200 bg-red-50 text-red-700";
   return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+function friendlyNetworkLabel(label?: string, type?: string) {
+  const byType: Record<string, string> = {
+    router: "Centro da rede DC NET",
+    olt: "Ponto de distribuição",
+    customer: "Sua casa",
+  };
+  const fallback = byType[String(type || "")] || label || "Atualizando informações";
+  const value = String(label || fallback);
+  if (/pppoe|servidor|equipamento|olt|ccr/i.test(value)) return fallback;
+  return value;
 }
 
 function worseStatusForUi(...statuses: (string | undefined)[]) {
@@ -503,8 +515,8 @@ function speedTestUrl(path: string) {
 }
 
 function speedTestErrorMessage(error: unknown) {
-  if (error instanceof DOMException && error.name === "AbortError") return "Tempo limite excedido ao conectar ao servidor de Speed Test.";
-  if (error instanceof TypeError) return "Servidor de Speed Test indisponível ou bloqueado por CORS.";
+  if (error instanceof DOMException && error.name === "AbortError") return "Tempo limite excedido ao conectar ao Speed Test.";
+  if (error instanceof TypeError) return "Speed Test indisponível no momento.";
   if (error instanceof Error) return error.message;
   return "Não foi possível executar o Speed Test agora.";
 }
@@ -514,7 +526,7 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
   const timer = window.setTimeout(() => controller.abort(), timeoutMs);
   try {
     const response = await fetch(url, { ...options, signal: controller.signal, cache: "no-store" });
-    if (!response.ok) throw new Error("Servidor de Speed Test respondeu com erro.");
+    if (!response.ok) throw new Error("Speed Test respondeu com erro.");
     return response;
   } finally {
     window.clearTimeout(timer);
@@ -671,7 +683,7 @@ export default function ClientePage() {
       setOtpCode("");
       setOtpRequested(false);
       setOtpDevCode("");
-      setLoginError("Sua sessão expirou. Entre novamente.");
+      setLoginError("Seu acesso expirou. Entre novamente.");
       return true;
     }
     return false;
@@ -1037,7 +1049,7 @@ export default function ClientePage() {
 
         <section className="space-y-5">
           {dataError ? <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">{dataError}</div> : null}
-          {tab === "dashboard" ? <DashboardView dashboard={dashboard} executive={executiveDashboard} setTab={setTab} /> : null}
+          {tab === "dashboard" ? <DashboardView dashboard={dashboard} executive={executiveDashboard} pppoe={pppoe} pppoeLive={pppoeLive} setTab={setTab} /> : null}
           {tab === "plan" ? <PlanView plan={plan} /> : null}
           {tab === "connection" ? <ConnectionView connection={connection} /> : null}
           {tab === "networkMap" ? <NetworkMapView data={networkMap} /> : null}
@@ -1140,7 +1152,73 @@ function ExecutiveCard({
   );
 }
 
-function DashboardView({ dashboard, executive, setTab }: { dashboard: Dashboard | null; executive: ExecutiveDashboard | null; setTab: (tab: TabKey) => void }) {
+function PremiumMetric({ label, value, hint, icon: Icon }: { label: string; value: string; hint?: string; icon: React.ComponentType<{ className?: string }> }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-sm backdrop-blur">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-medium uppercase text-slate-300">{label}</p>
+        <Icon className="h-4 w-4 shrink-0 text-cyan-200" />
+      </div>
+      <p className="mt-3 truncate text-xl font-semibold tracking-tight text-white">{value}</p>
+      {hint ? <p className="mt-1 truncate text-xs text-slate-300">{hint}</p> : null}
+    </div>
+  );
+}
+
+function PremiumStatusCard({
+  title,
+  value,
+  hint,
+  icon: Icon,
+  tone,
+  onClick,
+}: {
+  title: string;
+  value: string;
+  hint: string;
+  icon: React.ComponentType<{ className?: string }>;
+  tone: "green" | "red" | "amber" | "slate";
+  onClick?: () => void;
+}) {
+  const toneClass = {
+    green: "border-emerald-200/80 bg-white shadow-emerald-950/5 text-emerald-700",
+    red: "border-red-200/80 bg-white shadow-red-950/5 text-red-700",
+    amber: "border-amber-200/80 bg-white shadow-amber-950/5 text-amber-700",
+    slate: "border-slate-200 bg-white shadow-slate-950/5 text-slate-700",
+  }[tone];
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-h-32 rounded-3xl border p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${toneClass}`}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-slate-500">{title}</p>
+          <p className="mt-2 truncate text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
+        </div>
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-sm">
+          <Icon className="h-5 w-5" />
+        </span>
+      </div>
+      <p className="mt-4 line-clamp-2 text-sm leading-5 text-slate-500">{hint}</p>
+    </button>
+  );
+}
+
+function DashboardView({
+  dashboard,
+  executive,
+  pppoe,
+  pppoeLive,
+  setTab,
+}: {
+  dashboard: Dashboard | null;
+  executive: ExecutiveDashboard | null;
+  pppoe: PppoeInfo | null;
+  pppoeLive: PppoeLive | null;
+  setTab: (tab: TabKey) => void;
+}) {
   if (!dashboard) return null;
   const summary = executive || {
     client: { fullName: dashboard.client.fullName, status: dashboard.client.status },
@@ -1151,56 +1229,93 @@ function DashboardView({ dashboard, executive, setTab }: { dashboard: Dashboard 
     notifications: { unreadCount: 0 },
     connection: { lastUpdateAt: dashboard.connection.lastUpdateAt || dashboard.connection.lastSession?.sampledAt || null },
   };
+  const firstName = summary.client.fullName?.split(" ")[0] || "cliente";
+  const planName = summary.plan.name || dashboard.plan?.name || "Atualizando informações";
+  const planSpeed = summary.plan.speed || (dashboard.plan?.speedMbps ? `${dashboard.plan.speedMbps} Mbps` : "Atualizando informações");
+  const internetTone = toneForStatus(summary.internet.status);
+  const connectionStatus = statusLabel(summary.internet.status);
+  const ping = pppoeLive?.pingMs ?? pppoe?.quality?.pingMs ?? null;
+  const currentIp = pppoeLive?.currentIp || pppoe?.currentIp || "Atualizando informações";
+  const uptime = pppoeLive?.uptime || pppoe?.uptime || "Atualizando informações";
+  const lastUpdate = summary.connection.lastUpdateAt || pppoeLive?.lastUpdateAt || pppoe?.lastUpdateAt || null;
+  const healthScore = scoreText(summary.internet.healthScore);
+  const nextInvoice = dashboard.financialSummary.nextInvoice;
+  const nextInvoiceValue = nextInvoice ? money(nextInvoice.amount) : date(summary.billing.nextDueDate);
+  const nextInvoiceHint = nextInvoice
+    ? `Vence em ${date(nextInvoice.dueDate)}`
+    : summary.billing.nextDueDate ? "Próxima fatura" : "Sem fatura em aberto";
+
   return (
     <div className="space-y-5">
-      <Card className="border-slate-200 bg-slate-950 text-white">
-        <CardContent className="space-y-5 p-5 sm:p-6">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-sm font-medium text-emerald-300">Bem-vindo, {summary.client.fullName?.split(" ")[0] || "cliente"}</p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-tight">Resumo da sua conta</h2>
+      <section className="overflow-hidden rounded-[2rem] border border-slate-900/10 bg-slate-950 text-white shadow-xl shadow-slate-950/10">
+        <div className="relative isolate p-5 sm:p-6 lg:p-7">
+          <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_15%_10%,rgba(16,185,129,0.38),transparent_32%),radial-gradient(circle_at_84%_8%,rgba(34,211,238,0.24),transparent_28%),linear-gradient(135deg,#020617_0%,#071426_48%,#064e3b_100%)]" />
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-sm font-medium text-emerald-200">Olá, {firstName}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Internet</h2>
+                <Badge tone={internetTone}>{connectionStatus}</Badge>
+              </div>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300">Sua internet DC NET em destaque, com plano, velocidade e qualidade da conexão.</p>
             </div>
-            <p className="text-sm text-slate-300">Última atualização: {dateTime(summary.connection.lastUpdateAt)}</p>
+            <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-left shadow-sm backdrop-blur lg:min-w-72">
+              <p className="text-xs font-medium uppercase text-slate-300">Seu plano</p>
+              <p className="mt-2 truncate text-2xl font-semibold tracking-tight text-white">{planName}</p>
+              <p className="mt-1 text-sm text-emerald-200">{planSpeed}</p>
+            </div>
           </div>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
-            <ExecutiveCard title="Internet" value={statusLabel(summary.internet.status)} hint="Status atual" icon={Wifi} tone={toneForStatus(summary.internet.status)} />
-            <ExecutiveCard title="Plano" value={summary.plan.name || "Não informado"} hint={summary.plan.speed || "Velocidade não informada"} icon={ShieldCheck} tone="green" />
-            <ExecutiveCard title="Próximo vencimento" value={date(summary.billing.nextDueDate)} hint="Fatura em aberto" icon={CalendarDays} tone={summary.billing.overdueInvoices > 0 ? "red" : summary.billing.pendingInvoices > 0 ? "amber" : "green"} />
-            <ExecutiveCard title="Financeiro" value={`${summary.billing.pendingInvoices} pendente(s)`} hint={`${summary.billing.overdueInvoices} vencida(s)`} icon={Banknote} tone={billingTone(summary.billing.pendingInvoices, summary.billing.overdueInvoices)} />
-            <ExecutiveCard title="Chamados" value={String(summary.support.openTickets)} hint="Abertos ou em atendimento" icon={Headphones} tone={summary.support.openTickets > 0 ? "amber" : "green"} />
-            <ExecutiveCard title="Saúde" value={scoreText(summary.internet.healthScore)} hint="Rede vinculada" icon={Activity} tone={healthTone(summary.internet.healthScore)} />
-            <ExecutiveCard title="Notificações" value={String(summary.notifications?.unreadCount || 0)} hint="Não lidas" icon={Bell} tone={(summary.notifications?.unreadCount || 0) > 0 ? "amber" : "green"} />
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <PremiumMetric label="Ping" value={latencyValue(ping)} hint="Latência" icon={TimerReset} />
+            <PremiumMetric label="Sua identificação" value={currentIp} hint="Qualidade da conexão" icon={Globe2} />
+            <PremiumMetric label="Tempo conectado" value={uptime} hint="Tempo conectado" icon={Clock} />
+            <PremiumMetric label="Última consulta" value={dateTime(lastUpdate)} hint="Última consulta" icon={Activity} />
           </div>
-        </CardContent>
-      </Card>
-      <Card>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <PremiumStatusCard title="Próxima fatura" value={nextInvoiceValue} hint={nextInvoiceHint} icon={CalendarDays} tone={summary.billing.overdueInvoices > 0 ? "red" : summary.billing.pendingInvoices > 0 ? "amber" : "green"} onClick={() => setTab("payment")} />
+        <PremiumStatusCard title="Financeiro" value={`${summary.billing.pendingInvoices} pendente(s)`} hint={`${summary.billing.overdueInvoices} vencida(s)`} icon={Banknote} tone={billingTone(summary.billing.pendingInvoices, summary.billing.overdueInvoices)} onClick={() => setTab("invoices")} />
+        <PremiumStatusCard title="Chamados" value={String(summary.support.openTickets)} hint="Abertos ou em atendimento" icon={Headphones} tone={summary.support.openTickets > 0 ? "amber" : "green"} onClick={() => setTab("tickets")} />
+        <PremiumStatusCard title="Notificações" value={String(summary.notifications?.unreadCount || 0)} hint="Não lidas" icon={Bell} tone={(summary.notifications?.unreadCount || 0) > 0 ? "amber" : "green"} onClick={() => setTab("notifications")} />
+        <PremiumStatusCard title="Qualidade da conexão" value={healthScore} hint="Tudo funcionando normalmente" icon={Activity} tone={healthTone(summary.internet.healthScore)} onClick={() => setTab("connection")} />
+      </section>
+
+      <Card className="rounded-3xl border-slate-200 shadow-sm">
         <CardHeader>
           <CardTitle>WhatsApp Oficial DC NET</CardTitle>
           <CardDescription>Atendimento automático e suporte.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button className="h-11 bg-emerald-600 hover:bg-emerald-700" onClick={openOfficialWhatsapp}>
+          <Button className="h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-700" onClick={openOfficialWhatsapp}>
             <PhoneCall className="h-4 w-4" /> Falar no WhatsApp
           </Button>
         </CardContent>
       </Card>
-      <Card>
+
+      <Card className="rounded-3xl border-slate-200 shadow-sm">
         <CardHeader>
           <CardTitle>Atalhos</CardTitle>
           <CardDescription>Acesse as áreas mais usadas do portal.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-4">
-          <Button variant="outline" className="h-12 justify-start" onClick={() => setTab("invoices")}><FileText className="h-4 w-4" /> Faturas</Button>
-          <Button variant="outline" className="h-12 justify-start" onClick={() => setTab("payment")}><CreditCard className="h-4 w-4" /> PIX / Segunda Via</Button>
-          <Button variant="outline" className="h-12 justify-start" onClick={() => setTab("support")}><Headphones className="h-4 w-4" /> Suporte</Button>
-          <Button variant="outline" className="h-12 justify-start" onClick={() => setTab("whatsapp")}><PhoneCall className="h-4 w-4" /> WhatsApp</Button>
+        <CardContent className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <Button variant="outline" className="h-12 justify-start rounded-2xl" onClick={() => setTab("invoices")}><FileText className="h-4 w-4" /> Faturas</Button>
+          <Button variant="outline" className="h-12 justify-start rounded-2xl" onClick={() => setTab("payment")}><CreditCard className="h-4 w-4" /> PIX / Segunda Via</Button>
+          <Button variant="outline" className="h-12 justify-start rounded-2xl" onClick={() => setTab("support")}><Headphones className="h-4 w-4" /> Suporte</Button>
+          <Button variant="outline" className="h-12 justify-start rounded-2xl" onClick={() => setTab("whatsapp")}><PhoneCall className="h-4 w-4" /> WhatsApp</Button>
+          <Button variant="outline" className="h-12 justify-start rounded-2xl" onClick={() => setTab("speedTest")}><Gauge className="h-4 w-4" /> Speed Test</Button>
+          <Button variant="outline" className="h-12 justify-start rounded-2xl" onClick={() => setTab("pppoe")}><Router className="h-4 w-4" /> Sua Internet</Button>
+          <Button variant="outline" className="h-12 justify-start rounded-2xl" onClick={() => setTab("connection")}><Wifi className="h-4 w-4" /> Minha Conexão</Button>
+          <Button variant="outline" className="h-12 justify-start rounded-2xl" onClick={() => setTab("networkMap")}><Globe2 className="h-4 w-4" /> Mapa da Conexão</Button>
         </CardContent>
       </Card>
       {dashboard.alerts.length ? (
-        <Card>
+        <Card className="rounded-3xl border-amber-200 shadow-sm">
           <CardHeader><CardTitle>Alertas</CardTitle></CardHeader>
           <CardContent className="space-y-2">
-            {dashboard.alerts.map((alert) => <div key={`${alert.type}-${alert.message}`} className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{alert.message}</div>)}
+            {dashboard.alerts.map((alert) => <div key={`${alert.type}-${alert.message}`} className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{alert.message}</div>)}
           </CardContent>
         </Card>
       ) : null}
@@ -1287,12 +1402,12 @@ function NetworkMapView({ data }: { data: CustomerNetworkMap | null }) {
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-              <p className="text-sm text-slate-300">Última atualização</p>
+              <p className="text-sm text-slate-300">Última consulta</p>
               <p className="mt-2 text-lg font-semibold">{dateTime(data.lastUpdateAt)}</p>
             </div>
             <div className="rounded-lg border border-white/10 bg-white/5 p-4">
-              <p className="text-sm text-slate-300">Origem</p>
-              <p className="mt-2 text-lg font-semibold">{data.source === "fallback" ? "Mapa simplificado" : "Snapshot DC NET"}</p>
+              <p className="text-sm text-slate-300">Fonte</p>
+              <p className="mt-2 text-lg font-semibold">{data.source === "fallback" ? "Mapa simplificado" : "Consulta DC NET"}</p>
             </div>
             <div className="rounded-lg border border-white/10 bg-white/5 p-4">
               <p className="text-sm text-slate-300">Cliente</p>
@@ -1312,7 +1427,7 @@ function NetworkMapView({ data }: { data: CustomerNetworkMap | null }) {
       <Card>
         <CardHeader>
           <CardTitle>Caminho visual</CardTitle>
-          <CardDescription>Internet, POP, servidor PPPoE, equipamento e cliente.</CardDescription>
+          <CardDescription>Resumo simples do caminho da sua internet até sua casa.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mx-auto max-w-3xl">
@@ -1327,7 +1442,7 @@ function NetworkMapView({ data }: { data: CustomerNetworkMap | null }) {
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1 text-left">
-                      <p className="truncate text-base font-semibold text-slate-950">{item.label}</p>
+                      <p className="truncate text-base font-semibold text-slate-950">{friendlyNetworkLabel(item.label, item.type)}</p>
                       <p className="mt-1 text-sm text-slate-500">{statusLabel(item.status)}</p>
                     </div>
                     <Badge tone={toneForStatus(item.status)}>{statusLabel(item.status)}</Badge>
@@ -1343,12 +1458,12 @@ function NetworkMapView({ data }: { data: CustomerNetworkMap | null }) {
       <Card>
         <CardHeader>
           <CardTitle>Qualidade</CardTitle>
-          <CardDescription>Últimos indicadores disponíveis da conexão.</CardDescription>
+          <CardDescription>Qualidade da conexão disponível agora.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-3">
           <MetricCard title="Ping" value={latencyValue(data.quality?.pingMs)} hint="Latência" icon={TimerReset} />
           <MetricCard title="Jitter" value={latencyValue(data.quality?.jitterMs)} hint="Variação" icon={Activity} />
-          <MetricCard title="Perda" value={data.quality?.packetLoss == null ? "-" : Number(data.quality.packetLoss).toFixed(1) + "%"} hint="Packet loss" icon={ShieldCheck} />
+          <MetricCard title="Perda" value={data.quality?.packetLoss == null ? "-" : Number(data.quality.packetLoss).toFixed(1) + "%"} hint="Estabilidade" icon={ShieldCheck} />
         </CardContent>
       </Card>
     </div>
@@ -1358,12 +1473,12 @@ function NetworkMapView({ data }: { data: CustomerNetworkMap | null }) {
 function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
   if (!connection) return null;
   const plan = connection.plan;
-  const speed = plan?.speedMbps ? `${plan.speedMbps} Mbps` : "Velocidade não informada";
-  const equipment = connection.server?.name || connection.networkNode?.name || "Não informado";
+  const speed = plan?.speedMbps ? `${plan.speedMbps} Mbps` : "Atualizando informações";
+  const equipment = connection.server?.name || connection.networkNode?.name || "Atualizando informações";
   const lastUpdate = connection.lastUpdateAt || connection.lastSignal?.sampledAt || connection.lastSession?.sampledAt || connection.networkNode?.agentLastSeenAt || null;
   const traffic = connection.lastSignal?.totalRxMbps != null || connection.lastSignal?.totalTxMbps != null
     ? `${metricValue(connection.lastSignal?.totalRxMbps, " Mbps")} down · ${metricValue(connection.lastSignal?.totalTxMbps, " Mbps")} up`
-    : "Sem leitura recente";
+    : "Atualizando informações";
 
   return (
     <div className="space-y-5">
@@ -1371,7 +1486,7 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
         <Card>
           <CardContent className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm text-slate-500">Status da conexão</p>
+              <p className="text-sm text-slate-500">Sua Internet</p>
               <div className="mt-2"><Badge tone={connectionTone(connection)}>{statusLabel(connection.status)}</Badge></div>
               <p className="mt-3 text-sm text-slate-600">{connectionMessage(connection.status)}</p>
             </div>
@@ -1381,8 +1496,8 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
         <Card>
           <CardContent className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm text-slate-500">Plano</p>
-              <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{plan?.name || "Não informado"}</p>
+              <p className="text-sm text-slate-500">Seu plano</p>
+              <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{plan?.name || "Atualizando informações"}</p>
               <p className="mt-1 text-sm text-slate-500">{speed}</p>
             </div>
             <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><ShieldCheck className="h-5 w-5" /></div>
@@ -1391,9 +1506,9 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
         <Card>
           <CardContent className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm text-slate-500">Usuário de acesso</p>
-              <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{connection.access?.usernameMasked || "Não informado"}</p>
-              <p className="mt-1 text-sm text-slate-500">{connection.access?.authType?.toUpperCase() || "Acesso"}</p>
+              <p className="text-sm text-slate-500">Sua identificação</p>
+              <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{connection.access?.usernameMasked || "Atualizando informações"}</p>
+              <p className="mt-1 text-sm text-slate-500">{"Acesso do cliente"}</p>
             </div>
             <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><UserRound className="h-5 w-5" /></div>
           </CardContent>
@@ -1401,9 +1516,9 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
         <Card>
           <CardContent className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm text-slate-500">Servidor/equipamento</p>
+              <p className="text-sm text-slate-500">Ponto de conexão</p>
               <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{equipment}</p>
-              <p className="mt-1 text-sm text-slate-500">{connection.networkNode?.healthLevel ? healthLabel(connection.networkNode.healthLevel) : "Vínculo operacional"}</p>
+              <p className="mt-1 text-sm text-slate-500">{connection.networkNode?.healthLevel ? healthLabel(connection.networkNode.healthLevel) : "Tudo funcionando normalmente"}</p>
             </div>
             <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Router className="h-5 w-5" /></div>
           </CardContent>
@@ -1411,9 +1526,9 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
         <Card>
           <CardContent className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm text-slate-500">Última atualização</p>
+              <p className="text-sm text-slate-500">Última consulta</p>
               <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{dateTime(lastUpdate)}</p>
-              <p className="mt-1 text-sm text-slate-500">{connection.lastSignal ? "Leitura NOC disponível" : "Aguardando leitura"}</p>
+              <p className="mt-1 text-sm text-slate-500">{connection.lastSignal ? "Tudo funcionando normalmente" : "Atualizando informações"}</p>
             </div>
             <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Clock className="h-5 w-5" /></div>
           </CardContent>
@@ -1421,9 +1536,9 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
         <Card>
           <CardContent className="flex items-start justify-between gap-4">
             <div>
-              <p className="text-sm text-slate-500">Sinal e sessões</p>
+              <p className="text-sm text-slate-500">Qualidade da conexão</p>
               <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{metricValue(connection.lastSession?.activePppTotal ?? connection.lastSignal?.pppOnline)}</p>
-              <p className="mt-1 text-sm text-slate-500">PPPoE online · {traffic}</p>
+              <p className="mt-1 text-sm text-slate-500">Conexão ativa · {traffic}</p>
             </div>
             <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Activity className="h-5 w-5" /></div>
           </CardContent>
@@ -1433,7 +1548,7 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
       <Card>
         <CardHeader>
           <CardTitle>Alertas</CardTitle>
-          <CardDescription>Situações identificadas na última leitura disponível.</CardDescription>
+          <CardDescription>Central de avisos da sua internet.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {connection.alerts?.length ? connection.alerts.map((alert) => (
@@ -1441,7 +1556,7 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{alert.message}</span>
             </div>
-          )) : <p className="text-sm text-slate-500">Nenhum alerta de conexão no momento.</p>}
+          )) : <p className="text-sm text-slate-500">Tudo funcionando normalmente.</p>}
         </CardContent>
       </Card>
     </div>
@@ -1460,8 +1575,8 @@ function PppoeLivePanel({ live, points, state }: { live: PppoeLive | null; point
       <CardHeader>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <CardTitle>Tempo Real</CardTitle>
-            <CardDescription>Atualização automática a cada 5 segundos usando snapshots persistidos.</CardDescription>
+            <CardTitle>Sua Internet agora</CardTitle>
+            <CardDescription>Atualizando informações da sua conexão automaticamente.</CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
             <Badge tone={statusTone}>{statusLabel(live?.status)}</Badge>
@@ -1473,17 +1588,17 @@ function PppoeLivePanel({ live, points, state }: { live: PppoeLive | null; point
         {state === "error" || live?.message ? (
           <div className={"flex gap-3 rounded-lg border p-3 text-sm " + noticeClass}>
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <span>{state === "error" ? "Não foi possível atualizar agora. O último dado conhecido foi mantido." : live?.message}</span>
+            <span>{state === "error" ? "Não foi possível atualizar agora. A última informação foi mantida." : live?.message}</span>
           </div>
         ) : null}
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <MetricCard title="Download atual" value={speedValue(live?.downloadMbps)} hint="Último snapshot disponível" icon={Download} />
-          <MetricCard title="Upload atual" value={speedValue(live?.uploadMbps)} hint="Último snapshot disponível" icon={Upload} />
-          <MetricCard title="Ping" value={latencyValue(live?.pingMs)} hint="Latência conhecida" icon={TimerReset} />
+          <MetricCard title="Download atual" value={speedValue(live?.downloadMbps)} hint="Última consulta" icon={Download} />
+          <MetricCard title="Upload atual" value={speedValue(live?.uploadMbps)} hint="Última consulta" icon={Upload} />
+          <MetricCard title="Ping" value={latencyValue(live?.pingMs)} hint="Qualidade da conexão" icon={TimerReset} />
           <MetricCard title="Jitter" value={latencyValue(live?.jitterMs)} hint="Variação de latência" icon={Activity} />
-          <MetricCard title="IP atual" value={live?.currentIp || "-"} hint="Sessão PPPoE" icon={Wifi} />
-          <MetricCard title="Tempo conectado" value={live?.uptime || "-"} hint={live?.lastUpdateAt ? "Atualizado em " + dateTime(live.lastUpdateAt) : "Sem atualização recente"} icon={Clock} />
+          <MetricCard title="Sua identificação" value={live?.currentIp || "-"} hint="Qualidade da conexão" icon={Wifi} />
+          <MetricCard title="Tempo conectado" value={live?.uptime || "-"} hint={live?.lastUpdateAt ? "Última consulta em " + dateTime(live.lastUpdateAt) : "Atualizando informações"} icon={Clock} />
         </div>
 
         {hasChartPoints ? (
@@ -1502,7 +1617,7 @@ function PppoeLivePanel({ live, points, state }: { live: PppoeLive | null; point
         ) : (
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
             <Activity className="mx-auto mb-2 h-6 w-6 text-slate-400" />
-            Sem pontos recentes para o gráfico em tempo real.
+            Estamos atualizando as informações para montar o gráfico.
           </div>
         )}
       </CardContent>
@@ -1521,7 +1636,7 @@ function PppoeConsumptionChart({ title, description, data }: { title: string; de
         <CardContent>
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
             <Activity className="mx-auto mb-2 h-6 w-6 text-slate-400" />
-            Sem histórico de consumo recente.
+            Estamos atualizando seu histórico de consumo.
           </div>
         </CardContent>
       </Card>
@@ -1568,8 +1683,8 @@ function PppoeView({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>PPPoE</CardTitle>
-          <CardDescription>Carregando dados da sua sessão.</CardDescription>
+          <CardTitle>Sua Internet</CardTitle>
+          <CardDescription>Atualizando informações da sua internet.</CardDescription>
         </CardHeader>
         <CardContent><p className="text-sm text-slate-500">Aguarde...</p></CardContent>
       </Card>
@@ -1585,17 +1700,17 @@ function PppoeView({
         <CardContent className="space-y-5 p-5 sm:p-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-sm font-medium text-emerald-300">PPPoE do Cliente</p>
-              <h2 className="mt-1 text-2xl font-semibold tracking-tight">Sua sessão de acesso</h2>
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">Dados somente leitura da última coleta disponível.</p>
+              <p className="text-sm font-medium text-emerald-300">Sua Internet</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight">Qualidade da conexão</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">Informações da sua última consulta disponível.</p>
             </div>
             <Badge tone={statusTone}>{statusLabel(data.status)}</Badge>
           </div>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <ExecutiveCard title="Usuário" value={data.usernameMasked || "-"} hint="PPPoE mascarado" icon={UserRound} tone="slate" />
-            <ExecutiveCard title="IP atual" value={data.currentIp || "-"} hint="Última sessão conhecida" icon={Wifi} tone={data.currentIp ? "green" : "slate"} />
-            <ExecutiveCard title="Servidor" value={data.serverName || "-"} hint="Equipamento vinculado" icon={Router} tone={data.serverName ? "green" : "slate"} />
-            <ExecutiveCard title="Conectado" value={data.uptime || "-"} hint={data.connectedAt ? dateTime(data.connectedAt) : "Tempo da sessão"} icon={Clock} tone={data.uptime ? "green" : "slate"} />
+            <ExecutiveCard title="Sua identificação" value={data.usernameMasked || "-"} hint="Dados protegidos" icon={UserRound} tone="slate" />
+            <ExecutiveCard title="Sua identificação" value={data.currentIp || "-"} hint="Última consulta" icon={Wifi} tone={data.currentIp ? "green" : "slate"} />
+            <ExecutiveCard title="Ponto de conexão" value={data.serverName || "-"} hint="Tudo funcionando normalmente" icon={Router} tone={data.serverName ? "green" : "slate"} />
+            <ExecutiveCard title="Conectado" value={data.uptime || "-"} hint={data.connectedAt ? dateTime(data.connectedAt) : "Tempo conectado"} icon={Clock} tone={data.uptime ? "green" : "slate"} />
           </div>
         </CardContent>
       </Card>
@@ -1603,9 +1718,9 @@ function PppoeView({
       <PppoeLivePanel live={live} points={livePoints} state={liveState} />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <MetricCard title="Download atual" value={speedValue(data.trafficNow?.downloadMbps)} hint="Último ponto por cliente" icon={Download} />
-        <MetricCard title="Upload atual" value={speedValue(data.trafficNow?.uploadMbps)} hint="Último ponto por cliente" icon={Upload} />
-        <MetricCard title="Ping" value={latencyValue(data.quality?.pingMs)} hint="Última qualidade conhecida" icon={TimerReset} />
+        <MetricCard title="Download atual" value={speedValue(data.trafficNow?.downloadMbps)} hint="Última consulta" icon={Download} />
+        <MetricCard title="Upload atual" value={speedValue(data.trafficNow?.uploadMbps)} hint="Última consulta" icon={Upload} />
+        <MetricCard title="Ping" value={latencyValue(data.quality?.pingMs)} hint="Qualidade da conexão" icon={TimerReset} />
         <MetricCard title="Jitter" value={latencyValue(data.quality?.jitterMs)} hint="Variação de latência" icon={Activity} />
       </div>
 
@@ -1613,10 +1728,10 @@ function PppoeView({
         <CardHeader>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <CardTitle>Tráfego PPPoE</CardTitle>
-              <CardDescription>Últimos pontos conhecidos de download e upload da sua sessão.</CardDescription>
+              <CardTitle>Uso da sua internet</CardTitle>
+              <CardDescription>Histórico recente de download e upload da sua internet.</CardDescription>
             </div>
-            <span className="text-sm text-slate-500">Atualizado em {dateTime(data.lastUpdateAt)}</span>
+            <span className="text-sm text-slate-500">Última consulta em {dateTime(data.lastUpdateAt)}</span>
           </div>
         </CardHeader>
         <CardContent>
@@ -1636,7 +1751,7 @@ function PppoeView({
           ) : (
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
               <Activity className="mx-auto mb-2 h-6 w-6 text-slate-400" />
-              Sem dados recentes para o gráfico.
+              Atualizando informações para o gráfico.
             </div>
           )}
         </CardContent>
@@ -1645,7 +1760,7 @@ function PppoeView({
       <Card>
         <CardHeader>
           <CardTitle>Histórico de Consumo</CardTitle>
-          <CardDescription>{history?.message || "Consumo calculado pelos snapshots PPPoE disponíveis."}</CardDescription>
+          <CardDescription>{history?.message || "Consumo calculado com as informações disponíveis."}</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <MetricCard title="Download Hoje" value={dataGb(history?.today.downloadGB)} hint="Consumo recebido hoje" icon={Download} />
@@ -1665,7 +1780,7 @@ function PppoeView({
         />
         <PppoeConsumptionChart
           title="Consumo dos últimos 30 dias"
-          description="Visão mensal diária do consumo PPPoE."
+          description="Visão diária do consumo no mês."
           data={history?.series30d || []}
         />
       </div>
@@ -1677,7 +1792,7 @@ function PppoeView({
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{alert.message}</span>
             </div>
-          )) : <p className="text-sm text-slate-500">Nenhum alerta de PPPoE no momento.</p>}
+          )) : <p className="text-sm text-slate-500">Tudo funcionando normalmente no momento.</p>}
         </CardContent>
       </Card>
     </div>
@@ -1762,7 +1877,7 @@ function SpeedTestView() {
             </div>
             <h2 className="text-2xl font-semibold tracking-tight">Teste sua conexão agora</h2>
             <p className="max-w-2xl text-sm leading-6 text-slate-300">
-              Execute uma medição real pelo servidor DC NET e acompanhe seus últimos resultados neste aparelho.
+              Execute uma medição real pela DC NET e acompanhe seus últimos resultados neste aparelho.
             </p>
           </div>
           <Button onClick={() => void executeTest()} disabled={running} className="h-11 bg-emerald-600 hover:bg-emerald-700 lg:min-w-44">
@@ -1813,7 +1928,7 @@ function SpeedTestView() {
             <div key={item.id} className="grid gap-3 rounded-lg border border-slate-200 p-3 text-sm sm:grid-cols-[1.2fr_repeat(4,0.8fr)] sm:items-center">
               <div>
                 <p className="font-medium text-slate-950">{dateTime(item.createdAt)}</p>
-                <p className="mt-1 text-xs text-slate-500">Servidor DC NET</p>
+                <p className="mt-1 text-xs text-slate-500">DC NET</p>
               </div>
               <div><p className="text-xs text-slate-500">Download</p><p className="font-semibold text-slate-950">{speedValue(item.downloadMbps)}</p></div>
               <div><p className="text-xs text-slate-500">Upload</p><p className="font-semibold text-slate-950">{speedValue(item.uploadMbps)}</p></div>
@@ -2176,7 +2291,7 @@ function TicketsView({
                   <p className="mt-1 text-sm font-medium">{date(ticketDetail.createdAt)}</p>
                 </div>
                 <div className="rounded-lg border border-slate-200 p-3">
-                  <p className="text-xs text-slate-500">Última atualização</p>
+                  <p className="text-xs text-slate-500">Última consulta</p>
                   <p className="mt-1 text-sm font-medium">{date(ticketDetail.updatedAt)}</p>
                 </div>
               </div>
