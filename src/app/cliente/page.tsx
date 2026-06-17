@@ -45,7 +45,7 @@ import {
   setCustomerToken,
 } from "@/lib/customer-app-api";
 
-type TabKey = "dashboard" | "plan" | "connection" | "networkMap" | "pppoe" | "speedTest" | "invoices" | "payment" | "support" | "tickets" | "notifications";
+type TabKey = "dashboard" | "plan" | "connection" | "networkMap" | "pppoe" | "speedTest" | "whatsapp" | "invoices" | "payment" | "support" | "tickets" | "notifications";
 
 type CustomerLoginResponse = {
   token: string;
@@ -269,6 +269,7 @@ type SpeedTestStep = "idle" | "ping" | "download" | "upload" | "finishing";
 
 const SPEED_TEST_BASE_URL = "https://speed.dcinfinity.net.br";
 const SPEED_TEST_HISTORY_KEY = "dcnet:cliente:speed-tests";
+const WHATSAPP_DCNET = "https://wa.me/5561996627145";
 
 const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   { key: "dashboard", label: "Início", icon: Home },
@@ -277,6 +278,7 @@ const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ className?
   { key: "networkMap", label: "Mapa da Conexão", icon: Globe2 },
   { key: "pppoe", label: "PPPoE", icon: Router },
   { key: "speedTest", label: "Speed Test", icon: Gauge },
+  { key: "whatsapp", label: "WhatsApp", icon: PhoneCall },
   { key: "invoices", label: "Minhas Faturas", icon: FileText },
   { key: "payment", label: "PIX / Segunda Via", icon: CreditCard },
   { key: "support", label: "Suporte", icon: Headphones },
@@ -604,6 +606,10 @@ function notificationTypeClass(type?: string) {
     system: "border-slate-200 bg-slate-50 text-slate-700",
   };
   return map[String(type || "")] || map.system;
+}
+
+function openOfficialWhatsapp() {
+  window.open(WHATSAPP_DCNET, "_blank");
 }
 
 
@@ -1037,6 +1043,7 @@ export default function ClientePage() {
           {tab === "networkMap" ? <NetworkMapView data={networkMap} /> : null}
           {tab === "pppoe" ? <PppoeView data={pppoe} history={pppoeHistory} live={pppoeLive} livePoints={pppoeLivePoints} liveState={pppoeLiveState} /> : null}
           {tab === "speedTest" ? <SpeedTestView /> : null}
+          {tab === "whatsapp" ? <WhatsappView /> : null}
           {tab === "invoices" ? <InvoicesView invoices={invoices} onPayment={(id) => { setSelectedInvoiceId(id); setTab("payment"); }} /> : null}
           {tab === "payment" ? (
             <PaymentView
@@ -1168,13 +1175,25 @@ function DashboardView({ dashboard, executive, setTab }: { dashboard: Dashboard 
       </Card>
       <Card>
         <CardHeader>
+          <CardTitle>WhatsApp Oficial DC NET</CardTitle>
+          <CardDescription>Atendimento automático e suporte.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Button className="h-11 bg-emerald-600 hover:bg-emerald-700" onClick={openOfficialWhatsapp}>
+            <PhoneCall className="h-4 w-4" /> Falar no WhatsApp
+          </Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
           <CardTitle>Atalhos</CardTitle>
           <CardDescription>Acesse as áreas mais usadas do portal.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 sm:grid-cols-3">
+        <CardContent className="grid gap-3 sm:grid-cols-4">
           <Button variant="outline" className="h-12 justify-start" onClick={() => setTab("invoices")}><FileText className="h-4 w-4" /> Faturas</Button>
           <Button variant="outline" className="h-12 justify-start" onClick={() => setTab("payment")}><CreditCard className="h-4 w-4" /> PIX / Segunda Via</Button>
           <Button variant="outline" className="h-12 justify-start" onClick={() => setTab("support")}><Headphones className="h-4 w-4" /> Suporte</Button>
+          <Button variant="outline" className="h-12 justify-start" onClick={() => setTab("whatsapp")}><PhoneCall className="h-4 w-4" /> WhatsApp</Button>
         </CardContent>
       </Card>
       {dashboard.alerts.length ? (
@@ -1185,6 +1204,42 @@ function DashboardView({ dashboard, executive, setTab }: { dashboard: Dashboard 
           </CardContent>
         </Card>
       ) : null}
+    </div>
+  );
+}
+
+function WhatsappView() {
+  return (
+    <div className="space-y-5">
+      <Card className="overflow-hidden border-slate-200 bg-slate-950 text-white">
+        <CardContent className="grid gap-6 p-5 sm:p-6 md:grid-cols-[1fr_auto] md:items-center">
+          <div>
+            <div className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300">
+              <PhoneCall className="h-5 w-5" />
+            </div>
+            <h2 className="mt-4 text-2xl font-semibold tracking-tight">WhatsApp Oficial DC NET</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">Atendimento rápido através do WhatsApp oficial da DC NET.</p>
+          </div>
+          <Button className="h-11 bg-emerald-600 hover:bg-emerald-700" onClick={openOfficialWhatsapp}>
+            <PhoneCall className="h-4 w-4" /> Falar no WhatsApp
+          </Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>Canal oficial</CardTitle>
+          <CardDescription>Número oficial da DC NET para atendimento.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm text-slate-500">WhatsApp</p>
+            <p className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">(61) 99662-7145</p>
+          </div>
+          <Button className="h-11 bg-emerald-600 hover:bg-emerald-700" onClick={openOfficialWhatsapp}>
+            <PhoneCall className="h-4 w-4" /> Falar no WhatsApp
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }
