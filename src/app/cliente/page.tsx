@@ -624,6 +624,15 @@ function openOfficialWhatsapp() {
   window.open(WHATSAPP_DCNET, "_blank");
 }
 
+function firstNameFromFullName(value?: string | null) {
+  return String(value || "").trim().split(/\s+/).filter(Boolean)[0] || "";
+}
+
+function customerGreeting(value?: string | null) {
+  const firstName = firstNameFromFullName(value);
+  return firstName ? `Olá, ${firstName} 👋` : "Bem-vindo ao Portal DC NET";
+}
+
 
 export default function ClientePage() {
   const [tokenReady, setTokenReady] = useState(false);
@@ -638,6 +647,7 @@ export default function ClientePage() {
   const [loadingLogin, setLoadingLogin] = useState(false);
   const [tab, setTab] = useState<TabKey>("dashboard");
 
+  const [loginClient, setLoginClient] = useState<CustomerLoginResponse["client"] | null>(null);
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [executiveDashboard, setExecutiveDashboard] = useState<ExecutiveDashboard | null>(null);
   const [plan, setPlan] = useState<PlanResponse | null>(null);
@@ -669,7 +679,8 @@ export default function ClientePage() {
   const [loadingData, setLoadingData] = useState(false);
   const [dataError, setDataError] = useState("");
 
-  const firstName = useMemo(() => dashboard?.client.fullName?.split(" ")[0] || "cliente", [dashboard]);
+  const greetingSourceName = dashboard?.client.fullName || executiveDashboard?.client.fullName || loginClient?.fullName || "";
+  const greetingText = useMemo(() => customerGreeting(greetingSourceName), [greetingSourceName]);
 
   const handleAuthError = useCallback((err: unknown) => {
     if (err instanceof CustomerApiError && err.status === 401) {
@@ -677,6 +688,7 @@ export default function ClientePage() {
       setLoggedIn(false);
       setDashboard(null);
       setExecutiveDashboard(null);
+      setLoginClient(null);
       setNotifications([]);
       setUnreadNotifications(0);
       setLoginMessage("");
@@ -709,6 +721,7 @@ export default function ClientePage() {
         customerApiFetch<{ items: CustomerNotification[] }>("/customer-app/notifications?limit=50"),
         customerApiFetch<{ unreadCount: number }>("/customer-app/notifications/unread-count"),
       ]);
+      setLoginClient(me.client);
       setDashboard(me);
       setExecutiveDashboard(executive);
       setPlan(planData);
@@ -810,6 +823,7 @@ export default function ClientePage() {
         body: JSON.stringify({ document, phone, code: otpCode }),
       });
       setCustomerToken(res.token);
+      setLoginClient(res.client);
       setLoggedIn(true);
       setOtpCode("");
       setOtpRequested(false);
@@ -833,6 +847,7 @@ export default function ClientePage() {
   function logout() {
     clearCustomerToken();
     setLoggedIn(false);
+    setLoginClient(null);
     setDashboard(null);
     setExecutiveDashboard(null);
     setPlan(null);
@@ -1015,7 +1030,7 @@ export default function ClientePage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">DC NET</p>
-            <h1 className="text-2xl font-semibold tracking-tight">Olá, {firstName}</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{greetingText}</h1>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={() => setTab("notifications")} className="relative">
@@ -1154,12 +1169,14 @@ function ExecutiveCard({
 
 function PremiumMetric({ label, value, hint, icon: Icon }: { label: string; value: string; hint?: string; icon: React.ComponentType<{ className?: string }> }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/10 p-4 shadow-sm backdrop-blur">
+    <div className="rounded-[28px] border border-white/10 bg-white/[0.12] p-5 shadow-lg shadow-slate-950/10 backdrop-blur">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-medium uppercase text-slate-300">{label}</p>
-        <Icon className="h-4 w-4 shrink-0 text-cyan-200" />
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">{label}</p>
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-100">
+          <Icon className="h-5 w-5" />
+        </span>
       </div>
-      <p className="mt-3 truncate text-xl font-semibold tracking-tight text-white">{value}</p>
+      <p className="mt-4 truncate text-xl font-semibold tracking-tight text-white">{value}</p>
       {hint ? <p className="mt-1 truncate text-xs text-slate-300">{hint}</p> : null}
     </div>
   );
@@ -1181,27 +1198,35 @@ function PremiumStatusCard({
   onClick?: () => void;
 }) {
   const toneClass = {
-    green: "border-emerald-200/80 bg-white shadow-emerald-950/5 text-emerald-700",
-    red: "border-red-200/80 bg-white shadow-red-950/5 text-red-700",
-    amber: "border-amber-200/80 bg-white shadow-amber-950/5 text-amber-700",
-    slate: "border-slate-200 bg-white shadow-slate-950/5 text-slate-700",
+    green: "border-emerald-200/80 bg-white shadow-emerald-950/5",
+    red: "border-red-200/80 bg-white shadow-red-950/5",
+    amber: "border-amber-200/80 bg-white shadow-amber-950/5",
+    slate: "border-slate-200 bg-white shadow-slate-950/5",
+  }[tone];
+  const iconClass = {
+    green: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+    red: "bg-red-50 text-red-700 ring-red-100",
+    amber: "bg-amber-50 text-amber-700 ring-amber-100",
+    slate: "bg-slate-950 text-white ring-slate-200",
   }[tone];
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-32 rounded-3xl border p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${toneClass}`}
+      className={`min-h-40 rounded-[28px] border p-5 text-left shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl sm:min-h-44 ${toneClass}`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-slate-500">{title}</p>
-          <p className="mt-2 truncate text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
+      <div className="flex h-full flex-col justify-between gap-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="truncate text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
+            <p className="mt-3 truncate text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
+          </div>
+          <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl shadow-sm ring-1 ${iconClass}`}>
+            <Icon className="h-6 w-6" />
+          </span>
         </div>
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-sm">
-          <Icon className="h-5 w-5" />
-        </span>
+        <p className="line-clamp-2 text-sm leading-5 text-slate-500">{hint}</p>
       </div>
-      <p className="mt-4 line-clamp-2 text-sm leading-5 text-slate-500">{hint}</p>
     </button>
   );
 }
@@ -1229,7 +1254,7 @@ function DashboardView({
     notifications: { unreadCount: 0 },
     connection: { lastUpdateAt: dashboard.connection.lastUpdateAt || dashboard.connection.lastSession?.sampledAt || null },
   };
-  const firstName = summary.client.fullName?.split(" ")[0] || "cliente";
+  const greetingText = customerGreeting(summary.client.fullName);
   const planName = summary.plan.name || dashboard.plan?.name || "Atualizando informações";
   const planSpeed = summary.plan.speed || (dashboard.plan?.speedMbps ? `${dashboard.plan.speedMbps} Mbps` : "Atualizando informações");
   const internetTone = toneForStatus(summary.internet.status);
@@ -1247,26 +1272,34 @@ function DashboardView({
 
   return (
     <div className="space-y-5">
-      <section className="overflow-hidden rounded-[2rem] border border-slate-900/10 bg-slate-950 text-white shadow-xl shadow-slate-950/10">
-        <div className="relative isolate p-5 sm:p-6 lg:p-7">
-          <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_15%_10%,rgba(16,185,129,0.38),transparent_32%),radial-gradient(circle_at_84%_8%,rgba(34,211,238,0.24),transparent_28%),linear-gradient(135deg,#020617_0%,#071426_48%,#064e3b_100%)]" />
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+      <section className="overflow-hidden rounded-[32px] border border-slate-900/10 bg-slate-950 text-white shadow-2xl shadow-slate-950/15">
+        <div className="relative isolate p-6 sm:p-7 lg:p-8">
+          <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_8%,rgba(16,185,129,0.42),transparent_34%),radial-gradient(circle_at_88%_10%,rgba(34,211,238,0.28),transparent_30%),linear-gradient(135deg,#020617_0%,#071426_48%,#064e3b_100%)]" />
+          <div className="flex flex-col gap-7 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-2xl">
-              <p className="text-sm font-medium text-emerald-200">Olá, {firstName}</p>
-              <div className="mt-3 flex flex-wrap items-center gap-3">
-                <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Internet</h2>
+              <p className="text-sm font-semibold uppercase tracking-wide text-emerald-200">Seu portal DC NET</p>
+              <p className="mt-2 text-sm font-medium text-slate-300">{greetingText}</p>
+              <div className="mt-4 flex flex-wrap items-center gap-3">
+                <h2 className="text-4xl font-semibold tracking-tight sm:text-5xl">Sua Internet</h2>
                 <Badge tone={internetTone}>{connectionStatus}</Badge>
               </div>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300">Sua internet DC NET em destaque, com plano, velocidade e qualidade da conexão.</p>
+              <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300">Sua internet DC NET em destaque, com plano, velocidade e qualidade da conexão.</p>
             </div>
-            <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-left shadow-sm backdrop-blur lg:min-w-72">
-              <p className="text-xs font-medium uppercase text-slate-300">Seu plano</p>
-              <p className="mt-2 truncate text-2xl font-semibold tracking-tight text-white">{planName}</p>
-              <p className="mt-1 text-sm text-emerald-200">{planSpeed}</p>
+            <div className="rounded-[28px] border border-white/10 bg-white/10 p-5 text-left shadow-lg shadow-slate-950/10 backdrop-blur lg:min-w-80">
+              <div className="flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Seu plano</p>
+                  <p className="mt-3 truncate text-2xl font-semibold tracking-tight text-white">{planName}</p>
+                  <p className="mt-1 text-sm text-emerald-200">{planSpeed}</p>
+                </div>
+                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl bg-emerald-300/15 text-emerald-100 ring-1 ring-white/10">
+                  <ShieldCheck className="h-6 w-6" />
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <PremiumMetric label="Ping" value={latencyValue(ping)} hint="Latência" icon={TimerReset} />
             <PremiumMetric label="Sua identificação" value={currentIp} hint="Qualidade da conexão" icon={Globe2} />
             <PremiumMetric label="Tempo conectado" value={uptime} hint="Tempo conectado" icon={Clock} />
@@ -1277,10 +1310,10 @@ function DashboardView({
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <PremiumStatusCard title="Próxima fatura" value={nextInvoiceValue} hint={nextInvoiceHint} icon={CalendarDays} tone={summary.billing.overdueInvoices > 0 ? "red" : summary.billing.pendingInvoices > 0 ? "amber" : "green"} onClick={() => setTab("payment")} />
-        <PremiumStatusCard title="Financeiro" value={`${summary.billing.pendingInvoices} pendente(s)`} hint={`${summary.billing.overdueInvoices} vencida(s)`} icon={Banknote} tone={billingTone(summary.billing.pendingInvoices, summary.billing.overdueInvoices)} onClick={() => setTab("invoices")} />
-        <PremiumStatusCard title="Chamados" value={String(summary.support.openTickets)} hint="Abertos ou em atendimento" icon={Headphones} tone={summary.support.openTickets > 0 ? "amber" : "green"} onClick={() => setTab("tickets")} />
-        <PremiumStatusCard title="Notificações" value={String(summary.notifications?.unreadCount || 0)} hint="Não lidas" icon={Bell} tone={(summary.notifications?.unreadCount || 0) > 0 ? "amber" : "green"} onClick={() => setTab("notifications")} />
-        <PremiumStatusCard title="Qualidade da conexão" value={healthScore} hint="Tudo funcionando normalmente" icon={Activity} tone={healthTone(summary.internet.healthScore)} onClick={() => setTab("connection")} />
+        <PremiumStatusCard title="Pagamentos" value={`${summary.billing.pendingInvoices} pendente(s)`} hint={`${summary.billing.overdueInvoices} vencida(s)`} icon={Banknote} tone={billingTone(summary.billing.pendingInvoices, summary.billing.overdueInvoices)} onClick={() => setTab("invoices")} />
+        <PremiumStatusCard title="Suporte" value={String(summary.support.openTickets)} hint="Abertos ou em atendimento" icon={Headphones} tone={summary.support.openTickets > 0 ? "amber" : "green"} onClick={() => setTab("tickets")} />
+        <PremiumStatusCard title="Avisos" value={String(summary.notifications?.unreadCount || 0)} hint="Não lidos" icon={Bell} tone={(summary.notifications?.unreadCount || 0) > 0 ? "amber" : "green"} onClick={() => setTab("notifications")} />
+        <PremiumStatusCard title="Rede" value={healthScore} hint="Tudo funcionando normalmente" icon={Activity} tone={healthTone(summary.internet.healthScore)} onClick={() => setTab("connection")} />
       </section>
 
       <Card className="rounded-3xl border-slate-200 shadow-sm">
