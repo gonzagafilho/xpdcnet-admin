@@ -1169,15 +1169,15 @@ function ExecutiveCard({
 
 function PremiumMetric({ label, value, hint, icon: Icon }: { label: string; value: string; hint?: string; icon: React.ComponentType<{ className?: string }> }) {
   return (
-    <div className="rounded-[28px] border border-white/10 bg-white/[0.12] p-5 shadow-lg shadow-slate-950/10 backdrop-blur">
+    <div className="rounded-3xl border border-white/10 bg-white/[0.12] p-4 shadow-lg shadow-slate-950/10 backdrop-blur">
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">{label}</p>
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-100">
-          <Icon className="h-5 w-5" />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-100">
+          <Icon className="h-4 w-4" />
         </span>
       </div>
-      <p className="mt-4 truncate text-xl font-semibold tracking-tight text-white">{value}</p>
-      {hint ? <p className="mt-1 truncate text-xs text-slate-300">{hint}</p> : null}
+      <p className="mt-3 break-words text-lg font-semibold tracking-tight text-white">{value}</p>
+      {hint ? <p className="mt-1 text-xs text-slate-300">{hint}</p> : null}
     </div>
   );
 }
@@ -1213,19 +1213,19 @@ function PremiumStatusCard({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-40 rounded-[28px] border p-5 text-left shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl sm:min-h-44 ${toneClass}`}
+      className={`min-h-32 rounded-3xl border p-4 text-left shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl md:min-h-36 xl:min-h-36 ${toneClass}`}
     >
-      <div className="flex h-full flex-col justify-between gap-5">
-        <div className="flex items-start justify-between gap-4">
+      <div className="flex h-full flex-col justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate text-xs font-semibold uppercase tracking-wide text-slate-500">{title}</p>
-            <p className="mt-3 truncate text-2xl font-semibold tracking-tight text-slate-950">{value}</p>
+            <p className="text-[11px] font-semibold uppercase leading-4 tracking-wide text-slate-700">{title}</p>
+            <p className="mt-2 break-words text-xl font-semibold leading-6 tracking-tight text-[#020617]">{value}</p>
           </div>
-          <span className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl shadow-sm ring-1 ${iconClass}`}>
-            <Icon className="h-6 w-6" />
+          <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl shadow-sm ring-1 ${iconClass}`}>
+            <Icon className="h-5 w-5" />
           </span>
         </div>
-        <p className="line-clamp-2 text-sm leading-5 text-slate-500">{hint}</p>
+        <p className="text-sm leading-5 text-slate-700">{hint}</p>
       </div>
     </button>
   );
@@ -1273,33 +1273,33 @@ function DashboardView({
   return (
     <div className="space-y-5">
       <section className="overflow-hidden rounded-[32px] border border-slate-900/10 bg-slate-950 text-white shadow-2xl shadow-slate-950/15">
-        <div className="relative isolate p-6 sm:p-7 lg:p-8">
+        <div className="relative isolate p-5 sm:p-6 lg:p-6">
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_8%,rgba(16,185,129,0.42),transparent_34%),radial-gradient(circle_at_88%_10%,rgba(34,211,238,0.28),transparent_30%),linear-gradient(135deg,#020617_0%,#071426_48%,#064e3b_100%)]" />
-          <div className="flex flex-col gap-7 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-2xl">
               <p className="text-sm font-semibold uppercase tracking-wide text-emerald-200">Seu portal DC NET</p>
-              <p className="mt-2 text-sm font-medium text-slate-300">{greetingText}</p>
-              <div className="mt-4 flex flex-wrap items-center gap-3">
-                <h2 className="text-4xl font-semibold tracking-tight sm:text-5xl">Sua Internet</h2>
+              <p className="mt-1 text-sm font-medium text-slate-300">{greetingText}</p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Sua Internet</h2>
                 <Badge tone={internetTone}>{connectionStatus}</Badge>
               </div>
-              <p className="mt-4 max-w-xl text-sm leading-6 text-slate-300">Sua internet DC NET em destaque, com plano, velocidade e qualidade da conexão.</p>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-300">Sua internet DC NET em destaque, com plano, velocidade e qualidade da conexão.</p>
             </div>
-            <div className="rounded-[28px] border border-white/10 bg-white/10 p-5 text-left shadow-lg shadow-slate-950/10 backdrop-blur lg:min-w-80">
+            <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-left shadow-lg shadow-slate-950/10 backdrop-blur lg:min-w-72">
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Seu plano</p>
-                  <p className="mt-3 truncate text-2xl font-semibold tracking-tight text-white">{planName}</p>
+                  <p className="mt-2 break-words text-xl font-semibold tracking-tight text-white">{planName}</p>
                   <p className="mt-1 text-sm text-emerald-200">{planSpeed}</p>
                 </div>
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-3xl bg-emerald-300/15 text-emerald-100 ring-1 ring-white/10">
-                  <ShieldCheck className="h-6 w-6" />
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-300/15 text-emerald-100 ring-1 ring-white/10">
+                  <ShieldCheck className="h-5 w-5" />
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <PremiumMetric label="Ping" value={latencyValue(ping)} hint="Latência" icon={TimerReset} />
             <PremiumMetric label="Sua identificação" value={currentIp} hint="Qualidade da conexão" icon={Globe2} />
             <PremiumMetric label="Tempo conectado" value={uptime} hint="Tempo conectado" icon={Clock} />
@@ -1308,7 +1308,7 @@ function DashboardView({
         </div>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section className="grid auto-rows-fr gap-4 md:grid-cols-2 xl:grid-cols-5">
         <PremiumStatusCard title="Próxima fatura" value={nextInvoiceValue} hint={nextInvoiceHint} icon={CalendarDays} tone={summary.billing.overdueInvoices > 0 ? "red" : summary.billing.pendingInvoices > 0 ? "amber" : "green"} onClick={() => setTab("payment")} />
         <PremiumStatusCard title="Pagamentos" value={`${summary.billing.pendingInvoices} pendente(s)`} hint={`${summary.billing.overdueInvoices} vencida(s)`} icon={Banknote} tone={billingTone(summary.billing.pendingInvoices, summary.billing.overdueInvoices)} onClick={() => setTab("invoices")} />
         <PremiumStatusCard title="Suporte" value={String(summary.support.openTickets)} hint="Abertos ou em atendimento" icon={Headphones} tone={summary.support.openTickets > 0 ? "amber" : "green"} onClick={() => setTab("tickets")} />
