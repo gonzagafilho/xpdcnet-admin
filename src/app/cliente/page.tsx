@@ -317,7 +317,7 @@ function statusLabel(status?: string) {
     suspended: "Suspenso",
     online: "Online",
     offline: "Offline",
-    unknown: "Atualizando informações",
+    unknown: "Carregando informações",
     open: "Aberto",
     in_progress: "Em atendimento",
     resolved: "Resolvido",
@@ -384,7 +384,7 @@ function healthLabel(value?: string | null) {
     warning: "Atenção",
     critical: "Crítico",
   };
-  return map[String(value || "")] || value || "Atualizando informações";
+  return map[String(value || "")] || value || "Carregando informações";
 }
 
 function metricValue(value?: number | null, suffix = "") {
@@ -413,7 +413,7 @@ function billingTone(pending: number, overdue: number): "green" | "red" | "amber
 }
 
 function scoreText(score?: number | null) {
-  if (score == null) return "Atualizando informações";
+  if (score == null) return "Carregando informações";
   return `${Math.max(0, Math.min(100, Math.round(score)))}%`;
 }
 
@@ -444,11 +444,11 @@ function pppoeLivePointFromData(data: PppoeLive): PppoeLivePoint {
 }
 
 function liveStatusText(status: PppoeLiveState, data: PppoeLive | null) {
-  if (status === "loading") return "Atualizando...";
+  if (status === "loading") return "Carregando...";
   if (status === "error") return "Não foi possível atualizar agora; mantendo a última informação.";
-  if (status === "empty" || data?.source === "empty") return "Atualizando informações";
+  if (status === "empty" || data?.source === "empty") return "Carregando informações";
   if (status === "fresh") return "Última consulta agora";
-  return "Atualizando informações";
+  return "Carregando informações";
 }
 
 function networkMapIcon(type?: string) {
@@ -480,7 +480,7 @@ function friendlyNetworkLabel(label?: string, type?: string) {
     olt: "Ponto de distribuição",
     customer: "Sua casa",
   };
-  const fallback = byType[String(type || "")] || label || "Atualizando informações";
+  const fallback = byType[String(type || "")] || label || "Carregando informações";
   const value = String(label || fallback);
   if (/pppoe|servidor|equipamento|olt|ccr/i.test(value)) return fallback;
   return value;
@@ -1029,7 +1029,7 @@ export default function ClientePage() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-emerald-600">DC NET</p>
+            <p className="text-sm font-semibold tracking-wide text-emerald-600">DC NET</p>
             <h1 className="text-2xl font-semibold tracking-tight">{greetingText}</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -1037,7 +1037,7 @@ export default function ClientePage() {
               <Bell className="h-4 w-4" />
               {unreadNotifications > 0 ? <span className="ml-1 font-semibold">{unreadNotifications}</span> : null}
             </Button>
-            <Button variant="outline" onClick={() => void loadAll()} disabled={loadingData}>Atualizar</Button>
+            <Button variant="outline" onClick={() => void loadAll()} disabled={loadingData}>Recarregar</Button>
             <Button variant="ghost" onClick={logout}><LogOut className="h-4 w-4" /> Sair</Button>
           </div>
         </div>
@@ -1158,11 +1158,11 @@ function ExecutiveCard({
   return (
     <div className={`rounded-lg border p-3 ${cls}`}>
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-medium uppercase text-white/60">{title}</p>
+        <p className="text-xs font-medium text-white/60">{title}</p>
         <Icon className="h-4 w-4 shrink-0" />
       </div>
-      <p className="mt-3 truncate text-lg font-semibold tracking-tight text-white">{value}</p>
-      <p className="mt-1 truncate text-xs text-white/65">{hint}</p>
+      <p className="mt-3 break-words whitespace-normal text-lg font-semibold tracking-tight text-white">{value}</p>
+      <p className="mt-1 break-words whitespace-normal text-xs text-white/65">{hint}</p>
     </div>
   );
 }
@@ -1171,8 +1171,8 @@ function PremiumMetric({ label, value, hint, icon: Icon }: { label: string; valu
   return (
     <div className="rounded-3xl border border-white/10 bg-white/[0.12] p-4 shadow-lg shadow-slate-950/10 backdrop-blur">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">{label}</p>
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-100">
+        <p className="text-xs font-semibold tracking-wide text-slate-300">{label}</p>
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl bg-cyan-300/15 text-cyan-100">
           <Icon className="h-4 w-4" />
         </span>
       </div>
@@ -1213,19 +1213,19 @@ function PremiumStatusCard({
     <button
       type="button"
       onClick={onClick}
-      className={`min-h-24 rounded-3xl border px-3 py-2.5 text-left shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl md:min-h-24 xl:min-h-24 ${toneClass}`}
+      className={`min-h-[88px] rounded-3xl border px-3 py-2 text-left shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl md:min-h-[88px] xl:min-h-[88px] ${toneClass}`}
     >
-      <div className="flex h-full flex-col justify-between gap-2">
+      <div className="flex h-full flex-col justify-between gap-1.5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[13px] font-bold leading-4 text-[#020617]">{title}</p>
-            <p className="mt-1 break-words text-xl font-extrabold leading-5 tracking-tight text-black">{value}</p>
+            <p className="whitespace-normal break-words text-[13px] font-extrabold leading-tight text-black">{title}</p>
+            <p className="mt-1 whitespace-normal break-words text-xl font-extrabold leading-5 tracking-tight text-black">{value}</p>
           </div>
-          <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl shadow-sm ring-1 ${iconClass}`}>
+          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl shadow-sm ring-1 ${iconClass}`}>
             <Icon className="h-4 w-4" />
           </span>
         </div>
-        <p className="text-xs font-medium leading-4 text-slate-700">{hint}</p>
+        <p className="whitespace-normal break-words text-xs font-medium leading-4 text-slate-800">{hint}</p>
       </div>
     </button>
   );
@@ -1255,13 +1255,13 @@ function DashboardView({
     connection: { lastUpdateAt: dashboard.connection.lastUpdateAt || dashboard.connection.lastSession?.sampledAt || null },
   };
   const greetingText = customerGreeting(summary.client.fullName);
-  const planName = summary.plan.name || dashboard.plan?.name || "Atualizando informações";
-  const planSpeed = summary.plan.speed || (dashboard.plan?.speedMbps ? `${dashboard.plan.speedMbps} Mbps` : "Atualizando informações");
+  const planName = summary.plan.name || dashboard.plan?.name || "Carregando informações";
+  const planSpeed = summary.plan.speed || (dashboard.plan?.speedMbps ? `${dashboard.plan.speedMbps} Mbps` : "Carregando informações");
   const internetTone = toneForStatus(summary.internet.status);
   const connectionStatus = statusLabel(summary.internet.status);
   const ping = pppoeLive?.pingMs ?? pppoe?.quality?.pingMs ?? null;
-  const currentIp = pppoeLive?.currentIp || pppoe?.currentIp || "Atualizando informações";
-  const uptime = pppoeLive?.uptime || pppoe?.uptime || "Atualizando informações";
+  const currentIp = pppoeLive?.currentIp || pppoe?.currentIp || "Carregando informações";
+  const uptime = pppoeLive?.uptime || pppoe?.uptime || "Carregando informações";
   const lastUpdate = summary.connection.lastUpdateAt || pppoeLive?.lastUpdateAt || pppoe?.lastUpdateAt || null;
   const healthScore = scoreText(summary.internet.healthScore);
   const nextInvoice = dashboard.financialSummary.nextInvoice;
@@ -1277,7 +1277,7 @@ function DashboardView({
           <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_12%_8%,rgba(16,185,129,0.42),transparent_34%),radial-gradient(circle_at_88%_10%,rgba(34,211,238,0.28),transparent_30%),linear-gradient(135deg,#020617_0%,#071426_48%,#064e3b_100%)]" />
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-2xl">
-              <p className="text-sm font-semibold uppercase tracking-wide text-emerald-200">Seu portal DC NET</p>
+              <p className="text-sm font-semibold tracking-wide text-emerald-200">Seu portal DC NET</p>
               <p className="mt-1 text-sm font-medium text-slate-300">{greetingText}</p>
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 <h2 className="text-3xl font-semibold tracking-tight sm:text-4xl">Sua Internet</h2>
@@ -1288,7 +1288,7 @@ function DashboardView({
             <div className="rounded-3xl border border-white/10 bg-white/10 p-4 text-left shadow-lg shadow-slate-950/10 backdrop-blur lg:min-w-72">
               <div className="flex items-center justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-300">Seu plano</p>
+                  <p className="text-xs font-semibold tracking-wide text-slate-300">Seu plano</p>
                   <p className="mt-2 break-words text-xl font-semibold tracking-tight text-white">{planName}</p>
                   <p className="mt-1 text-sm text-emerald-200">{planSpeed}</p>
                 </div>
@@ -1475,7 +1475,7 @@ function NetworkMapView({ data }: { data: CustomerNetworkMap | null }) {
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="min-w-0 flex-1 text-left">
-                      <p className="truncate text-base font-semibold text-slate-950">{friendlyNetworkLabel(item.label, item.type)}</p>
+                      <p className="whitespace-normal break-words text-base font-semibold text-slate-950">{friendlyNetworkLabel(item.label, item.type)}</p>
                       <p className="mt-1 text-sm text-slate-500">{statusLabel(item.status)}</p>
                     </div>
                     <Badge tone={toneForStatus(item.status)}>{statusLabel(item.status)}</Badge>
@@ -1506,12 +1506,12 @@ function NetworkMapView({ data }: { data: CustomerNetworkMap | null }) {
 function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
   if (!connection) return null;
   const plan = connection.plan;
-  const speed = plan?.speedMbps ? `${plan.speedMbps} Mbps` : "Atualizando informações";
-  const equipment = connection.server?.name || connection.networkNode?.name || "Atualizando informações";
+  const speed = plan?.speedMbps ? `${plan.speedMbps} Mbps` : "Carregando informações";
+  const equipment = connection.server?.name || connection.networkNode?.name || "Carregando informações";
   const lastUpdate = connection.lastUpdateAt || connection.lastSignal?.sampledAt || connection.lastSession?.sampledAt || connection.networkNode?.agentLastSeenAt || null;
   const traffic = connection.lastSignal?.totalRxMbps != null || connection.lastSignal?.totalTxMbps != null
     ? `${metricValue(connection.lastSignal?.totalRxMbps, " Mbps")} down · ${metricValue(connection.lastSignal?.totalTxMbps, " Mbps")} up`
-    : "Atualizando informações";
+    : "Carregando informações";
 
   return (
     <div className="space-y-5">
@@ -1530,7 +1530,7 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
           <CardContent className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm text-slate-500">Seu plano</p>
-              <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{plan?.name || "Atualizando informações"}</p>
+              <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{plan?.name || "Carregando informações"}</p>
               <p className="mt-1 text-sm text-slate-500">{speed}</p>
             </div>
             <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><ShieldCheck className="h-5 w-5" /></div>
@@ -1540,7 +1540,7 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
           <CardContent className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm text-slate-500">Sua identificação</p>
-              <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{connection.access?.usernameMasked || "Atualizando informações"}</p>
+              <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{connection.access?.usernameMasked || "Carregando informações"}</p>
               <p className="mt-1 text-sm text-slate-500">{"Acesso do cliente"}</p>
             </div>
             <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><UserRound className="h-5 w-5" /></div>
@@ -1561,7 +1561,7 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
             <div>
               <p className="text-sm text-slate-500">Última consulta</p>
               <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{dateTime(lastUpdate)}</p>
-              <p className="mt-1 text-sm text-slate-500">{connection.lastSignal ? "Tudo funcionando normalmente" : "Atualizando informações"}</p>
+              <p className="mt-1 text-sm text-slate-500">{connection.lastSignal ? "Tudo funcionando normalmente" : "Carregando informações"}</p>
             </div>
             <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Clock className="h-5 w-5" /></div>
           </CardContent>
@@ -1609,7 +1609,7 @@ function PppoeLivePanel({ live, points, state }: { live: PppoeLive | null; point
         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <CardTitle>Sua Internet agora</CardTitle>
-            <CardDescription>Atualizando informações da sua conexão automaticamente.</CardDescription>
+            <CardDescription>Carregando informações da sua conexão automaticamente.</CardDescription>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-sm text-slate-500">
             <Badge tone={statusTone}>{statusLabel(live?.status)}</Badge>
@@ -1631,7 +1631,7 @@ function PppoeLivePanel({ live, points, state }: { live: PppoeLive | null; point
           <MetricCard title="Ping" value={latencyValue(live?.pingMs)} hint="Qualidade da conexão" icon={TimerReset} />
           <MetricCard title="Jitter" value={latencyValue(live?.jitterMs)} hint="Variação de latência" icon={Activity} />
           <MetricCard title="Sua identificação" value={live?.currentIp || "-"} hint="Qualidade da conexão" icon={Wifi} />
-          <MetricCard title="Tempo conectado" value={live?.uptime || "-"} hint={live?.lastUpdateAt ? "Última consulta em " + dateTime(live.lastUpdateAt) : "Atualizando informações"} icon={Clock} />
+          <MetricCard title="Tempo conectado" value={live?.uptime || "-"} hint={live?.lastUpdateAt ? "Última consulta em " + dateTime(live.lastUpdateAt) : "Carregando informações"} icon={Clock} />
         </div>
 
         {hasChartPoints ? (
@@ -1717,7 +1717,7 @@ function PppoeView({
       <Card>
         <CardHeader>
           <CardTitle>Sua Internet</CardTitle>
-          <CardDescription>Atualizando informações da sua internet.</CardDescription>
+          <CardDescription>Carregando informações da sua internet.</CardDescription>
         </CardHeader>
         <CardContent><p className="text-sm text-slate-500">Aguarde...</p></CardContent>
       </Card>
@@ -1784,7 +1784,7 @@ function PppoeView({
           ) : (
             <div className="rounded-lg border border-slate-200 bg-slate-50 p-5 text-center text-sm text-slate-500">
               <Activity className="mx-auto mb-2 h-6 w-6 text-slate-400" />
-              Atualizando informações para o gráfico.
+              Carregando informações para o gráfico.
             </div>
           )}
         </CardContent>
@@ -2280,8 +2280,8 @@ function TicketsView({
             >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Protocolo {ticket.protocol}</p>
-                  <p className="mt-1 truncate font-medium text-slate-950">{ticket.subject}</p>
+                  <p className="text-xs font-medium tracking-wide text-slate-500">Protocolo {ticket.protocol}</p>
+                  <p className="mt-1 break-words whitespace-normal font-medium text-slate-950">{ticket.subject}</p>
                   <p className="mt-1 text-sm text-slate-500">Aberto em {date(ticket.createdAt)}</p>
                 </div>
                 <Badge tone={supportStatusTone(ticket.status)}>{supportStatusText(ticket.status)}</Badge>
@@ -2305,7 +2305,7 @@ function TicketsView({
             <div className="space-y-4">
               <div className="flex flex-col gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Protocolo</p>
+                  <p className="text-xs font-medium tracking-wide text-slate-500">Protocolo</p>
                   <p className="mt-1 text-lg font-semibold text-slate-950">{ticketDetail.protocol}</p>
                 </div>
                 <Badge tone={supportStatusTone(ticketDetail.status)}>{supportStatusText(ticketDetail.status)}</Badge>
@@ -2361,7 +2361,7 @@ function NotificationsView({
             <CardDescription>Eventos importantes da sua conta.</CardDescription>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" onClick={onRefresh} disabled={loading}>Atualizar</Button>
+            <Button variant="outline" size="sm" onClick={onRefresh} disabled={loading}>Recarregar</Button>
             <Button variant="outline" size="sm" onClick={onReadAll} disabled={!unreadCount || loading}>
               <CheckCheck className="h-4 w-4" /> Marcar todas como lidas
             </Button>
