@@ -15,6 +15,7 @@ import {
   Download,
   ExternalLink,
   FileText,
+  Globe2,
   Gauge,
   Headphones,
   Home,
@@ -44,7 +45,7 @@ import {
   setCustomerToken,
 } from "@/lib/customer-app-api";
 
-type TabKey = "dashboard" | "plan" | "connection" | "pppoe" | "speedTest" | "invoices" | "payment" | "support" | "tickets" | "notifications";
+type TabKey = "dashboard" | "plan" | "connection" | "networkMap" | "pppoe" | "speedTest" | "invoices" | "payment" | "support" | "tickets" | "notifications";
 
 type CustomerLoginResponse = {
   token: string;
@@ -175,6 +176,26 @@ type PppoeLivePoint = {
 
 type PppoeLiveState = "idle" | "loading" | "fresh" | "empty" | "error";
 
+type NetworkMapNode = {
+  type: "internet" | "pop" | "router" | "olt" | "customer" | string;
+  label: string;
+  status: "online" | "offline" | "unknown" | string;
+};
+
+type CustomerNetworkMap = {
+  status: "online" | "offline" | "unknown" | string;
+  client: { name: string };
+  path: NetworkMapNode[];
+  quality: {
+    pingMs: number | null;
+    jitterMs: number | null;
+    packetLoss: number | null;
+  };
+  lastUpdateAt: string | null;
+  source: "snapshot" | "fallback" | string;
+  message: string;
+};
+
 type InvoiceItem = {
   _id: string;
   amount: number;
@@ -253,6 +274,7 @@ const tabs: { key: TabKey; label: string; icon: React.ComponentType<{ className?
   { key: "dashboard", label: "Início", icon: Home },
   { key: "plan", label: "Meu Plano", icon: ShieldCheck },
   { key: "connection", label: "Minha Conexão", icon: Wifi },
+  { key: "networkMap", label: "Mapa da Conexão", icon: Globe2 },
   { key: "pppoe", label: "PPPoE", icon: Router },
   { key: "speedTest", label: "Speed Test", icon: Gauge },
   { key: "invoices", label: "Minhas Faturas", icon: FileText },
@@ -427,6 +449,35 @@ function liveStatusText(status: PppoeLiveState, data: PppoeLive | null) {
   return "Aguardando atualização";
 }
 
+function networkMapIcon(type?: string) {
+  const map: Record<string, React.ComponentType<{ className?: string }>> = {
+    internet: Globe2,
+    pop: Wifi,
+    router: Router,
+    olt: Activity,
+    customer: Home,
+  };
+  return map[String(type || "")] || Activity;
+}
+
+function networkLineClass(status?: string) {
+  if (status === "online") return "bg-emerald-500";
+  if (status === "offline") return "bg-red-500";
+  return "bg-slate-300";
+}
+
+function networkNodeClass(status?: string) {
+  if (status === "online") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "offline") return "border-red-200 bg-red-50 text-red-700";
+  return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+function worseStatusForUi(...statuses: (string | undefined)[]) {
+  if (statuses.includes("offline")) return "offline";
+  if (statuses.includes("unknown")) return "unknown";
+  return "online";
+}
+
 function readSpeedTestHistory() {
   if (typeof window === "undefined") return [];
   try {
@@ -573,6 +624,7 @@ export default function ClientePage() {
   const [executiveDashboard, setExecutiveDashboard] = useState<ExecutiveDashboard | null>(null);
   const [plan, setPlan] = useState<PlanResponse | null>(null);
   const [connection, setConnection] = useState<ConnectionInfo | null>(null);
+  const [networkMap, setNetworkMap] = useState<CustomerNetworkMap | null>(null);
   const [pppoe, setPppoe] = useState<PppoeInfo | null>(null);
   const [pppoeHistory, setPppoeHistory] = useState<PppoeHistory | null>(null);
   const [pppoeLive, setPppoeLive] = useState<PppoeLive | null>(null);
@@ -625,11 +677,12 @@ export default function ClientePage() {
     try {
       setLoadingTickets(true);
       setLoadingNotifications(true);
-      const [me, executive, planData, connData, pppoeData, pppoeHistoryData, pppoeLiveData, invoiceData, ticketData, notificationData, unreadData] = await Promise.all([
+      const [me, executive, planData, connData, networkMapData, pppoeData, pppoeHistoryData, pppoeLiveData, invoiceData, ticketData, notificationData, unreadData] = await Promise.all([
         customerApiFetch<Dashboard>("/customer-app/me"),
         customerApiFetch<ExecutiveDashboard>("/customer-app/dashboard"),
         customerApiFetch<PlanResponse>("/customer-app/plan"),
         customerApiFetch<ConnectionInfo>("/customer-app/connection"),
+        customerApiFetch<CustomerNetworkMap>("/customer-app/network-map"),
         customerApiFetch<PppoeInfo>("/customer-app/pppoe"),
         customerApiFetch<PppoeHistory>("/customer-app/pppoe/history"),
         customerApiFetch<PppoeLive>("/customer-app/pppoe/live"),
@@ -642,6 +695,7 @@ export default function ClientePage() {
       setExecutiveDashboard(executive);
       setPlan(planData);
       setConnection(connData);
+      setNetworkMap(networkMapData);
       setPppoe(pppoeData);
       setPppoeHistory(pppoeHistoryData);
       setPppoeLive(pppoeLiveData);
@@ -765,6 +819,7 @@ export default function ClientePage() {
     setExecutiveDashboard(null);
     setPlan(null);
     setConnection(null);
+    setNetworkMap(null);
     setPppoe(null);
     setPppoeHistory(null);
     setPppoeLive(null);
@@ -979,6 +1034,7 @@ export default function ClientePage() {
           {tab === "dashboard" ? <DashboardView dashboard={dashboard} executive={executiveDashboard} setTab={setTab} /> : null}
           {tab === "plan" ? <PlanView plan={plan} /> : null}
           {tab === "connection" ? <ConnectionView connection={connection} /> : null}
+          {tab === "networkMap" ? <NetworkMapView data={networkMap} /> : null}
           {tab === "pppoe" ? <PppoeView data={pppoe} history={pppoeHistory} live={pppoeLive} livePoints={pppoeLivePoints} liveState={pppoeLiveState} /> : null}
           {tab === "speedTest" ? <SpeedTestView /> : null}
           {tab === "invoices" ? <InvoicesView invoices={invoices} onPayment={(id) => { setSelectedInvoiceId(id); setTab("payment"); }} /> : null}
@@ -1144,6 +1200,103 @@ function PlanView({ plan }: { plan: PlanResponse | null }) {
         <MetricCard title="Vencimento" value={plan?.dueDay ? `Dia ${plan.dueDay}` : "-"} hint={statusLabel(plan?.status)} icon={FileText} />
       </CardContent>
     </Card>
+  );
+}
+
+function NetworkMapView({ data }: { data: CustomerNetworkMap | null }) {
+  if (!data) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Mapa da Conexão</CardTitle>
+          <CardDescription>Carregando caminho da sua conexão.</CardDescription>
+        </CardHeader>
+        <CardContent><p className="text-sm text-slate-500">Aguarde...</p></CardContent>
+      </Card>
+    );
+  }
+
+  const statusTone = toneForStatus(data.status);
+
+  return (
+    <div className="space-y-5">
+      <Card className="overflow-hidden border-slate-200 bg-slate-950 text-white">
+        <CardContent className="space-y-5 p-5 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-emerald-300">Mapa da Conexão</p>
+              <h2 className="mt-1 text-2xl font-semibold tracking-tight">Caminho até sua internet</h2>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">Visão simplificada e segura do trajeto da sua conexão DC NET.</p>
+            </div>
+            <Badge tone={statusTone}>{statusLabel(data.status)}</Badge>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+              <p className="text-sm text-slate-300">Última atualização</p>
+              <p className="mt-2 text-lg font-semibold">{dateTime(data.lastUpdateAt)}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+              <p className="text-sm text-slate-300">Origem</p>
+              <p className="mt-2 text-lg font-semibold">{data.source === "fallback" ? "Mapa simplificado" : "Snapshot DC NET"}</p>
+            </div>
+            <div className="rounded-lg border border-white/10 bg-white/5 p-4">
+              <p className="text-sm text-slate-300">Cliente</p>
+              <p className="mt-2 text-lg font-semibold">{data.client?.name || "Cliente"}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {data.message ? (
+        <div className="flex gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{data.message}</span>
+        </div>
+      ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Caminho visual</CardTitle>
+          <CardDescription>Internet, POP, servidor PPPoE, equipamento e cliente.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mx-auto max-w-3xl">
+            {(data.path || []).map((item, index) => {
+              const Icon = networkMapIcon(item.type);
+              const next = data.path[index + 1];
+              const lineStatus = next ? worseStatusForUi(item.status, next.status) : item.status;
+              return (
+                <div key={item.type + "-" + index} className="flex flex-col items-center text-center">
+                  <div className={"flex w-full items-center gap-4 rounded-lg border p-4 shadow-sm " + networkNodeClass(item.status)}>
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white/70">
+                      <Icon className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 flex-1 text-left">
+                      <p className="truncate text-base font-semibold text-slate-950">{item.label}</p>
+                      <p className="mt-1 text-sm text-slate-500">{statusLabel(item.status)}</p>
+                    </div>
+                    <Badge tone={toneForStatus(item.status)}>{statusLabel(item.status)}</Badge>
+                  </div>
+                  {index < data.path.length - 1 ? <div className={"h-8 w-1 " + networkLineClass(lineStatus)} /> : null}
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Qualidade</CardTitle>
+          <CardDescription>Últimos indicadores disponíveis da conexão.</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-3">
+          <MetricCard title="Ping" value={latencyValue(data.quality?.pingMs)} hint="Latência" icon={TimerReset} />
+          <MetricCard title="Jitter" value={latencyValue(data.quality?.jitterMs)} hint="Variação" icon={Activity} />
+          <MetricCard title="Perda" value={data.quality?.packetLoss == null ? "-" : Number(data.quality.packetLoss).toFixed(1) + "%"} hint="Packet loss" icon={ShieldCheck} />
+        </CardContent>
+      </Card>
+    </div>
   );
 }
 
