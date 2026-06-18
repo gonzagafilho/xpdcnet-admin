@@ -48,6 +48,17 @@ type PaymentResponse = {
   canIssueNewCharge: boolean;
 };
 
+type BolepixAd = {
+  _id: string;
+  title: string;
+  imageUrl: string;
+  isActive: boolean;
+  startsAt: string | null;
+  endsAt: string | null;
+};
+
+type BolepixAdResponse = { ad: BolepixAd | null };
+
 type CustomerDashboard = {
   client: {
     _id: string;
@@ -148,6 +159,7 @@ export default function BolepixPage() {
   const invoiceId = Array.isArray(params.invoiceId) ? params.invoiceId[0] : params.invoiceId;
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
   const [dashboard, setDashboard] = useState<CustomerDashboard | null>(null);
+  const [bolepixAd, setBolepixAd] = useState<BolepixAd | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -162,12 +174,14 @@ export default function BolepixPage() {
     setLoading(true);
     setError("");
     try {
-      const [paymentData, dashboardData] = await Promise.all([
+      const [paymentData, dashboardData, adData] = await Promise.all([
         customerApiFetch<PaymentResponse>(`/customer-app/invoices/${invoiceId}/payment`),
         customerApiFetch<CustomerDashboard>("/customer-app/me"),
+        customerApiFetch<BolepixAdResponse>("/customer-app/bolepix-ad").catch(() => ({ ad: null })),
       ]);
       setPayment(paymentData);
       setDashboard(dashboardData);
+      setBolepixAd(adData.ad);
     } catch (err) {
       if (err instanceof CustomerApiError && err.status === 401) {
         router.replace("/cliente");
@@ -312,6 +326,16 @@ export default function BolepixPage() {
               </tbody>
             </table>
           </div>
+          {bolepixAd ? (
+            <div className="bolepix-ad border-t border-slate-300 bg-white px-3 py-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={bolepixAd.imageUrl}
+                alt={bolepixAd.title || "Banner promocional"}
+                className="mx-auto max-h-40 w-full object-contain"
+              />
+            </div>
+          ) : null}
         </section>
 
         <section className="pix-focus border-b border-dashed border-slate-300 bg-[#f6fafb] px-5 py-5 sm:px-6">
@@ -403,6 +427,16 @@ export default function BolepixPage() {
           .bolepix-document td {
             padding-top: 4px !important;
             padding-bottom: 4px !important;
+          }
+          .bolepix-ad {
+            padding: 4px 8px !important;
+            break-inside: avoid !important;
+          }
+          .bolepix-ad img {
+            display: block !important;
+            width: 100% !important;
+            max-height: 72px !important;
+            object-fit: contain !important;
           }
           .pix-focus { padding: 8px 12px !important; }
           .pix-focus > div:first-child {

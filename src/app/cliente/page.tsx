@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Activity,
   AlertTriangle,
@@ -13,7 +14,6 @@ import {
   Copy,
   CreditCard,
   Download,
-  ExternalLink,
   FileText,
   Globe2,
   Gauge,
@@ -50,6 +50,8 @@ type TabKey = "dashboard" | "plan" | "connection" | "networkMap" | "pppoe" | "sp
 type CustomerLoginResponse = {
   token: string;
   client: { _id: string; fullName: string; status: string };
+  trustedDeviceToken?: string;
+  trustedDeviceExpiresAt?: string;
 };
 
 type CustomerOtpRequestResponse = {
@@ -59,7 +61,7 @@ type CustomerOtpRequestResponse = {
 };
 
 type Dashboard = {
-  client: { _id: string; fullName: string; email?: string; phone?: string; status: string; dueDay?: number | null; monthlyPrice?: number };
+  client: { _id: string; fullName: string; email?: string; phone?: string; status: string; dueDay?: number | null; monthlyPrice?: number; address?: { zip?: string; cep?: string; street?: string; number?: string; neighborhood?: string; city?: string; state?: string; reference?: string } };
   plan: Plan | null;
   status: string;
   mainDueDate: string | null;
@@ -641,8 +643,65 @@ function customerGreeting(value?: string | null) {
   return firstName ? `Olá, ${firstName} 👋` : "Bem-vindo ao Portal DC NET";
 }
 
+const TRUSTED_DEVICE_STORAGE_KEY = "dcnet_customer_trusted_device";
+
+type StoredTrustedDevice = {
+  document: string;
+  phone: string;
+  trustedDeviceToken: string;
+  trustedDeviceExpiresAt: string;
+};
+
+function onlyDigits(value: string) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function readTrustedDevice(): StoredTrustedDevice | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(TRUSTED_DEVICE_STORAGE_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw) as StoredTrustedDevice;
+    if (!data?.trustedDeviceToken || !data?.trustedDeviceExpiresAt) return null;
+    if (new Date(data.trustedDeviceExpiresAt).getTime() <= Date.now()) {
+      window.localStorage.removeItem(TRUSTED_DEVICE_STORAGE_KEY);
+      return null;
+    }
+    return data;
+  } catch {
+    window.localStorage.removeItem(TRUSTED_DEVICE_STORAGE_KEY);
+    return null;
+  }
+}
+
+function getTrustedDeviceFor(document: string, phone: string) {
+  const data = readTrustedDevice();
+  if (!data) return null;
+  if (data.document !== onlyDigits(document)) return null;
+  if (data.phone !== onlyDigits(phone)) return null;
+  return data;
+}
+
+function saveTrustedDevice(document: string, phone: string, trustedDeviceToken?: string, trustedDeviceExpiresAt?: string) {
+  if (typeof window === "undefined" || !trustedDeviceToken || !trustedDeviceExpiresAt) return;
+  window.localStorage.setItem(
+    TRUSTED_DEVICE_STORAGE_KEY,
+    JSON.stringify({
+      document: onlyDigits(document),
+      phone: onlyDigits(phone),
+      trustedDeviceToken,
+      trustedDeviceExpiresAt,
+    }),
+  );
+}
+
+function clearTrustedDevice() {
+  if (typeof window !== "undefined") window.localStorage.removeItem(TRUSTED_DEVICE_STORAGE_KEY);
+}
+
 
 export default function ClientePage() {
+  const router = useRouter();
   const [tokenReady, setTokenReady] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   const [document, setDocument] = useState("");
@@ -652,6 +711,8 @@ export default function ClientePage() {
   const [otpCode, setOtpCode] = useState("");
   const [otpRequested, setOtpRequested] = useState(false);
   const [otpDevCode, setOtpDevCode] = useState("");
+  const [rememberDevice, setRememberDevice] = useState(true);
+  const [trustedDeviceAvailable, setTrustedDeviceAvailable] = useState(false);
   const [loadingLogin, setLoadingLogin] = useState(false);
   const [tab, setTab] = useState<TabKey>("dashboard");
 
@@ -778,6 +839,10 @@ export default function ClientePage() {
   }, [loadAll]);
 
   useEffect(() => {
+    setTrustedDeviceAvailable(Boolean(getTrustedDeviceFor(document, phone)));
+  }, [document, phone]);
+
+  useEffect(() => {
     if (!loggedIn || tab !== "pppoe") return undefined;
     void loadPppoeLive();
     const timer = window.setInterval(() => void loadPppoeLive(), 5000);
@@ -814,6 +879,26 @@ export default function ClientePage() {
     setLoadingLogin(true);
     try {
       if (!otpRequested) {
+        const trustedDevice = getTrustedDeviceFor(document, phone);
+        if (trustedDevice) {
+          try {
+            const trustedLogin = await customerApiFetch<CustomerLoginResponse>("/customer-app/auth/trusted-device-login", {
+              auth: false,
+              method: "POST",
+              body: JSON.stringify({ document, phone, trustedDeviceToken: trustedDevice.trustedDeviceToken }),
+            });
+            setCustomerToken(trustedLogin.token);
+            setLoginClient(trustedLogin.client);
+            setLoggedIn(true);
+            await loadAll();
+            return;
+          } catch {
+            clearTrustedDevice();
+            setTrustedDeviceAvailable(false);
+            setLoginMessage("Este dispositivo precisa confirmar um novo código.");
+          }
+        }
+
         const res = await customerApiFetch<CustomerOtpRequestResponse>("/customer-app/auth/request-otp", {
           auth: false,
           method: "POST",
@@ -828,8 +913,12 @@ export default function ClientePage() {
       const res = await customerApiFetch<CustomerLoginResponse>("/customer-app/auth/verify-otp", {
         auth: false,
         method: "POST",
-        body: JSON.stringify({ document, phone, code: otpCode }),
+        body: JSON.stringify({ document, phone, code: otpCode, rememberDevice }),
       });
+      if (res.trustedDeviceToken && res.trustedDeviceExpiresAt) {
+        saveTrustedDevice(document, phone, res.trustedDeviceToken, res.trustedDeviceExpiresAt);
+        setTrustedDeviceAvailable(true);
+      }
       setCustomerToken(res.token);
       setLoginClient(res.client);
       setLoggedIn(true);
@@ -999,24 +1088,35 @@ export default function ClientePage() {
                     <Input id="customer-phone" inputMode="tel" autoComplete="tel" value={phone} onChange={(e) => setPhone(e.target.value)} disabled={otpRequested} required />
                   </div>
                   {otpRequested ? (
-                    <div className="space-y-2">
-                      <Label htmlFor="customer-otp">Código de 6 dígitos</Label>
-                      <Input
-                        id="customer-otp"
-                        inputMode="numeric"
-                        autoComplete="one-time-code"
-                        maxLength={6}
-                        value={otpCode}
-                        onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                        required
-                      />
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="customer-otp">Código de 6 dígitos</Label>
+                        <Input
+                          id="customer-otp"
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          maxLength={6}
+                          value={otpCode}
+                          onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                          required
+                        />
+                      </div>
+                      <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-medium text-slate-800">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                          checked={rememberDevice}
+                          onChange={(e) => setRememberDevice(e.target.checked)}
+                        />
+                        <span>Lembrar este dispositivo por 90 dias</span>
+                      </label>
                     </div>
                   ) : null}
                   {loginMessage ? <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{loginMessage}</p> : null}
                   {otpDevCode ? <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Código de teste: {otpDevCode}</p> : null}
                   {loginError ? <p className="text-sm text-red-600">{loginError}</p> : null}
                   <Button type="submit" className="h-11 w-full bg-emerald-600 hover:bg-emerald-700" disabled={loadingLogin || (otpRequested && otpCode.length !== 6)}>
-                    {loadingLogin ? "Aguarde..." : otpRequested ? "Entrar" : "Receber código"}
+                    {loadingLogin ? "Aguarde..." : otpRequested ? "Entrar" : trustedDeviceAvailable ? "Entrar" : "Receber código"}
                   </Button>
                   {otpRequested ? (
                     <Button type="button" variant="ghost" className="h-10 w-full" onClick={resetOtpLogin} disabled={loadingLogin}>
@@ -1097,7 +1197,7 @@ export default function ClientePage() {
           {tab === "pppoe" ? <PppoeView data={pppoe} history={pppoeHistory} live={pppoeLive} livePoints={pppoeLivePoints} liveState={pppoeLiveState} /> : null}
           {tab === "speedTest" ? <SpeedTestView /> : null}
           {tab === "whatsapp" ? <WhatsappView /> : null}
-          {tab === "invoices" ? <InvoicesView invoices={invoices} onPayment={(id) => { setSelectedInvoiceId(id); setTab("payment"); }} /> : null}
+          {tab === "invoices" ? <InvoicesView invoices={invoices} onPayment={(id) => router.push(`/cliente/bolepix/${id}`)} /> : null}
           {tab === "payment" ? (
             <PaymentView
               invoices={invoices}
@@ -2023,7 +2123,7 @@ function InvoicesView({ invoices, onPayment }: { invoices: InvoiceItem[]; onPaym
                 </p>
               </div>
               <Button variant="outline" size="sm" onClick={() => onPayment(invoice._id)} disabled={!isPayableInvoice(invoice) && !available}>
-                {available ? "Ver pagamento" : "Detalhes"}
+                {available ? "Abrir boleto" : "Detalhes"}
               </Button>
             </div>
           );
@@ -2051,6 +2151,7 @@ function PaymentView({
   copyStatus: string;
   setCopyStatus: (value: string) => void;
 }) {
+  const router = useRouter();
   const payableInvoices = invoices.filter(isPayableInvoice);
   const selectedInvoice = invoices.find((invoice) => invoice._id === selectedInvoiceId) || payment?.invoice || null;
   const copyText = payment?.payment?.pixCopyPaste || payment?.payment?.pixPayload || "";
@@ -2162,17 +2263,18 @@ function PaymentView({
                 <Button variant="outline" onClick={copyPix} disabled={!copyText}>
                   <Copy className="h-4 w-4" /> Copiar PIX
                 </Button>
-                {payment?.payment?.boletoUrl ? (
-                  <Button asChild variant="outline">
-                    <a href={payment.payment.boletoUrl} target="_blank" rel="noreferrer">
-                      <ExternalLink className="h-4 w-4" /> Abrir boleto
-                    </a>
+                {selectedInvoice ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => router.push(`/cliente/bolepix/${selectedInvoice._id}`)}
+                  >
+                    <FileText className="h-4 w-4" /> Abrir boleto
                   </Button>
                 ) : null}
               </div>
 
               {!copyText && !payment?.payment?.boletoUrl ? (
-                <p className="text-sm text-slate-500">Pagamento disponível, mas sem PIX ou boleto exibível no momento.</p>
+                <p className="text-sm text-slate-500">Pagamento disponível, mas sem PIX exibível no momento.</p>
               ) : null}
             </div>
           ) : null}

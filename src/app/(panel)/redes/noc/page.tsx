@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { io } from "socket.io-client";
 import {
   Activity,
   AlertTriangle,
@@ -27,10 +28,12 @@ import {
 import { apiFetch, ApiRequestError } from "@/lib/api-client";
 
 type QueueHealthResponse = {
-  queue?: {
+    queue?: {
     pending?: number;
     processing?: number;
     failed?: number;
+    failedRecent?: number;
+    failedTotal?: number;
     stale?: number;
     oldestPending?: unknown;
     oldestProcessing?: unknown;
@@ -46,6 +49,7 @@ type QueueHealthResponse = {
     recentRecoveriesLastHour?: number;
   };
 
+  status?: "ok" | "degraded";
   degraded?: boolean;
 
   workers?: {
@@ -53,6 +57,68 @@ type QueueHealthResponse = {
     finance?: boolean;
     trust?: boolean;
   };
+    mikrotik?: {
+    pppOnline?: number;
+    pppSecretCount?: number | null;
+    pppActiveTotal?: number | null;
+    offlineClients?: number;
+    connectivityRate?: number;
+    pppCollectedAt?: string | null;
+    lastTelemetryAt?: string | null;
+    serverId?: string | null;
+    serverName?: string | null;
+  };
+    commercial?: {
+    expectedRevenue?: number;
+    receivedRevenue?: number;
+    overdueRevenue?: number;
+
+    pendingInvoices?: number;
+    paidInvoices?: number;
+    overdueInvoices?: number;
+
+    newClientsThisMonth?: number;
+    cancelledClientsThisMonth?: number;
+    activeClients?: number;
+    blockedClients?: number;
+    delinquentClients?: number;
+    suspendedClients?: number;
+    cancelledClients?: number;
+    mrr?: number;
+    averageTicket?: number;
+    activePlans?: number;
+  };
+      network?: {
+      totalLinks?: number;
+      onlineLinks?: number;
+      degradedLinks?: number;
+      offlineLinks?: number;
+      avgHealthScore?: number;
+      topologyHealthLevel?: string;
+      capacityTotalMbps?: number;
+      trafficCurrentMbps?: number;
+      saturatedLinks?: number;
+      averageUtilization?: number;
+
+      mostUtilizedLink?: {
+        linkName?: string;
+        utilizationPct?: number;
+        totalMbps?: number;
+      };
+
+      alertedLinks?: Array<{
+        linkName?: string;
+        alertType?: string;
+      }>;
+
+      topLinks?: Array<{
+        linkName?: string;
+        totalMbps?: number;
+        utilizationPct?: number;
+        rxMbps?: number;
+        txMbps?: number;
+      }>;
+    };
 };
 
 function Card({
@@ -92,6 +158,16 @@ export default function RedesNocPage() {
 
   const [error, setError] = useState<string | null>(null);
 
+  const [sla, setSla] = useState<{
+    availability?: string;
+    uptimePercent24h?: number;
+    degradedEvents24h?: number;
+    criticalIncidents24h?: number;
+    openIncidents?: number;
+    mttrMinutes?: number;
+    mtbfMinutes?: number;
+  } | null>(null);
+
 
   const [, setStreamConnected] = useState(false);
 
@@ -101,6 +177,9 @@ export default function RedesNocPage() {
       pending: number;
       processing: number;
       failed: number;
+      stale?: number;
+      pressurePercent?: number;
+      throughputPerMinute?: number;
     }>
   >([]);
 
@@ -118,6 +197,39 @@ export default function RedesNocPage() {
     },
   ]);
 
+  const [telemetry, setTelemetry] = useState<{
+    routerName?: string;
+    cpuLoad?: number | null;
+    freeMemory?: number | null;
+    totalMemory?: number | null;
+    pppOnline?: number | null;
+    rxMbps?: number | null;
+    txMbps?: number | null;
+    interfaceCount?: number | null;
+    version?: string | null;
+    uptime?: string | null;
+    updatedAt?: string | null;
+  } | null>(null);
+
+  const [throughputHistory, setThroughputHistory] = useState<
+    Array<{
+      time: string;
+      rxMbps: number;
+      txMbps: number;
+    }>
+  >([]);
+
+  const pushEvent = useCallback((level: "info" | "success" | "warning", message: string) => {
+    setEvents((prev) => [
+      {
+        time: new Date().toLocaleTimeString(),
+        level,
+        message,
+      },
+      ...prev,
+    ].slice(0, 20));
+  }, []);
+
   const load = useCallback(async () => {
     try {
       setError(null);
@@ -131,6 +243,24 @@ export default function RedesNocPage() {
       );
 
       setData(out);
+
+      const slaRes = await apiFetch<{
+        ok: boolean;
+        sla?: {
+          availability?: string;
+          uptimePercent24h?: number;
+          degradedEvents24h?: number;
+          criticalIncidents24h?: number;
+          openIncidents?: number;
+          mttrMinutes?: number;
+          mtbfMinutes?: number;
+        };
+      }>("/monitoring/noc-sla", {
+        auth: true,
+        timeoutMs: 30000,
+      });
+
+      setSla(slaRes.sla || null);
     } catch (e) {
       const msg =
         e instanceof ApiRequestError
@@ -176,8 +306,28 @@ export default function RedesNocPage() {
       try {
         const payload = JSON.parse(event.data);
 
-        setData(payload);
+                  setData((prev) => ({
+            ...(prev || {}),
+            ...payload,
+            queue: payload?.queue || prev?.queue,
+            mikrotik: payload?.mikrotik || prev?.mikrotik,
+          }));
 
+          if (payload?.mikrotik) {
+            setTelemetry({
+              routerName: payload.mikrotik.serverName || undefined,
+              cpuLoad: payload.mikrotik.cpuPercent ?? null,
+              freeMemory: payload.mikrotik.memoryPercent ?? null,
+              totalMemory: 100,
+              pppOnline: payload.mikrotik.pppOnline ?? null,
+              rxMbps: null,
+              txMbps: null,
+              interfaceCount: payload.mikrotik.interfaceCount ?? null,
+              version: payload.mikrotik.version ?? null,
+              uptime: payload.mikrotik.uptime ?? null,
+              updatedAt: payload.mikrotik.lastTelemetryAt ?? null,
+            });
+          }
         setEvents((prev) => {
           const next = [
             {
@@ -228,9 +378,121 @@ export default function RedesNocPage() {
     };
   }, [load]);
 
-  const degraded = useMemo(() => {
-    return Boolean(data?.degraded);
+  useEffect(() => {
+    const base = (process.env.NEXT_PUBLIC_API_URL || "")
+      .replace(/\/api\/?$/, "")
+      .replace(/\/$/, "");
+
+    if (!base) return;
+
+    const socket = io(base, {
+      path: "/socket.io",
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1200,
+    });
+
+    socket.on("connect", () => {
+      pushEvent("success", "Socket.IO live conectado");
+    });
+
+    socket.on("disconnect", () => {
+      pushEvent("warning", "Socket.IO desconectado; SSE segue como fallback");
+    });
+
+    socket.on("realtime:ready", () => {
+      pushEvent("success", "Realtime core pronto");
+    });
+
+    socket.on("noc.event", (event: { severity?: string; message?: string; title?: string }) => {
+      const severity = event?.severity === "warning" ? "warning" : event?.severity === "success" ? "success" : "info";
+      const message = event?.message || event?.title || "Evento operacional recebido";
+
+      pushEvent(severity, message);
+    });
+
+    socket.on("command:update", (event: { kind?: string; status?: string }) => {
+      const kind = event?.kind || "COMMAND";
+      const status = event?.status || "updated";
+      const level = status === "failed" ? "warning" : status === "done" ? "success" : "info";
+
+      pushEvent(level, `${kind} ${status}`);
+    });
+
+    socket.on("telemetry.metric", (event: {
+      message?: string;
+      routerName?: string;
+      cpuLoad?: number | null;
+      freeMemory?: number | null;
+      totalMemory?: number | null;
+      pppOnline?: number | null;
+      rxMbps?: number | null;
+      txMbps?: number | null;
+      interfaceCount?: number | null;
+      version?: string | null;
+      uptime?: string | null;
+    }) => {
+
+      setTelemetry({
+        routerName: event?.routerName || "RouterOS",
+        cpuLoad: event?.cpuLoad ?? null,
+        freeMemory: event?.freeMemory ?? null,
+        totalMemory: event?.totalMemory ?? null,
+        pppOnline: event?.pppOnline ?? null,
+        rxMbps: event?.rxMbps ?? null,
+        txMbps: event?.txMbps ?? null,
+        interfaceCount: event?.interfaceCount ?? null,
+        version: event?.version ?? null,
+        uptime: event?.uptime ?? null,
+        updatedAt: new Date().toLocaleTimeString(),
+      });
+
+      setThroughputHistory((prev) => [
+        ...prev,
+        {
+          time: new Date().toLocaleTimeString(),
+          rxMbps: Number(event?.rxMbps ?? 0),
+          txMbps: Number(event?.txMbps ?? 0),
+        },
+      ].slice(-30));
+
+      setThroughputHistory((prev) => [
+        ...prev,
+        {
+          time: new Date().toLocaleTimeString(),
+          rxMbps: Number(event?.rxMbps ?? 0),
+          txMbps: Number(event?.txMbps ?? 0),
+        },
+      ].slice(-30));
+
+      pushEvent(
+        "info",
+        event?.message || "Telemetria RouterOS recebida"
+      );
+    });
+
+    socket.on("telemetry.alert", (event: { message?: string }) => {
+      pushEvent("warning", event?.message || "Alerta de telemetria RouterOS");
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [pushEvent]);
+
+  const severity = useMemo(() => {
+    const stale = data?.queue?.stale ?? 0;
+    const offlineAgents = data?.agents?.offline ?? 0;
+    const backendDegraded = data?.status === "degraded" || Boolean(data?.degraded);
+
+    if (offlineAgents > 0 && stale > 0) return "critical";
+    if (stale > 0) return "degraded";
+    if (backendDegraded) return "warning";
+    return "healthy";
   }, [data]);
+
+  const degraded = severity !== "healthy";
 
   return (
     <div className="mx-auto w-full max-w-[95rem] space-y-6 pb-10">
@@ -306,6 +568,339 @@ export default function RedesNocPage() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 
         <Card
+          title="Uptime 24h"
+          value={`${sla?.uptimePercent24h ?? 100}%`}
+          icon={<CheckCircle2 className="h-6 w-6" />}
+        />
+
+        <Card
+          title="Availability"
+          value={String(sla?.availability || "healthy").toUpperCase()}
+          icon={<Activity className="h-6 w-6" />}
+        />
+
+        <Card
+          title="MTTR (min)"
+          value={sla?.mttrMinutes ?? 0}
+          icon={<RefreshCw className="h-6 w-6" />}
+        />
+
+        <Card
+          title="MTBF (min)"
+          value={sla?.mtbfMinutes ?? 0}
+          icon={<Clock3 className="h-6 w-6" />}
+        />
+
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+
+
+          <Card
+            title="CPU RouterOS"
+            value={telemetry?.cpuLoad != null ? `${telemetry.cpuLoad}%` : "—"}
+            icon={<Activity className="h-6 w-6" />}
+          />
+
+          <Card
+            title="RAM Usada"
+             value={
+               telemetry?.freeMemory != null && telemetry?.totalMemory != null && Number(telemetry.totalMemory) > 0
+                 ? `${Math.max(0, Math.min(100, 100 - ((Number(telemetry.freeMemory) / Number(telemetry.totalMemory)) * 100))).toFixed(2)}%`
+                 : "—"
+            } 
+            icon={<ServerCrash className="h-6 w-6" />}
+          />
+
+          <Card
+            title="Clientes Online"
+            value={data?.mikrotik?.pppActiveTotal ?? telemetry?.pppOnline ?? data?.mikrotik?.pppOnline ?? "—"}
+            icon={<Wifi className="h-6 w-6" />}
+          />
+
+          <Card
+            title="Clientes Cadastrados"
+            value={data?.mikrotik?.pppSecretCount ?? "—"}
+            icon={<Activity className="h-6 w-6" />}
+          />
+          <Card
+            title="Clientes Offline"
+            value={data?.mikrotik?.offlineClients ?? 0}
+            icon={<WifiOff className="h-6 w-6" />}
+          />
+
+          <Card
+             title="Conectividade"
+             value={`${data?.mikrotik?.connectivityRate ?? 0}%`}
+             icon={<CheckCircle2 className="h-6 w-6" />}
+          />
+
+          <Card
+            title="Interfaces"
+            value={telemetry?.interfaceCount ?? "—"}
+            icon={<Activity className="h-6 w-6" />}
+          />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+
+          <Card
+            title="Clientes Ativos"
+            value={data?.commercial?.activeClients ?? 0}
+            icon={<Wifi className="h-6 w-6" />}
+          />
+
+          <Card
+           title="Clientes Bloqueados"
+           value={data?.commercial?.blockedClients ?? 0}
+           icon={<AlertTriangle className="h-6 w-6" />}
+          />
+
+          <Card
+            title="Inadimplentes"
+            value={data?.commercial?.delinquentClients ?? 0}
+            icon={<ServerCrash className="h-6 w-6" />}
+          />
+
+          <Card
+            title="Planos Ativos"
+            value={data?.commercial?.activePlans ?? 0}
+            icon={<Activity className="h-6 w-6" />}
+          />
+
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+
+          <Card
+             title="MRR"
+             value={`R$ ${(data?.commercial?.mrr ?? 0).toFixed(2)}`}
+             icon={<CheckCircle2 className="h-6 w-6" />}
+          />
+
+           <Card
+              title="Ticket Médio"
+              value={`R$ ${(data?.commercial?.averageTicket ?? 0).toFixed(2)}`}
+              icon={<Activity className="h-6 w-6" />}
+            />
+        <div className="grid gap-4 md:grid-cols-3">
+
+          <Card
+            title="Receita Prevista"
+            value={`R$ ${(data?.commercial?.expectedRevenue ?? 0).toFixed(2)}`}
+            icon={<CheckCircle2 className="h-6 w-6" />}
+            />
+
+          <Card
+            title="Receita Recebida"
+            value={`R$ ${(data?.commercial?.receivedRevenue ?? 0).toFixed(2)}`}
+            icon={<Activity className="h-6 w-6" />}
+          />
+
+          <Card
+            title="Receita Vencida"
+            value={`R$ ${(data?.commercial?.overdueRevenue ?? 0).toFixed(2)}`}
+            icon={<AlertTriangle className="h-6 w-6" />}
+          />
+
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-3">
+
+          <Card
+            title="Faturas Pendentes"
+            value={data?.commercial?.pendingInvoices ?? 0}
+            icon={<Clock3 className="h-6 w-6" />}
+          />
+
+          <Card
+            title="Faturas Pagas"
+            value={data?.commercial?.paidInvoices ?? 0}
+            icon={<CheckCircle2 className="h-6 w-6" />}
+          />
+
+          <Card
+            title="Faturas Vencidas"
+            value={data?.commercial?.overdueInvoices ?? 0}
+            icon={<ServerCrash className="h-6 w-6" />}
+          />
+
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+
+          <Card
+            title="Novos Clientes"
+            value={data?.commercial?.newClientsThisMonth ?? 0}
+            icon={<Wifi className="h-6 w-6" />}
+          />
+
+          <Card
+            title="Cancelamentos"
+            value={data?.commercial?.cancelledClientsThisMonth ?? 0}
+            icon={<WifiOff className="h-6 w-6" />}
+          />
+
+        </div>
+                  <div className="grid gap-4 md:grid-cols-3">
+
+            <Card
+              title="Health Score"
+              value={`${data?.network?.avgHealthScore ?? 100}%`}
+              icon={<CheckCircle2 className="h-6 w-6" />}
+            />
+
+            <Card
+              title="Nível Topologia"
+              value={String(data?.network?.topologyHealthLevel || "healthy").toUpperCase()}
+              icon={<Activity className="h-6 w-6" />}
+            />
+
+            <Card
+              title="Total Links"
+              value={data?.network?.totalLinks ?? 0}
+              icon={<Wifi className="h-6 w-6" />}
+            />
+
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+
+            <Card
+              title="Links Online"
+              value={data?.network?.onlineLinks ?? 0}
+              icon={<CheckCircle2 className="h-6 w-6" />}
+            />
+
+            <Card
+              title="Links Degradados"
+              value={data?.network?.degradedLinks ?? 0}
+              icon={<AlertTriangle className="h-6 w-6" />}
+            />
+
+            <Card
+              title="Links Offline"
+              value={data?.network?.offlineLinks ?? 0}
+              icon={<WifiOff className="h-6 w-6" />}
+            />
+
+          </div>
+        <div className="grid gap-4 md:grid-cols-3">
+
+            <Card
+              title="Utilização Média"
+              value={`${data?.network?.averageUtilization ?? 0}%`}
+              icon={<Activity className="h-6 w-6" />}
+            />
+
+            <Card
+              title="Links em Alerta"
+              value={data?.network?.alertedLinks?.length ?? 0}
+              icon={<AlertTriangle className="h-6 w-6" />}
+            />
+
+            <Card
+              title="Link Mais Utilizado"
+              value={
+                data?.network?.mostUtilizedLink?.utilizationPct != null
+                  ? `${data.network.mostUtilizedLink.utilizationPct}%`
+                  : "—"
+              }
+              icon={<Wifi className="h-6 w-6" />}
+            />
+
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+
+          <div className="grid gap-4 md:grid-cols-4">
+
+            <Card
+              title="Capacidade Total"
+              value={`${(data?.network?.capacityTotalMbps ?? 0).toFixed(0)} Mbps`}
+              icon={<Activity className="h-6 w-6" />}
+            />
+
+            <Card
+              title="Tráfego Atual"
+              value={`${(data?.network?.trafficCurrentMbps ?? 0).toFixed(3)} Mbps`}
+              icon={<Wifi className="h-6 w-6" />}
+            />
+
+            <Card
+              title="Utilização Geral"
+              value={`${data?.network?.averageUtilization ?? 0}%`}
+              icon={<CheckCircle2 className="h-6 w-6" />}
+            />
+
+            <Card
+              title="Links Saturados"
+              value={data?.network?.saturatedLinks ?? 0}
+              icon={<AlertTriangle className="h-6 w-6" />}
+            />
+
+          </div>
+
+            <h3 className="mb-4 text-lg font-semibold text-slate-900">
+              Top Links de Tráfego
+            </h3>
+
+            <div className="space-y-3">
+
+              {(data?.network?.topLinks ?? []).map((link, idx) => (
+
+                <div
+                  key={`${link.linkName}-${idx}`}
+                  className="flex items-center justify-between rounded-xl border border-slate-100 p-3"
+                >
+                  <div>
+                    <p className="font-medium text-slate-900">
+                      {link.linkName}
+                    </p>
+
+                    <p className="text-xs text-slate-500">
+                      RX {link.rxMbps ?? 0} Mbps · TX {link.txMbps ?? 0} Mbps
+                    </p>
+                  </div>
+
+                  <div className="text-right">
+
+                    <p className="font-semibold text-slate-900">
+                      {(link.totalMbps ?? 0).toFixed(3)} Mbps
+                    </p>
+
+                    <p className="text-xs text-slate-500">
+                      {link.utilizationPct ?? 0}%
+                    </p>
+
+                  </div>
+                </div>
+
+              ))}
+
+            </div>
+
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm text-slate-600 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold text-slate-900">
+                {telemetry?.routerName || "RouterOS"}
+              </p>
+              <p>
+                Versão: {telemetry?.version || "—"} · Uptime: {telemetry?.uptime || "—"}
+              </p>
+            </div>
+
+            <div className="text-xs font-semibold text-slate-500">
+              Última telemetria: {telemetry?.updatedAt || "aguardando"}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Card
           title="Pending"
           value={data?.queue?.pending ?? 0}
           icon={<Clock3 className="h-6 w-6" />}
@@ -317,11 +912,27 @@ export default function RedesNocPage() {
           icon={<Activity className="h-6 w-6" />}
         />
 
-        <Card
-          title="Failed"
-          value={data?.queue?.failed ?? 0}
-          icon={<ServerCrash className="h-6 w-6" />}
-        />
+        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Failed
+              </p>
+
+              <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+                  {data?.queue?.failedRecent ?? data?.queue?.failed ?? 0}
+              </h2>
+
+              <p className="mt-1 text-xs font-medium text-slate-500">
+                 Histórico: {data?.queue?.failedTotal ?? 0}
+              </p>
+             </div>
+
+               <div className="rounded-xl bg-slate-100 p-3 text-slate-700">
+                 <ServerCrash className="h-6 w-6" />
+             </div>
+           </div>
+        </div>
 
         <Card
           title="Stale"
@@ -471,6 +1082,37 @@ export default function RedesNocPage() {
               ))}
             </div>
           </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                  Throughput RouterOS
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  RX/TX realtime recebido da telemetria do agente.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600">
+                <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
+                LIVE
+              </div>
+            </div>
+
+            <div className="h-[260px] min-h-[260px] w-full min-w-0">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={throughputHistory}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="time" />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="rxMbps" stroke="#2563eb" strokeWidth={3} dot={false} />
+                  <Line type="monotone" dataKey="txMbps" stroke="#16a34a" strokeWidth={3} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-6 flex items-center justify-between">
             <div>
@@ -478,7 +1120,7 @@ export default function RedesNocPage() {
                 Queue Timeline
               </h3>
               <p className="mt-1 text-sm text-slate-500">
-                Fluxo operacional realtime da fila distribuída.
+                Histórico real persistido no Mongo + atualização realtime.
               </p>
             </div>
 
@@ -488,7 +1130,7 @@ export default function RedesNocPage() {
             </div>
           </div>
 
-          <div className="h-[320px] w-full">
+          <div className="h-[320px] min-h-[320px] w-full min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={history}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -498,6 +1140,8 @@ export default function RedesNocPage() {
                 <Line type="monotone" dataKey="pending" stroke="#2563eb" strokeWidth={3} dot={false} />
                 <Line type="monotone" dataKey="processing" stroke="#16a34a" strokeWidth={3} dot={false} />
                 <Line type="monotone" dataKey="failed" stroke="#dc2626" strokeWidth={3} dot={false} />
+                <Line type="monotone" dataKey="pressurePercent" stroke="#9333ea" strokeWidth={2} dot={false} />
+                <Line type="monotone" dataKey="throughputPerMinute" stroke="#0f172a" strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
           </div>

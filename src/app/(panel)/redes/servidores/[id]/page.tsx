@@ -368,7 +368,55 @@ export default function ServidorDetalhePage() {
               <p className="mt-1 text-xs">{data.lastError ?? "Erro de encaminhamento."}</p>
             </div>
           ) : null}
+            <section>
+              <Card className="border-slate-200/95 bg-white shadow-sm ring-1 ring-slate-900/[0.035]">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
+                    <Server className="h-5 w-5 text-slate-500" aria-hidden />
+                    Painel Executivo NOC
+                  </CardTitle>
+                  <CardDescription>
+                    Visão rápida para monitoramento operacional do servidor.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p>
+                      <p className={cn("mt-2 text-lg font-bold", data.online ? "text-emerald-700" : "text-rose-700")}>
+                        {data.online ? "ONLINE" : "OFFLINE"}
+                      </p>
+                    </div>
 
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">RouterOS</p>
+                      <p className="mt-2 text-sm font-semibold text-slate-900">{data.version ?? "—"}</p>
+                      <p className="mt-1 text-xs text-slate-500">Identidade: {data.identityName ?? "—"}</p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Recursos</p>
+                      <p className="mt-2 text-sm font-semibold text-slate-900">
+                        CPU {data.cpuPercent != null ? `${Math.round(data.cpuPercent)}%` : "—"} · RAM {memPct != null ? `${memPct}%` : "—"}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Disco {diskPct != null ? `${diskPct}% usado` : "—"}
+                      </p>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">PPPoE</p>
+                      <p className="mt-2 text-sm font-semibold text-slate-900">
+                        Online: {(data.activePppSessionsTotal ?? 0).toLocaleString("pt-BR")}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Secrets: {data.pppSecretCount != null ? data.pppSecretCount.toLocaleString("pt-BR") : "—"}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </section>
           <section className="space-y-3">
             <h2 className="text-sm font-semibold text-slate-900">Alertas operacionais</h2>
             <ServerAlertsPanel alerts={data.alerts ?? []} />

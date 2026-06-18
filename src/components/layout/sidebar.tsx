@@ -122,6 +122,7 @@ const navGroups: NavGroup[] = [
       { label: "Planos (catálogo)", href: "/planos", hiddenFromMenu: true },
       { label: "Fila de Sincronização", href: "/fila-sync", hiddenFromMenu: true },
       { label: "Configurações", href: "/configuracoes" },
+      { label: "Banner do BolePix", href: "/configuracoes/bolepix" },
     ],
   },
 ];
