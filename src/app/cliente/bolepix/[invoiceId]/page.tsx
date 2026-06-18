@@ -55,10 +55,16 @@ type CustomerDashboard = {
     email?: string;
     phone?: string;
     status: string;
+    document?: string;
     address?: {
+      street?: string;
+      number?: string;
+      neighborhood?: string;
       city?: string;
       state?: string;
-      neighborhood?: string;
+      zip?: string;
+      cep?: string;
+      reference?: string;
     };
   };
   plan: {
@@ -69,11 +75,11 @@ type CustomerDashboard = {
 };
 
 const COMPANY = {
-  cnpj: process.env.NEXT_PUBLIC_DCNET_CNPJ || "Não informado",
-  whatsapp: process.env.NEXT_PUBLIC_DCNET_WHATSAPP || "(61) 99662-7145",
+  cnpj: "63.899.571/0001-20",
+  whatsapp: "(61) 99662-7145",
   email: process.env.NEXT_PUBLIC_DCNET_EMAIL || "Atendimento DC NET",
-  address: process.env.NEXT_PUBLIC_DCNET_ADDRESS || "Planaltina - DF",
-  site: process.env.NEXT_PUBLIC_DCNET_SITE || "dcinfinity.net.br",
+  address: "Planaltina - DF",
+  site: "https://dcinfinity.net.br",
   support: process.env.NEXT_PUBLIC_DCNET_SUPPORT || "Suporte pelo Portal do Cliente",
 };
 
@@ -86,6 +92,32 @@ function date(value?: string | null) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "Não informado";
   return new Intl.DateTimeFormat("pt-BR").format(parsed);
+}
+
+function formatPostalCode(value?: string) {
+  if (!value) return undefined;
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 8) return digits.replace(/(\d{5})(\d{3})/, "$1-$2");
+  return value;
+}
+
+function formatCustomerAddress(address?: { street?: string; number?: string; neighborhood?: string; city?: string; state?: string; zip?: string; cep?: string }) {
+  if (!address) return undefined;
+  const street = address.street?.trim();
+  const number = address.number?.trim();
+  const neighborhood = address.neighborhood?.trim();
+  const city = address.city?.trim();
+  const state = address.state?.trim();
+  const addressParts: string[] = [];
+
+  const streetLine = [street, number].filter(Boolean).join(street && number ? ", " : "");
+  if (streetLine) addressParts.push(streetLine);
+  if (neighborhood) addressParts.push(neighborhood);
+  const cityState = [city, state].filter(Boolean).join("/");
+  if (cityState) addressParts.push(cityState);
+
+  const formatted = addressParts.filter(Boolean).join(", ");
+  return formatted || undefined;
 }
 
 function LoadingDocument() {
@@ -214,7 +246,7 @@ export default function BolepixPage() {
                   <ShieldCheck className="h-2.5 w-2.5" /> Pagamento via Pix
                 </span>
               </div>
-              <p className="mt-0.5 text-[8px] font-semibold uppercase text-cyan-200">DC NET Telecom</p>
+              <p className="mt-0.5 text-[8px] font-semibold uppercase text-cyan-200">DCNET INFINITY</p>
             </div>
           </div>
           <div className="shrink-0 text-right">
@@ -224,11 +256,23 @@ export default function BolepixPage() {
         </header>
 
         <section className="border-b border-slate-300 bg-white">
+          <div className="border-b border-slate-300 px-3 py-2.5">
+            <p className="text-[9px] font-bold uppercase text-slate-700">Cedente / Empresa Emissora</p>
+            <p className="mt-1.5 truncate text-xs font-bold uppercase text-slate-900">DCNET INFINITY</p>
+            <p className="mt-1 text-[10px] text-slate-600"><strong className="font-bold text-slate-700">CNPJ:</strong> 63.899.571/0001-20</p>
+            <p className="mt-1 text-[10px] text-slate-600"><strong className="font-bold text-slate-700">Site:</strong> https://dcinfinity.net.br</p>
+            <p className="mt-1 text-[10px] text-slate-600"><strong className="font-bold text-slate-700">WhatsApp:</strong> (61) 99662-7145</p>
+          </div>
           <div className="grid lg:grid-cols-[1fr_1.35fr]">
             <div className="border-b border-slate-300 px-3 py-2.5 lg:border-b-0 lg:border-r">
-              <p className="text-[9px] font-bold uppercase text-slate-700">Dados do cliente</p>
+              <p className="text-[9px] font-bold uppercase text-slate-700">Sacado / Dados do cliente</p>
               <p className="mt-1.5 truncate text-xs font-bold uppercase text-slate-900">{customer?.fullName || "Cliente DC NET"}</p>
-              <p className="mt-1 text-[10px] text-slate-600"><strong className="font-bold text-slate-700">CPF/CNPJ:</strong> Não informado no portal</p>
+              <div className="mt-1 grid gap-0.5 text-[10px] leading-tight text-slate-600">
+                <p><strong className="font-bold text-slate-700">CPF/CNPJ:</strong> {customer?.document || "Não informado no portal"}</p>
+                <p><strong className="font-bold text-slate-700">Endereço:</strong> {formatCustomerAddress(customer?.address) || "Não informado no portal"}</p>
+                <p><strong className="font-bold text-slate-700">CEP:</strong> {formatPostalCode(customer?.address?.zip || customer?.address?.cep) || "Não informado no portal"}</p>
+                <p><strong className="font-bold text-slate-700">Plano/Contrato:</strong> {dashboard?.plan?.name || "Não informado no portal"}</p>
+              </div>
             </div>
 
             <div className="grid grid-cols-3">
@@ -310,7 +354,7 @@ export default function BolepixPage() {
 
         <footer className="px-5 py-4 sm:px-6">
           <div className="grid gap-3 text-[11px] sm:grid-cols-[1.2fr_1fr_1fr]">
-            <div><p className="font-bold uppercase text-[#071f36]">DC NET TELECOM</p><p className="mt-1 text-slate-500">Conectividade e atendimento para você.</p></div>
+            <div><p className="font-bold uppercase text-[#071f36]">DCNET INFINITY</p><p className="mt-1 text-slate-500">Conectividade e atendimento para você.</p></div>
             <div className="space-y-0.5 text-slate-600"><p><strong>CNPJ:</strong> {COMPANY.cnpj}</p><p><strong>WhatsApp:</strong> {COMPANY.whatsapp}</p><p><strong>Site:</strong> {COMPANY.site}</p></div>
             <div className="space-y-0.5 text-slate-600"><p><strong>Suporte:</strong> {COMPANY.support}</p><p><strong>Contato:</strong> {COMPANY.email}</p><p><strong>Endereço:</strong> {COMPANY.address}</p></div>
           </div>
@@ -323,14 +367,97 @@ export default function BolepixPage() {
       </article>
       <style jsx global>{`
         @media print {
-          @page { size: A4; margin: 8mm; }
-          body { background: #fff !important; }
+          @page { size: A4 portrait; margin: 7mm; }
+          html, body { width: 100% !important; min-height: 0 !important; background: #fff !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           .bolepix-page { background: #fff !important; padding: 0 !important; }
-          .bolepix-actions, .bolepix-copy { display: none !important; }
-          .bolepix-document { max-width: none !important; border: 1px solid #94a3b8 !important; border-radius: 0 !important; box-shadow: none !important; }
-          .bolepix-brand-bar { background: linear-gradient(105deg,#061b34 0%,#063b4a 60%,#087f75 100%) !important; }
-          .qr-frame { box-shadow: none !important; }
+          .bolepix-actions, .bolepix-copy, .bolepix-document button { display: none !important; }
+          .bolepix-document {
+            width: 100% !important;
+            max-width: none !important;
+            overflow: visible !important;
+            border: 1px solid #94a3b8 !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+          }
+          .bolepix-brand-bar {
+            min-height: 0 !important;
+            padding: 6px 10px !important;
+            background: linear-gradient(105deg,#061b34 0%,#063b4a 60%,#087f75 100%) !important;
+          }
+          .bolepix-document > section:first-of-type > .border-b {
+            padding-top: 5px !important;
+            padding-bottom: 5px !important;
+          }
+          .bolepix-document > section:first-of-type > .grid {
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr) !important;
+          }
+          .bolepix-document > section:first-of-type > .grid > div:first-child {
+            border-right: 1px solid #cbd5e1 !important;
+            border-bottom: 0 !important;
+            padding-top: 5px !important;
+            padding-bottom: 5px !important;
+          }
+          .bolepix-document table { min-width: 0 !important; }
+          .bolepix-document th,
+          .bolepix-document td {
+            padding-top: 4px !important;
+            padding-bottom: 4px !important;
+          }
+          .pix-focus { padding: 8px 12px !important; }
+          .pix-focus > div:first-child {
+            margin-bottom: 7px !important;
+            padding-bottom: 5px !important;
+          }
+          .pix-focus > div:first-child h2 {
+            margin-top: 0 !important;
+            font-size: 15px !important;
+            line-height: 18px !important;
+          }
+          .pix-focus > .grid {
+            grid-template-columns: 160px minmax(0, 1fr) !important;
+            gap: 12px !important;
+          }
+          .pix-focus > .grid > div:first-child { max-width: 150px !important; }
+          .qr-frame {
+            width: 150px !important;
+            height: 150px !important;
+            padding: 5px !important;
+            box-shadow: none !important;
+            --tw-ring-offset-shadow: 0 0 #0000 !important;
+            --tw-ring-shadow: 0 0 #0000 !important;
+          }
+          .qr-frame + p {
+            margin-top: 4px !important;
+            font-size: 8px !important;
+            line-height: 10px !important;
+          }
+          .pix-focus > .grid > div:last-child > p:first-child { font-size: 10px !important; }
+          .pix-focus > .grid > div:last-child > div {
+            min-height: 0 !important;
+            margin-top: 4px !important;
+            padding: 6px !important;
+            font-size: 9px !important;
+            line-height: 12px !important;
+          }
+          .pix-focus > .grid > div:last-child > p:last-child {
+            margin-top: 6px !important;
+            font-size: 9px !important;
+            line-height: 12px !important;
+          }
+          .bolepix-document > footer { padding: 8px 12px !important; }
+          .bolepix-document > footer > .grid {
+            grid-template-columns: 1.2fr 1fr 1fr !important;
+            gap: 8px !important;
+            font-size: 9px !important;
+            line-height: 12px !important;
+          }
+          .bolepix-document > footer > div:last-of-type {
+            margin-top: 7px !important;
+            padding-top: 6px !important;
+            font-size: 9px !important;
+            line-height: 12px !important;
+          }
           section, footer { break-inside: avoid; }
         }
       `}</style>
