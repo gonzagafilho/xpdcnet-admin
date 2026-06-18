@@ -1,24 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ArrowLeft,
-  Building2,
-  CalendarDays,
   Check,
   Copy,
-  FileText,
-  Mail,
-  MapPin,
-  Phone,
   Printer,
   QrCode,
-  ReceiptText,
   ShieldCheck,
-  UserRound,
   Wifi,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -77,10 +69,12 @@ type CustomerDashboard = {
 };
 
 const COMPANY = {
-  cnpj: process.env.NEXT_PUBLIC_DCNET_CNPJ || "",
+  cnpj: process.env.NEXT_PUBLIC_DCNET_CNPJ || "Não informado",
   whatsapp: process.env.NEXT_PUBLIC_DCNET_WHATSAPP || "(61) 99662-7145",
-  email: process.env.NEXT_PUBLIC_DCNET_EMAIL || "",
-  address: process.env.NEXT_PUBLIC_DCNET_ADDRESS || "",
+  email: process.env.NEXT_PUBLIC_DCNET_EMAIL || "Atendimento DC NET",
+  address: process.env.NEXT_PUBLIC_DCNET_ADDRESS || "Planaltina - DF",
+  site: process.env.NEXT_PUBLIC_DCNET_SITE || "dcinfinity.net.br",
+  support: process.env.NEXT_PUBLIC_DCNET_SUPPORT || "Suporte pelo Portal do Cliente",
 };
 
 function money(value?: number | null) {
@@ -92,20 +86,6 @@ function date(value?: string | null) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return "Não informado";
   return new Intl.DateTimeFormat("pt-BR").format(parsed);
-}
-
-function statusLabel(status?: string | null) {
-  const normalized = String(status || "").toLowerCase();
-  if (["approved", "paid"].includes(normalized)) return "Pago";
-  if (normalized === "overdue") return "Vencido";
-  if (["cancelled", "canceled"].includes(normalized)) return "Cancelado";
-  if (normalized === "in_process") return "Em processamento";
-  return "Pendente";
-}
-
-function customerAddress(customer?: CustomerDashboard["client"] | null) {
-  const parts = [customer?.address?.neighborhood, customer?.address?.city, customer?.address?.state].filter(Boolean);
-  return parts.length ? parts.join(" · ") : "Não informado no portal";
 }
 
 function LoadingDocument() {
@@ -175,16 +155,12 @@ export default function BolepixPage() {
   const pix = payment?.payment;
   const pixCode = pix?.pixCopyPaste || pix?.pixPayload || "";
   const qrCode = pix?.pixQrCodeUrl || "";
-  const description = invoice?.description || "Mensalidade de internet DC NET";
+  const description = invoice?.description || "Mensalidade DC NET TESTE BOLEPIX";
   const chargeNumber = pix?.providerChargeId || invoice?._id || invoiceId || "";
-  const displayedStatus = statusLabel(pix?.internalStatus || invoice?.status);
   const chargeAmount = Number(pix?.amount ?? invoice?.amount ?? 0);
   const chargeDueDate = pix?.dueDate || invoice?.dueDate;
   const customer = dashboard?.client;
-  const planLabel = useMemo(() => {
-    if (!dashboard?.plan) return "Não informado no portal";
-    return `${dashboard.plan.name}${dashboard.plan.speedMbps ? ` · ${dashboard.plan.speedMbps} Mbps` : ""}`;
-  }, [dashboard]);
+
 
   async function copyPix() {
     if (!pixCode) return;
@@ -225,110 +201,126 @@ export default function BolepixPage() {
         </div>
       </div>
 
-      <article className="bolepix-document mx-auto max-w-[960px] overflow-hidden rounded-lg border border-slate-300 bg-white shadow-[0_30px_90px_-45px_rgba(2,6,23,0.5)]">
-        <header className="bolepix-header grid gap-7 bg-[linear-gradient(118deg,#061b34_0%,#063b4a_48%,#087f75_100%)] p-5 text-white sm:grid-cols-[1fr_320px] sm:p-8">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-white/30 bg-white p-1.5 shadow-lg shadow-black/15 sm:h-20 sm:w-20">
-              <Image src="/icons/dcnet-client.svg" alt="DC NET" width={80} height={80} priority className="h-full w-full rounded-md" />
+      <article className="bolepix-document mx-auto max-w-[900px] overflow-hidden rounded-md border border-slate-300 bg-white shadow-[0_24px_70px_-42px_rgba(2,6,23,0.55)]">
+        <header className="bolepix-brand-bar flex min-h-14 items-center justify-between gap-3 bg-[linear-gradient(105deg,#061b34_0%,#063b4a_60%,#087f75_100%)] px-3 py-2 text-white sm:px-4">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded border border-white/30 bg-white p-0.5">
+              <Image src="/icons/dcnet-client.svg" alt="DC NET" width={36} height={36} priority className="h-full w-full rounded-sm" />
             </div>
-            <div>
-              <p className="text-sm font-semibold uppercase text-cyan-200">DC NET</p>
-              <h1 className="mt-1 text-2xl font-bold text-white sm:text-3xl">BolePix DC NET</h1>
-              <span className="mt-3 inline-flex items-center gap-2 rounded-full border border-cyan-200/40 bg-white/10 px-3 py-1.5 text-xs font-semibold uppercase text-cyan-50">
-                <ShieldCheck className="h-3.5 w-3.5" /> Pagamento via Pix
-              </span>
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="truncate text-sm font-bold leading-tight text-white sm:text-base">BolePix DC NET</h1>
+                <span className="inline-flex items-center gap-1 rounded-full border border-cyan-100/40 bg-white/10 px-2 py-0.5 text-[8px] font-bold uppercase text-cyan-50">
+                  <ShieldCheck className="h-2.5 w-2.5" /> Pagamento via Pix
+                </span>
+              </div>
+              <p className="mt-0.5 text-[8px] font-semibold uppercase text-cyan-200">DC NET Telecom</p>
             </div>
           </div>
-          <div className="rounded-md border border-white/20 bg-black/10 p-4 text-sm text-cyan-50 backdrop-blur-sm sm:text-right">
-            {COMPANY.cnpj ? <p><span className="font-semibold text-white">CNPJ:</span> {COMPANY.cnpj}</p> : null}
-            <p className="inline-flex items-center gap-1 sm:flex"><Phone className="h-3.5 w-3.5" /> WhatsApp {COMPANY.whatsapp}</p>
-            {COMPANY.email ? <p className="inline-flex items-center gap-1 sm:flex sm:justify-end"><Mail className="h-3.5 w-3.5" /> {COMPANY.email}</p> : null}
-            {COMPANY.address ? <p className="inline-flex items-center gap-1 sm:flex sm:justify-end"><MapPin className="h-3.5 w-3.5" /> {COMPANY.address}</p> : null}
+          <div className="shrink-0 text-right">
+            <p className="text-[8px] font-semibold uppercase text-cyan-200">WhatsApp DC NET</p>
+            <p className="mt-0.5 text-[10px] font-bold text-white sm:text-xs">{COMPANY.whatsapp}</p>
           </div>
         </header>
 
-        <section className="grid border-b border-dashed border-slate-300 bg-[#f5fafb] sm:grid-cols-4">
-          <SummaryField icon={FileText} label="Cobrança" value={chargeNumber ? chargeNumber.slice(-12).toUpperCase() : "Não informado"} />
-          <SummaryField icon={CalendarDays} label="Vencimento" value={date(chargeDueDate)} />
-          <SummaryField icon={ReceiptText} label="Valor" value={money(chargeAmount)} emphasis />
-          <SummaryField icon={ShieldCheck} label="Status" value={displayedStatus} />
-        </section>
-
-        <section className="grid border-b border-dashed border-slate-300 lg:grid-cols-2">
-          <DocumentSection title="Dados do cliente" icon={UserRound}>
-            <Definition label="Nome" value={customer?.fullName || "Cliente DC NET"} />
-            <Definition label="CPF/CNPJ" value="Não informado no portal" />
-            <Definition label="Plano / contrato" value={planLabel} />
-            <Definition label="Endereço" value={customerAddress(customer)} />
-          </DocumentSection>
-          <DocumentSection title="Dados da cobrança" icon={Building2} bordered>
-            <Definition label="Referência / mês" value={invoice?.competence || "Não informado"} />
-            <Definition label="Identificador" value={chargeNumber || "Não informado"} mono />
-            <Definition label="Forma de pagamento" value="Exclusivamente via Pix" />
-            <Definition label="Emissão" value={date(new Date().toISOString())} />
-          </DocumentSection>
-        </section>
-
-        <section className="border-b border-dashed border-slate-300 p-5 sm:p-8">
-          <div className="mb-5 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="flex h-9 w-9 items-center justify-center rounded-md bg-cyan-50 text-[#087f75]"><ReceiptText className="h-5 w-5" /></span>
-              <div><p className="text-xs font-semibold uppercase text-slate-500">Detalhamento</p><h2 className="text-base font-semibold">Demonstrativo da cobrança</h2></div>
+        <section className="border-b border-slate-300 bg-white">
+          <div className="grid lg:grid-cols-[1fr_1.35fr]">
+            <div className="border-b border-slate-300 px-3 py-2.5 lg:border-b-0 lg:border-r">
+              <p className="text-[9px] font-bold uppercase text-slate-700">Dados do cliente</p>
+              <p className="mt-1.5 truncate text-xs font-bold uppercase text-slate-900">{customer?.fullName || "Cliente DC NET"}</p>
+              <p className="mt-1 text-[10px] text-slate-600"><strong className="font-bold text-slate-700">CPF/CNPJ:</strong> Não informado no portal</p>
             </div>
-            <span className="hidden text-xs font-medium text-slate-400 sm:block">Documento digital DC NET</span>
+
+            <div className="grid grid-cols-3">
+              <FinancialBox label="Cobrança" value={chargeNumber ? chargeNumber.slice(-12).toUpperCase() : "Não informado"} />
+              <FinancialBox label="Vencimento" value={date(chargeDueDate)} />
+              <FinancialBox label="Valor" value={money(chargeAmount)} emphasis />
+            </div>
           </div>
-          <div className="overflow-x-auto rounded-md border border-slate-300">
-            <table className="w-full min-w-[620px] border-collapse text-sm">
-              <thead className="bg-[#071f36] text-left text-xs uppercase text-cyan-50">
-                <tr><th className="p-3">Descrição</th><th className="p-3 text-center">Quantidade</th><th className="p-3 text-right">Valor unitário</th><th className="p-3 text-right">Valor total</th></tr>
+
+          <div className="border-t border-slate-300 px-3 py-1.5">
+            <p className="text-[9px] font-bold uppercase text-slate-700">Observação</p>
+          </div>
+          <div className="border-t border-slate-300 bg-slate-100 px-3 py-2 text-center">
+            <p className="text-[10px] font-bold uppercase text-slate-800">Obrigado pela preferência!!!!</p>
+          </div>
+          <div className="border-t border-slate-300 px-3 py-1.5">
+            <p className="text-[9px] font-bold uppercase text-slate-700">Demonstrativo</p>
+          </div>
+
+          <div className="overflow-x-auto border-t border-slate-300">
+            <table className="w-full min-w-[540px] border-collapse text-[10px]">
+              <thead className="bg-slate-100 text-left text-[8px] font-bold uppercase text-slate-700">
+                <tr>
+                  <th className="border-r border-slate-300 px-2.5 py-1.5">Descrição</th>
+                  <th className="border-r border-slate-300 px-2.5 py-1.5 text-right">Preço unit</th>
+                  <th className="border-r border-slate-300 px-2.5 py-1.5 text-center">Qtde</th>
+                  <th className="px-2.5 py-1.5 text-right">Valor</th>
+                </tr>
               </thead>
-              <tbody><tr className="border-t border-slate-300"><td className="p-3 font-medium">{description}</td><td className="p-3 text-center">1</td><td className="p-3 text-right">{money(chargeAmount)}</td><td className="p-3 text-right font-semibold">{money(chargeAmount)}</td></tr></tbody>
-              <tfoot><tr className="border-t border-slate-300 bg-cyan-50/70"><td colSpan={3} className="p-3 text-right font-semibold">Total</td><td className="p-3 text-right text-base font-bold text-emerald-700">{money(chargeAmount)}</td></tr></tfoot>
+              <tbody>
+                <tr className="border-t border-slate-300">
+                  <td className="border-r border-slate-300 px-2.5 py-2 font-medium uppercase">{description}</td>
+                  <td className="border-r border-slate-300 px-2.5 py-2 text-right">{money(chargeAmount)}</td>
+                  <td className="border-r border-slate-300 px-2.5 py-2 text-center">1</td>
+                  <td className="px-2.5 py-2 text-right font-semibold">{money(chargeAmount)}</td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </section>
 
-        <section className="grid gap-8 border-b border-dashed border-slate-300 bg-[#f7fbfc] p-5 sm:p-8 lg:grid-cols-[300px_1fr]">
-          <div>
-            <div className="mb-4 flex items-center gap-2"><span className="flex h-9 w-9 items-center justify-center rounded-md bg-cyan-100 text-[#087f75]"><QrCode className="h-5 w-5" /></span><div><p className="text-xs font-semibold uppercase text-slate-500">Escaneie para pagar</p><h2 className="text-base font-semibold">Pagamento via Pix</h2></div></div>
-            {qrCode ? (
-              <div className="qr-frame mx-auto flex aspect-square w-full max-w-[280px] items-center justify-center rounded-lg border border-cyan-200 bg-white p-4 shadow-[0_18px_45px_-30px_rgba(8,127,117,0.7)] ring-4 ring-cyan-50">
-                <Image src={qrCode} alt="QR Code Pix da cobrança" width={260} height={260} unoptimized className="h-full w-full object-contain" />
-              </div>
-            ) : (
-              <div className="flex aspect-square w-full max-w-[280px] items-center justify-center rounded-lg border border-dashed border-cyan-300 bg-white p-6 text-center text-sm text-slate-500 ring-4 ring-cyan-50">QR Code indisponível</div>
-            )}
+        <section className="pix-focus border-b border-dashed border-slate-300 bg-[#f6fafb] px-5 py-5 sm:px-6">
+          <div className="mb-4 flex items-center justify-between border-b border-cyan-200 pb-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase text-[#087f75]">Forma de pagamento</p>
+              <h2 className="mt-0.5 text-lg font-bold text-[#071f36]">PAGAMENTO VIA PIX</h2>
+            </div>
+            <QrCode className="h-7 w-7 text-[#087f75]" />
           </div>
-          <div className="flex flex-col justify-center">
-            <p className="text-xs font-semibold uppercase text-[#087f75]">Pix DC NET</p><h3 className="mt-1 text-2xl font-semibold text-slate-950">Pague com rapidez e segurança</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Abra o aplicativo do seu banco, escolha pagar via Pix e escaneie o QR Code. Você também pode copiar o código abaixo.</p>
-            <div className="mt-5 min-h-24 rounded-md border border-slate-300 bg-white p-4 font-mono text-xs leading-5 break-all text-slate-700 shadow-inner">{pixCode || "Pix Copia e Cola indisponível."}</div>
-            <Button onClick={copyPix} disabled={!pixCode} className="bolepix-copy mt-4 w-full bg-[#087f75] text-white shadow-md shadow-cyan-900/10 hover:bg-[#06675f] sm:w-fit">
-              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? "Pix copiado" : "Copiar Pix"}
-            </Button>
-            <p className="mt-4 flex items-start gap-2 rounded-md border border-cyan-200 bg-cyan-50 p-3 text-sm font-medium text-[#075e59]"><Wifi className="mt-0.5 h-4 w-4 shrink-0" /> Pague via Pix e tenha confirmação automática.</p>
+
+          <div className="grid items-center gap-5 lg:grid-cols-[220px_1fr]">
+            <div className="mx-auto w-full max-w-[220px]">
+              {qrCode ? (
+                <div className="qr-frame flex aspect-square items-center justify-center rounded-md border border-cyan-200 bg-white p-3 shadow-[0_14px_38px_-28px_rgba(8,127,117,0.8)] ring-4 ring-cyan-50">
+                  <Image src={qrCode} alt="QR Code Pix da cobrança" width={200} height={200} unoptimized className="h-full w-full object-contain" />
+                </div>
+              ) : (
+                <div className="flex aspect-square items-center justify-center rounded-md border border-dashed border-cyan-300 bg-white p-5 text-center text-xs text-slate-500">QR Code indisponível</div>
+              )}
+              <p className="mt-2 text-center text-[10px] font-medium text-slate-500">Escaneie com o aplicativo da sua instituição financeira</p>
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase text-slate-700">Pix Copia e Cola</p>
+              <div className="mt-2 min-h-24 rounded border border-slate-300 bg-white p-3 font-mono text-[11px] leading-4 break-all text-slate-700 shadow-inner">{pixCode || "Pix Copia e Cola indisponível."}</div>
+              <Button onClick={copyPix} disabled={!pixCode} className="bolepix-copy mt-3 w-full bg-[#087f75] text-white shadow-sm hover:bg-[#06675f] sm:w-fit">
+                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? "Pix copiado" : "Copiar PIX"}
+              </Button>
+              <p className="mt-3 flex items-start gap-2 text-xs font-medium text-[#075e59]"><Wifi className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Após a confirmação do PIX a baixa ocorre automaticamente.</p>
+            </div>
           </div>
         </section>
 
         {(!qrCode || !pixCode) ? (
-          <div className="border-b border-amber-300 bg-amber-50 px-5 py-4 text-sm text-amber-900 sm:px-8">
-            <AlertTriangle className="mr-2 inline h-4 w-4" /> Não foi possível carregar o Pix desta fatura no momento.
+          <div className="border-b border-amber-300 bg-amber-50 px-5 py-3 text-xs text-amber-900 sm:px-6">
+            <AlertTriangle className="mr-2 inline h-3.5 w-3.5" /> Não foi possível carregar o Pix desta fatura no momento.
           </div>
         ) : null}
 
-        <footer className="p-5 sm:p-8">
-          <div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-md bg-[#071f36] text-cyan-200"><Copy className="h-4 w-4" /></span><div><p className="text-xs font-bold uppercase text-[#087f75]">PIX COPIA E COLA</p><p className="text-sm text-slate-500">Use este código no aplicativo da sua instituição financeira.</p></div></div>
-          <div className="mt-4 min-h-28 rounded-md border border-slate-300 bg-[#f4f8fa] p-4 font-mono text-xs leading-5 break-all text-slate-800 shadow-inner sm:p-5">{pixCode || "Código Pix indisponível."}</div>
-          <div className="bolepix-copy mt-3"><Button variant="outline" onClick={copyPix} disabled={!pixCode}><Copy className="h-4 w-4" /> {copied ? "Pix copiado" : "Copiar código Pix"}</Button></div>
-          <div className="mt-7 flex items-start gap-3 rounded-md border border-cyan-200 bg-[linear-gradient(90deg,#ecfeff_0%,#f0fdf4_100%)] p-4 text-sm font-semibold text-slate-900">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-[#087f75]" />
-            <span>
-            Este documento não é boleto bancário. O pagamento é realizado exclusivamente via Pix.</span>
+        <footer className="px-5 py-4 sm:px-6">
+          <div className="grid gap-3 text-[11px] sm:grid-cols-[1.2fr_1fr_1fr]">
+            <div><p className="font-bold uppercase text-[#071f36]">DC NET TELECOM</p><p className="mt-1 text-slate-500">Conectividade e atendimento para você.</p></div>
+            <div className="space-y-0.5 text-slate-600"><p><strong>CNPJ:</strong> {COMPANY.cnpj}</p><p><strong>WhatsApp:</strong> {COMPANY.whatsapp}</p><p><strong>Site:</strong> {COMPANY.site}</p></div>
+            <div className="space-y-0.5 text-slate-600"><p><strong>Suporte:</strong> {COMPANY.support}</p><p><strong>Contato:</strong> {COMPANY.email}</p><p><strong>Endereço:</strong> {COMPANY.address}</p></div>
           </div>
-          {error ? <p className="bolepix-copy mt-3 text-sm text-red-600">{error}</p> : null}
+          <div className="mt-4 flex items-start gap-2 border-t border-slate-200 pt-3 text-xs font-semibold text-slate-800">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-[#087f75]" />
+            <span>Este documento não é boleto bancário. O pagamento é realizado exclusivamente via Pix.</span>
+          </div>
+          {error ? <p className="bolepix-copy mt-2 text-xs text-red-600">{error}</p> : null}
         </footer>
       </article>
-
       <style jsx global>{`
         @media print {
           @page { size: A4; margin: 8mm; }
@@ -337,7 +329,7 @@ export default function BolepixPage() {
           .bolepix-page { background: #fff !important; padding: 0 !important; }
           .bolepix-actions, .bolepix-copy { display: none !important; }
           .bolepix-document { max-width: none !important; border: 1px solid #94a3b8 !important; border-radius: 0 !important; box-shadow: none !important; }
-          .bolepix-header { background: linear-gradient(118deg,#061b34 0%,#063b4a 48%,#087f75 100%) !important; }
+          .bolepix-brand-bar { background: linear-gradient(105deg,#061b34 0%,#063b4a 60%,#087f75 100%) !important; }
           .qr-frame { box-shadow: none !important; }
           section, footer { break-inside: avoid; }
         }
@@ -346,14 +338,6 @@ export default function BolepixPage() {
   );
 }
 
-function SummaryField({ icon: Icon, label, value, emphasis = false }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string; emphasis?: boolean }) {
-  return <div className="border-b border-dashed border-slate-300 p-4 last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0"><div className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-500"><Icon className="h-4 w-4 text-[#087f75]" />{label}</div><p className={`mt-2 break-words font-semibold ${emphasis ? "text-xl text-[#087f75]" : "text-sm text-slate-950"}`}>{value}</p></div>;
-}
-
-function DocumentSection({ title, icon: Icon, bordered = false, children }: { title: string; icon: React.ComponentType<{ className?: string }>; bordered?: boolean; children: React.ReactNode }) {
-  return <div className={`p-5 sm:p-8 ${bordered ? "border-t border-dashed border-slate-300 lg:border-l lg:border-t-0" : ""}`}><div className="mb-5 flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-md bg-cyan-50 text-[#087f75]"><Icon className="h-5 w-5" /></span><div><p className="text-xs font-semibold uppercase text-slate-500">Informações</p><h2 className="text-base font-semibold">{title}</h2></div></div><dl className="grid gap-3">{children}</dl></div>;
-}
-
-function Definition({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
-  return <div className="grid gap-1 text-sm sm:grid-cols-[145px_1fr]"><dt className="text-slate-500">{label}</dt><dd className={`min-w-0 break-words font-medium text-slate-900 ${mono ? "font-mono text-xs" : ""}`}>{value}</dd></div>;
+function FinancialBox({ label, value, emphasis = false }: { label: string; value: string; emphasis?: boolean }) {
+  return <div className="flex min-h-[58px] flex-col justify-center border-r border-slate-300 px-2 py-1.5 text-center last:border-r-0"><p className="text-[8px] font-bold uppercase text-slate-500">{label}</p><p className={`mt-1 break-words font-bold leading-tight ${emphasis ? "text-base text-[#087f75]" : "text-[11px] text-slate-900"}`}>{value}</p></div>;
 }
