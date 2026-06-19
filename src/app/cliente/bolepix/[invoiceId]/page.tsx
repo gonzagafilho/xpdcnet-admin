@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CustomerApiError, customerApiFetch, getCustomerToken } from "@/lib/customer-app-api";
+import { resolveApiAssetUrl } from "@/lib/api-assets";
 
 type InvoiceItem = {
   _id: string;
@@ -58,6 +59,11 @@ type BolepixAd = {
 };
 
 type BolepixAdResponse = { ad: BolepixAd | null };
+
+type PartnerAd = {
+  _id: string; name: string; category: string; imageUrl: string; whatsapp: string; website: string;
+};
+type PartnerAdsResponse = { items: PartnerAd[] };
 
 type CustomerDashboard = {
   client: {
@@ -160,6 +166,7 @@ export default function BolepixPage() {
   const [payment, setPayment] = useState<PaymentResponse | null>(null);
   const [dashboard, setDashboard] = useState<CustomerDashboard | null>(null);
   const [bolepixAd, setBolepixAd] = useState<BolepixAd | null>(null);
+  const [partnerAds, setPartnerAds] = useState<PartnerAd[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
@@ -174,14 +181,16 @@ export default function BolepixPage() {
     setLoading(true);
     setError("");
     try {
-      const [paymentData, dashboardData, adData] = await Promise.all([
+      const [paymentData, dashboardData, adData, partnersData] = await Promise.all([
         customerApiFetch<PaymentResponse>(`/customer-app/invoices/${invoiceId}/payment`),
         customerApiFetch<CustomerDashboard>("/customer-app/me"),
         customerApiFetch<BolepixAdResponse>("/customer-app/bolepix-ad").catch(() => ({ ad: null })),
+        customerApiFetch<PartnerAdsResponse>("/customer-app/bolepix-partners").catch(() => ({ items: [] })),
       ]);
       setPayment(paymentData);
       setDashboard(dashboardData);
       setBolepixAd(adData.ad);
+      setPartnerAds(partnersData.items || []);
     } catch (err) {
       if (err instanceof CustomerApiError && err.status === 401) {
         router.replace("/cliente");
@@ -326,16 +335,6 @@ export default function BolepixPage() {
               </tbody>
             </table>
           </div>
-          {bolepixAd ? (
-            <div className="bolepix-ad border-t border-slate-300 bg-white px-3 py-2">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={bolepixAd.imageUrl}
-                alt={bolepixAd.title || "Banner promocional"}
-                className="mx-auto max-h-40 w-full object-contain"
-              />
-            </div>
-          ) : null}
         </section>
 
         <section className="pix-focus border-b border-dashed border-slate-300 bg-[#f6fafb] px-5 py-5 sm:px-6">
@@ -347,28 +346,46 @@ export default function BolepixPage() {
             <QrCode className="h-7 w-7 text-[#087f75]" />
           </div>
 
-          <div className="grid items-center gap-5 lg:grid-cols-[220px_1fr]">
-            <div className="mx-auto w-full max-w-[220px]">
-              {qrCode ? (
-                <div className="qr-frame flex aspect-square items-center justify-center rounded-md border border-cyan-200 bg-white p-3 shadow-[0_14px_38px_-28px_rgba(8,127,117,0.8)] ring-4 ring-cyan-50">
-                  <Image src={qrCode} alt="QR Code Pix da cobrança" width={200} height={200} unoptimized className="h-full w-full object-contain" />
+          <div className="bolepix-payment-section">
+            <div className="bolepix-payment-left">
+              <div className="grid items-center gap-5 lg:grid-cols-[220px_1fr]">
+                <div className="mx-auto w-full max-w-[220px]">
+                  {qrCode ? (
+                    <div className="qr-frame flex aspect-square items-center justify-center rounded-md border border-cyan-200 bg-white p-3 shadow-[0_14px_38px_-28px_rgba(8,127,117,0.8)] ring-4 ring-cyan-50">
+                      <Image src={qrCode} alt="QR Code Pix da cobrança" width={200} height={200} unoptimized className="h-full w-full object-contain" />
+                    </div>
+                  ) : (
+                    <div className="flex aspect-square items-center justify-center rounded-md border border-dashed border-cyan-300 bg-white p-5 text-center text-xs text-slate-500">QR Code indisponível</div>
+                  )}
+                  <p className="mt-2 text-center text-[10px] font-medium text-slate-500">Escaneie com o aplicativo da sua instituição financeira</p>
                 </div>
-              ) : (
-                <div className="flex aspect-square items-center justify-center rounded-md border border-dashed border-cyan-300 bg-white p-5 text-center text-xs text-slate-500">QR Code indisponível</div>
-              )}
-              <p className="mt-2 text-center text-[10px] font-medium text-slate-500">Escaneie com o aplicativo da sua instituição financeira</p>
+
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase text-slate-700">Pix Copia e Cola</p>
+                  <div className="mt-2 min-h-24 rounded border border-slate-300 bg-white p-3 font-mono text-[11px] leading-4 break-all text-slate-700 shadow-inner">{pixCode || "Pix Copia e Cola indisponível."}</div>
+                  <Button onClick={copyPix} disabled={!pixCode} className="bolepix-copy mt-3 w-full bg-[#087f75] text-white shadow-sm hover:bg-[#06675f] sm:w-fit">
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? "Pix copiado" : "Copiar PIX"}
+                  </Button>
+                  <p className="mt-3 flex items-start gap-2 text-xs font-medium text-[#075e59]"><Wifi className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Após a confirmação do PIX a baixa ocorre automaticamente.</p>
+                </div>
+              </div>
             </div>
 
-            <div className="min-w-0">
-              <p className="text-xs font-bold uppercase text-slate-700">Pix Copia e Cola</p>
-              <div className="mt-2 min-h-24 rounded border border-slate-300 bg-white p-3 font-mono text-[11px] leading-4 break-all text-slate-700 shadow-inner">{pixCode || "Pix Copia e Cola indisponível."}</div>
-              <Button onClick={copyPix} disabled={!pixCode} className="bolepix-copy mt-3 w-full bg-[#087f75] text-white shadow-sm hover:bg-[#06675f] sm:w-fit">
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />} {copied ? "Pix copiado" : "Copiar PIX"}
-              </Button>
-              <p className="mt-3 flex items-start gap-2 text-xs font-medium text-[#075e59]"><Wifi className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Após a confirmação do PIX a baixa ocorre automaticamente.</p>
-            </div>
+            {bolepixAd?.imageUrl ? (
+              <div className="bolepix-payment-right">
+
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={resolveApiAssetUrl(bolepixAd.imageUrl)}
+                  alt={bolepixAd.title || "Banner promocional"}
+                  className="bolepix-ad-banner"
+                />
+              </div>
+            ) : null}
           </div>
         </section>
+
+        {partnerAds.length ? <PartnerOffers items={partnerAds} /> : null}
 
         {(!qrCode || !pixCode) ? (
           <div className="border-b border-amber-300 bg-amber-50 px-5 py-3 text-xs text-amber-900 sm:px-6">
@@ -390,6 +407,41 @@ export default function BolepixPage() {
         </footer>
       </article>
       <style jsx global>{`
+        .bolepix-payment-section {
+          display: flex;
+          flex-direction: column;
+          gap: 16px;
+        }
+        .bolepix-payment-left {
+          flex: 1;
+          min-width: 0;
+        }
+        .bolepix-payment-right {
+          width: 100%;
+        }
+        .bolepix-ad-banner {
+          width: 100%;
+          height: 100%;
+          min-height: 220px;
+          object-fit: cover;
+          border-radius: 10px;
+          display: block;
+        }
+        .bolepix-partners-section { break-inside: avoid; }
+        .bolepix-partner-card { display: flex; min-width: 0; align-items: center; gap: 8px; overflow: hidden; border: 1px solid #cbd5e1; border-radius: 8px; padding: 7px; color: #0f172a; text-decoration: none; }
+        .bolepix-partner-card img { width: 64px; height: 48px; flex: 0 0 auto; border-radius: 5px; object-fit: cover; }
+        .bolepix-partner-card span { min-width: 0; }
+        .bolepix-partner-card strong, .bolepix-partner-card small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .bolepix-partner-card strong { font-size: 11px; }
+        .bolepix-partner-card small { margin-top: 2px; font-size: 9px; color: #64748b; }
+        @media (min-width: 1024px) {
+          .bolepix-payment-section {
+            flex-direction: row;
+          }
+          .bolepix-payment-right {
+            width: 42%;
+          }
+        }
         @media print {
           @page { size: A4 portrait; margin: 7mm; }
           html, body { width: 100% !important; min-height: 0 !important; background: #fff !important; }
@@ -428,15 +480,26 @@ export default function BolepixPage() {
             padding-top: 4px !important;
             padding-bottom: 4px !important;
           }
-          .bolepix-ad {
-            padding: 4px 8px !important;
-            break-inside: avoid !important;
+          .bolepix-payment-section {
+            display: flex !important;
+            flex-direction: row !important;
+            gap: 16px !important;
           }
-          .bolepix-ad img {
-            display: block !important;
+          .bolepix-payment-left {
+            flex: 1 !important;
+            min-width: 0 !important;
+          }
+          .bolepix-payment-right {
+            width: 42% !important;
+          }
+          .bolepix-ad-banner {
             width: 100% !important;
-            max-height: 72px !important;
-            object-fit: contain !important;
+            height: 100% !important;
+            min-height: 180px !important;
+            max-height: 220px !important;
+            object-fit: cover !important;
+            display: block !important;
+            border-radius: 10px !important;
           }
           .pix-focus { padding: 8px 12px !important; }
           .pix-focus > div:first-child {
@@ -448,11 +511,11 @@ export default function BolepixPage() {
             font-size: 15px !important;
             line-height: 18px !important;
           }
-          .pix-focus > .grid {
+          .bolepix-payment-left > .grid {
             grid-template-columns: 160px minmax(0, 1fr) !important;
             gap: 12px !important;
           }
-          .pix-focus > .grid > div:first-child { max-width: 150px !important; }
+          .bolepix-payment-left > .grid > div:first-child { max-width: 150px !important; }
           .qr-frame {
             width: 150px !important;
             height: 150px !important;
@@ -466,19 +529,26 @@ export default function BolepixPage() {
             font-size: 8px !important;
             line-height: 10px !important;
           }
-          .pix-focus > .grid > div:last-child > p:first-child { font-size: 10px !important; }
-          .pix-focus > .grid > div:last-child > div {
+          .bolepix-payment-left > .grid > div:last-child > p:first-child { font-size: 10px !important; }
+          .bolepix-payment-left > .grid > div:last-child > div {
             min-height: 0 !important;
             margin-top: 4px !important;
             padding: 6px !important;
             font-size: 9px !important;
             line-height: 12px !important;
           }
-          .pix-focus > .grid > div:last-child > p:last-child {
+          .bolepix-payment-left > .grid > div:last-child > p:last-child {
             margin-top: 6px !important;
             font-size: 9px !important;
             line-height: 12px !important;
           }
+          .bolepix-partners-section { max-height: 120px !important; padding: 4px 8px !important; overflow: hidden !important; break-inside: avoid !important; }
+          .bolepix-partners-title { font-size: 8px !important; line-height: 10px !important; }
+          .bolepix-partners-grid { margin-top: 3px !important; gap: 3px !important; }
+          .bolepix-partner-card { height: 46px !important; gap: 5px !important; padding: 3px !important; border-radius: 4px !important; }
+          .bolepix-partner-card img { width: 48px !important; height: 38px !important; border-radius: 3px !important; }
+          .bolepix-partner-card strong { font-size: 8px !important; line-height: 9px !important; }
+          .bolepix-partner-card small { font-size: 7px !important; line-height: 8px !important; }
           .bolepix-document > footer { padding: 8px 12px !important; }
           .bolepix-document > footer > .grid {
             grid-template-columns: 1.2fr 1fr 1fr !important;
@@ -499,6 +569,8 @@ export default function BolepixPage() {
   );
 }
 
+/* eslint-disable @next/next/no-img-element */
+function PartnerOffers({ items }: { items: PartnerAd[] }) {  return (    <section className="bolepix-partners-section border-b border-slate-300 bg-white px-4 py-3">      <p className="bolepix-partners-title text-[10px] font-bold uppercase tracking-wide text-[#087f75]">Ofertas e Parceiros DC NET</p>      <div className="bolepix-partners-grid mt-2 grid grid-cols-2 gap-2">        {items.slice(0, 4).map((partner) => {          const whatsapp = partner.whatsapp.replace(/\D/g, "");          const href = partner.website || (whatsapp ? `https://wa.me/${whatsapp}` : "");          const content = <>                        <img src={resolveApiAssetUrl(partner.imageUrl)} alt={partner.name} />            <span><strong>{partner.name}</strong><small>{partner.category}</small></span>          </>;          return href ? (            <a key={partner._id} href={href} target="_blank" rel="noreferrer" onClick={() => void customerApiFetch(`/customer-app/bolepix-partners/${partner._id}/click`, { method: "POST" }).catch(() => undefined)} className="bolepix-partner-card">{content}</a>          ) : <div key={partner._id} className="bolepix-partner-card">{content}</div>;        })}      </div>    </section>  );}
 function FinancialBox({ label, value, emphasis = false }: { label: string; value: string; emphasis?: boolean }) {
   return <div className="flex min-h-[58px] flex-col justify-center border-r border-slate-300 px-2 py-1.5 text-center last:border-r-0"><p className="text-[8px] font-bold uppercase text-slate-500">{label}</p><p className={`mt-1 break-words font-bold leading-tight ${emphasis ? "text-base text-[#087f75]" : "text-[11px] text-slate-900"}`}>{value}</p></div>;
 }
