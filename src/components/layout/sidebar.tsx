@@ -9,6 +9,7 @@ import {
   Activity,
   BarChart3,
   ChevronDown,
+  DatabaseZap,
   FileText,
   Filter,
   Headphones,
@@ -107,6 +108,17 @@ const navGroups: NavGroup[] = [
     children: [
       { label: "Visão geral", href: "/relatorios" },
       { label: "Anual comparativo", href: "/relatorios/anual-comparativo" },
+    ],
+  },
+  {
+    id: "migracao",
+    label: "Migração de Dados",
+    icon: DatabaseZap,
+    children: [
+      { label: "Importar Clientes", href: "/migracao/importar-clientes" },
+      { label: "Importar PPPoE", href: null, hint: "Disponível em breve" },
+      { label: "Exportar Modelo", href: "/migracao/importar-clientes?tab=modelo" },
+      { label: "Histórico de Importações", href: "/migracao/importar-clientes?tab=historico" },
     ],
   },
   {

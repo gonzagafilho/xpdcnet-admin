@@ -30,6 +30,7 @@ const titles: Record<string, { title: string; subtitle?: string }> = {
     subtitle: "Localização cadastral e situação da conexão",
   },
   "/relatorios": { title: "Relatórios", subtitle: "Indicadores e exportações" },
+  "/migracao/importar-clientes": { title: "Migração de Dados", subtitle: "Importação segura e independente de plataforma" },
   "/relatorios/anual-comparativo": {
     title: "Relatório anual comparativo",
     subtitle: "Indicadores ano a ano",
@@ -55,6 +56,7 @@ function resolvePanelMeta(pathname: string): { title: string; subtitle?: string 
   if (pathname.startsWith("/monitoramento/mapa-clientes")) return titles["/monitoramento/mapa-clientes"]!;
   if (pathname.startsWith("/monitoramento/clientes-on-off")) return titles["/monitoramento/clientes-on-off"]!;
   if (pathname.startsWith("/monitoramento/trafego")) return titles["/monitoramento/trafego"]!;
+  if (pathname.startsWith("/migracao/importar-clientes")) return titles["/migracao/importar-clientes"]!;
   if (pathname.startsWith("/relatorios/anual-comparativo")) return titles["/relatorios/anual-comparativo"]!;
   if (pathname.startsWith("/relatorios")) return titles["/relatorios"]!;
   if (pathname.startsWith("/financeiro/politica")) {
