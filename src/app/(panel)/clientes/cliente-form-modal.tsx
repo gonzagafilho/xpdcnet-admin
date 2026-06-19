@@ -31,6 +31,17 @@ import { ClientDelinquencyRulerPanel } from "./client-delinquency-ruler";
 import { ClienteAutenticacaoModal, type ClienteAuthDraft } from "./cliente-autenticacao-modal";
 import { KeyRound } from "lucide-react";
 
+type ClientAccessFromApi = {
+  id: string;
+  username: string;
+  authType: string;
+  status: string;
+  source: string;
+  server: { id: string; name: string; host: string };
+  networkNode: { id: string; name: string; code: string } | null;
+  plan: { id: string; name: string; speedMbps: number | null; price: number | null };
+};
+
 export type ClienteFormState = {
   document: string;
   fullName: string;
@@ -397,6 +408,8 @@ export function ClienteFormModal({
   const [networkIntentLoading, setNetworkIntentLoading] = useState(false);
   const [mikrotikMonitoring, setMikrotikMonitoring] = useState<MikrotikClientMonitoringFromApi | null>(null);
   const [mikrotikMonitoringLoading, setMikrotikMonitoringLoading] = useState(false);
+  const [clientAccesses, setClientAccesses] = useState<ClientAccessFromApi[]>([]);
+  const [clientAccessesLoading, setClientAccessesLoading] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -461,6 +474,23 @@ export function ClienteFormModal({
       cancelled = true;
     };
   }, [open]);
+
+
+  useEffect(() => {
+    const clientId = client?._id;
+    if (!open || mode !== "edit" || !clientId) {
+      setClientAccesses([]);
+      setClientAccessesLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setClientAccessesLoading(true);
+    apiFetch<{ items: ClientAccessFromApi[] }>(`/clients/${clientId}/accesses`)
+      .then((response) => { if (!cancelled) setClientAccesses(response.items || []); })
+      .catch(() => { if (!cancelled) setClientAccesses([]); })
+      .finally(() => { if (!cancelled) setClientAccessesLoading(false); });
+    return () => { cancelled = true; };
+  }, [open, mode, client?._id]);
 
   const selectedPlan = useMemo(
     () => plans.find((p) => p._id === form.planId) ?? null,
@@ -1450,6 +1480,38 @@ export function ClienteFormModal({
               </div>
 
               <div className="space-y-4 border-t border-neutral-200 pt-6">
+                {mode === "edit" ? (
+                  <div className="space-y-2">
+                    {sectionTitle("Acessos PPPoE vinculados")}
+                    {clientAccessesLoading ? (
+                      <p className="text-xs text-neutral-500">Carregando acessos...</p>
+                    ) : clientAccesses.length === 0 ? (
+                      <p className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
+                        Nenhum ClientAccess vinculado. O acesso legado permanece disponível abaixo.
+                      </p>
+                    ) : (
+                      <div className="divide-y divide-neutral-100 rounded-md border border-neutral-200 bg-white">
+                        {clientAccesses.map((access) => (
+                          <div key={access.id} className="grid gap-2 px-3 py-3 text-xs sm:grid-cols-[1.2fr_1fr_auto]">
+                            <div>
+                              <p className="font-mono font-semibold text-neutral-900">{access.username}</p>
+                              <p className="mt-0.5 text-neutral-500">{access.server.name || "Equipamento não identificado"}{access.networkNode ? ` · ${access.networkNode.name}` : ""}</p>
+                            </div>
+                            <div>
+                              <p className="font-medium text-neutral-800">{access.plan.name || "Plano não identificado"}</p>
+                              <p className="mt-0.5 text-neutral-500">{access.plan.speedMbps != null ? `${access.plan.speedMbps} Mbps` : "Velocidade não informada"}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold uppercase text-neutral-700">{access.status}</p>
+                              <p className="mt-0.5 text-neutral-500">{access.source}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : null}
+
                 {sectionTitle("Autenticação de rede")}
                 <p className="text-xs text-neutral-500">
                   Login, senha e tipo de acesso ficam associados à ficha; as demais informações são guardadas como observações.

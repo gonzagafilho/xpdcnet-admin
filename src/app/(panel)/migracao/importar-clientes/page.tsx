@@ -37,20 +37,21 @@ type Target = {
 };
 
 type ImportError = { row: number | null; field: string; code: string; message: string };
+type PreviewAccess = {
+  rowNumber: number;
+  username: string;
+  planName: string;
+  matchedPppoe: boolean;
+  hasPassword: boolean;
+  errors: ImportError[];
+};
 type PreviewRow = {
   rowNumber: number;
   fullName: string;
   document: string;
-  whatsapp: string;
-  phone: string;
-  email: string;
-  plan: string;
-  contract: string;
-  pppoeUsername: string;
-  hasPppoePassword: boolean;
-  concentrator: string;
   status: "valid" | "duplicate" | "invalid";
-  matchedPppoe: boolean;
+  accessCount: number;
+  accesses: PreviewAccess[];
   errors: ImportError[];
 };
 
@@ -65,11 +66,16 @@ type ImportJob = {
   previewRows: PreviewRow[];
   report: {
     totalRows: number;
+    totalAccessRows: number;
+    multiAccessCustomers: number;
+    criticalDuplicateRows: number;
     validRows: number;
     duplicateRows: number;
     invalidRows: number;
     matchedPppoeRows: number;
+    unmatchedPppoeRows: number;
     importedRows: number;
+    importedAccessRows: number;
     skippedRows: number;
     errors: ImportError[];
   };
@@ -364,10 +370,10 @@ function ImportarClientesContent() {
                       {job.previewRows.map((row) => (
                         <TableRow key={row.rowNumber}>
                           <TableCell>{row.rowNumber}</TableCell>
-                          <TableCell><p className="font-medium">{row.fullName || "Sem nome"}</p><p className="text-xs text-slate-500">{row.whatsapp || row.phone || row.email || "Sem contato"}</p></TableCell>
+                          <TableCell><p className="font-medium">{row.fullName || "Sem nome"}</p><p className="text-xs text-slate-500">{row.accessCount} acesso(s) PPPoE</p></TableCell>
                           <TableCell className="font-mono text-xs">{row.document || "—"}</TableCell>
-                          <TableCell>{row.plan || "—"}</TableCell>
-                          <TableCell><p className="font-mono text-xs">{row.pppoeUsername || "—"}</p><p className="text-xs text-slate-500">{row.matchedPppoe ? "Encontrado em snapshot" : "Sem correspondência persistida"}</p></TableCell>
+                          <TableCell>{row.accesses.map((access) => <p key={`${row.rowNumber}-${access.username}`} className="text-xs">{access.planName || "—"}</p>)}</TableCell>
+                          <TableCell>{row.accesses.map((access) => <div key={access.username} className="mb-1 last:mb-0"><p className="font-mono text-xs">{access.username || "—"}</p><p className="text-xs text-slate-500">{access.matchedPppoe ? "Encontrado em snapshot" : "Sem correspondência persistida"}</p></div>)}</TableCell>
                           <TableCell>{statusBadge(row.status)}{row.errors[0] ? <p className="mt-1 max-w-52 text-xs text-rose-700">{row.errors[0].message}</p> : null}</TableCell>
                         </TableRow>
                       ))}
@@ -402,13 +408,14 @@ export default function ImportarClientesPage() {
 
 function Summary({ report }: { report: ImportJob["report"] }) {
   const items = [
-    ["Total", report.totalRows, FileSpreadsheet, "text-slate-700"],
+    ["Clientes únicos", report.totalRows, Users, "text-slate-700"],
+    ["Acessos PPPoE", report.totalAccessRows, FileSpreadsheet, "text-sky-700"],
+    ["Multiacesso", report.multiAccessCustomers, ShieldCheck, "text-violet-700"],
     ["Válidos", report.validRows, CheckCircle2, "text-emerald-700"],
-    ["Duplicados", report.duplicateRows, Users, "text-amber-700"],
+    ["Duplicidades críticas", report.criticalDuplicateRows, AlertTriangle, "text-amber-700"],
     ["Inválidos", report.invalidRows, AlertTriangle, "text-rose-700"],
-    ["PPPoE localizado", report.matchedPppoeRows, ShieldCheck, "text-sky-700"],
   ] as const;
-  return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">{items.map(([label, value, Icon, color]) => <Card key={label}><CardContent className="flex items-center gap-3 p-4"><Icon className={`h-5 w-5 ${color}`} /><div><p className="text-xs text-slate-500">{label}</p><p className="text-xl font-semibold tabular-nums">{value}</p></div></CardContent></Card>)}</div>;
+  return <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">{items.map(([label, value, Icon, color]) => <Card key={label}><CardContent className="flex items-center gap-3 p-4"><Icon className={`h-5 w-5 ${color}`} /><div><p className="text-xs text-slate-500">{label}</p><p className="text-xl font-semibold tabular-nums">{value}</p></div></CardContent></Card>)}</div>;
 }
 
 function HistoryPanel({ rows, loading }: { rows: ImportJob[]; loading: boolean }) {
@@ -417,7 +424,7 @@ function HistoryPanel({ rows, loading }: { rows: ImportJob[]; loading: boolean }
       <CardHeader><CardTitle className="flex items-center gap-2"><History className="h-5 w-5" /> Histórico de importações</CardTitle><CardDescription>Previews e confirmações registradas por tenant.</CardDescription></CardHeader>
       <CardContent>
         {loading ? <p className="flex items-center gap-2 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Carregando histórico...</p> : rows.length === 0 ? <p className="text-sm text-slate-500">Nenhuma importação registrada.</p> : (
-          <Table><TableHeader><TableRow><TableHead>Arquivo</TableHead><TableHead>Destino</TableHead><TableHead>Status</TableHead><TableHead>Registros</TableHead><TableHead>Data</TableHead></TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.id}><TableCell><p className="font-medium">{row.originalFilename}</p><p className="text-xs uppercase text-slate-500">{row.source}</p></TableCell><TableCell>{row.target.serverName}<p className="text-xs text-slate-500">{row.target.networkNodeName || "Sem node"}</p></TableCell><TableCell>{row.status === "completed" ? <Badge variant="success">Concluído</Badge> : row.status === "failed" ? <Badge variant="error">Falhou</Badge> : <Badge variant="warning">Preview</Badge>}</TableCell><TableCell>{row.status === "completed" ? `${row.report.importedRows} importados` : `${row.report.validRows} válidos`}</TableCell><TableCell className="text-xs"><Clock3 className="mr-1 inline h-3.5 w-3.5" />{formatDate(row.completedAt || row.createdAt)}</TableCell></TableRow>)}</TableBody></Table>
+          <Table><TableHeader><TableRow><TableHead>Arquivo</TableHead><TableHead>Destino</TableHead><TableHead>Status</TableHead><TableHead>Registros</TableHead><TableHead>Data</TableHead></TableRow></TableHeader><TableBody>{rows.map((row) => <TableRow key={row.id}><TableCell><p className="font-medium">{row.originalFilename}</p><p className="text-xs uppercase text-slate-500">{row.source}</p></TableCell><TableCell>{row.target.serverName}<p className="text-xs text-slate-500">{row.target.networkNodeName || "Sem node"}</p></TableCell><TableCell>{row.status === "completed" ? <Badge variant="success">Concluído</Badge> : row.status === "failed" ? <Badge variant="error">Falhou</Badge> : <Badge variant="warning">Preview</Badge>}</TableCell><TableCell>{row.status === "completed" ? `${row.report.importedRows} clientes / ${row.report.importedAccessRows} acessos` : `${row.report.validRows} válidos`}</TableCell><TableCell className="text-xs"><Clock3 className="mr-1 inline h-3.5 w-3.5" />{formatDate(row.completedAt || row.createdAt)}</TableCell></TableRow>)}</TableBody></Table>
         )}
       </CardContent>
     </Card>
