@@ -27,7 +27,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
   return (
     <header
       className={cn(
-        "sticky top-8 z-30 flex min-h-[3.5rem] shrink-0 flex-wrap items-center gap-3 border-b border-slate-200/90 bg-white/95 px-4 py-2.5 shadow-xp-nav backdrop-blur-sm sm:px-6 lg:px-8",
+        "sticky top-8 z-30 flex min-h-[3.5rem] shrink-0 flex-wrap items-center gap-3 border-b border-dcnet-border/70 bg-dcnet-topbar px-4 py-2.5 shadow-xp-nav backdrop-blur-sm sm:px-6 lg:px-8",
       )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
@@ -51,14 +51,14 @@ export function Topbar({ title, subtitle }: TopbarProps) {
         <label className="relative flex min-w-0 flex-1 basis-full sm:basis-auto sm:max-w-xs">
           <span className="sr-only">Buscar</span>
           <Search
-            className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-dcnet-accent"
             aria-hidden
           />
           <input
             type="search"
             readOnly
             placeholder="Buscar…"
-            className="h-9 w-full rounded-lg border border-slate-200 bg-slate-50/80 pl-8 pr-3 text-sm text-slate-700 shadow-sm placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+            className="h-9 w-full rounded-lg border border-dcnet-border bg-dcnet-soft pl-8 pr-3 text-sm text-slate-700 shadow-sm placeholder:text-dcnet-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-dcnet-accent"
             title="Busca em desenvolvimento"
           />
         </label>
@@ -67,12 +67,12 @@ export function Topbar({ title, subtitle }: TopbarProps) {
           type="button"
           variant="outline"
           size="icon"
-          className="hidden border-slate-200 sm:inline-flex"
+          className="hidden border-dcnet-border sm:inline-flex"
           aria-label="Notificações"
           title="Notificações em breve"
           disabled
         >
-          <Bell className="h-4 w-4 text-slate-600" />
+          <Bell className="h-4 w-4 text-dcnet-accent" />
         </Button>
 
         <Button type="button" variant="outline" size="icon" className="border-slate-200" asChild>

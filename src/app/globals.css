@@ -3,21 +3,26 @@
 @tailwind utilities;
 
 /**
- * XPDCNET — Design system visual (painel operacional)
- * Superfícies: página cinza claro; cards brancos; bordas slate suaves.
+ * DC NET — Design system oficial para o painel interno.
+ * Superfícies claras com acentos verdes e navegação corporativa.
  */
 :root {
-  --background: #f5f6f8;
+  --background: #ecfdf5;
   --foreground: #0f172a;
-  --xp-surface-page: #f5f6f8;
-  --xp-surface-card: #ffffff;
-  --xp-border: #e2e8f0;
-  --xp-border-strong: #cbd5e1;
-  --xp-text-primary: #0f172a;
-  --xp-text-secondary: #475569;
-  --xp-text-muted: #64748b;
-  --xp-accent-nav: #0f172a;
-  --xp-ring: #94a3b8;
+  --surface: #ffffff;
+  --border: #d1fae5;
+  --border-strong: #a7f3d0;
+  --text-primary: #0f172a;
+  --text-secondary: #134e4a;
+  --text-muted: #475569;
+  --accent: #10b981;
+  --accent-dark: #065f46;
+  --accent-soft: #ecfdf5;
+  --ring: #6ee7b7;
+  --nav-background: #071f36;
+  --nav-text: #f8fafc;
+  --nav-border: #0f766e;
+  --topbar-bg: rgba(255, 255, 255, 0.92);
 }
 
 html {
@@ -30,6 +35,20 @@ body {
   font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  .xp-card-surface {
+    @apply rounded-xl border border-dcnet-border bg-white shadow-sm;
+  }
+
+  .xp-section-title {
+    @apply text-base font-semibold tracking-tight text-slate-900;
+  }
+
+  .xp-section-subtitle {
+    @apply text-sm text-slate-600;
+  }
 }
 
 @layer components {

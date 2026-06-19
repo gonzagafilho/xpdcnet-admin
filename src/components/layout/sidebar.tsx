@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useSearchParams, type ReadonlyURLSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -122,7 +123,7 @@ const navGroups: NavGroup[] = [
       { label: "Planos (catálogo)", href: "/planos", hiddenFromMenu: true },
       { label: "Fila de Sincronização", href: "/fila-sync", hiddenFromMenu: true },
       { label: "Configurações", href: "/configuracoes" },
-      { label: "Banner do BolePix", href: "/configuracoes/bolepix" },
+      { label: "BolePix", href: "/configuracoes/bolepix" },
     ],
   },
 ];
@@ -178,7 +179,7 @@ function SidebarFallback() {
   return (
     <aside
       className={cn(
-        "fixed z-50 flex w-[17.5rem] flex-col border-r border-slate-200 bg-white shadow-xp-nav",
+        "fixed z-50 flex w-[17.5rem] flex-col border-r border-dcnet-border bg-dcnet-nav shadow-xp-nav",
         "top-8 h-[calc(100vh-2rem)] -translate-x-full lg:translate-x-0",
       )}
       aria-hidden
@@ -232,8 +233,8 @@ function SidebarInner() {
           href={item.href}
           className={cn(
             "block rounded-r-md py-2.5 pl-4 pr-3 text-[13px] font-medium leading-snug transition-colors",
-            "hover:bg-slate-50 hover:text-slate-950",
-            active ? "font-semibold text-slate-950" : "text-slate-700",
+            "hover:bg-white/5 hover:text-white",
+            active ? "font-semibold text-white" : "text-slate-300",
             bar,
           )}
         >
@@ -259,7 +260,7 @@ function SidebarInner() {
   };
 
   const asideClass = cn(
-    "fixed z-50 flex w-[17.5rem] flex-col border-r border-slate-200 bg-white shadow-xp-nav transition-transform duration-200 ease-out",
+    "fixed z-50 flex w-[17.5rem] flex-col border-r border-dcnet-border bg-dcnet-nav shadow-xp-nav transition-transform duration-200 ease-out",
     "top-8 h-[calc(100vh-2rem)]",
     "lg:translate-x-0",
     mobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
@@ -268,30 +269,30 @@ function SidebarInner() {
   return (
     <>
       <aside className={asideClass} aria-label="Navegação principal">
-        <div className="flex shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-4 py-3.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-400 text-sm font-bold text-slate-900 shadow-sm">
-            X
+        <div className="flex shrink-0 items-center gap-3 border-b border-dcnet-border/80 bg-dcnet-nav px-4 py-3.5">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-dcnet-accent text-white shadow-sm">
+            <Image src="/icons/dcnet-client.svg" alt="DC NET" width={40} height={40} className="h-full w-full rounded-2xl object-cover" />
           </div>
           <div className="min-w-0 leading-tight">
-            <p className="truncate text-sm font-bold tracking-tight text-slate-900">XPDCNET</p>
-            <p className="truncate text-[0.65rem] font-medium uppercase tracking-wide text-slate-500">
+            <p className="truncate text-sm font-bold tracking-tight text-dcnet-nav-text">DC NET</p>
+            <p className="truncate text-[0.65rem] font-medium uppercase tracking-wide text-dcnet-accent/90">
               Operacional
             </p>
           </div>
         </div>
 
         <nav className="flex flex-1 flex-col overflow-y-auto px-2.5 py-4" aria-label="Módulos">
-          <div className="border-b border-slate-100 pb-3">
+          <div className="border-b border-dcnet-border/30 pb-3">
             <Link
               href="/dashboard"
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold tracking-tight transition-colors",
                 dashboardActive
-                  ? "border-l-[3px] border-slate-900 bg-slate-100/90 text-slate-950 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.06)]"
-                  : "border-l-[3px] border-transparent text-slate-800 hover:bg-slate-50 hover:text-slate-950",
+                  ? "border-l-[3px] border-dcnet-accent bg-white/10 text-dcnet-accent shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)]"
+                  : "border-l-[3px] border-transparent text-dcnet-nav-text hover:bg-white/5 hover:text-white",
               )}
             >
-              <LayoutDashboard className="h-4 w-4 shrink-0 text-slate-600" aria-hidden />
+              <LayoutDashboard className="h-4 w-4 shrink-0 text-dcnet-accent" aria-hidden />
               Dashboard
             </Link>
           </div>
@@ -312,17 +313,17 @@ function SidebarInner() {
                   onClick={() => toggleGroup(group.id)}
                   className={cn(
                     "flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors",
-                    "text-slate-600 hover:bg-slate-50 hover:text-slate-900",
-                    groupHasActive && "text-slate-900",
+                    "text-dcnet-nav-text hover:bg-white/5 hover:text-white",
+                    groupHasActive && "text-white",
                   )}
                   aria-expanded={expanded}
                 >
                   <span className="flex min-w-0 items-center gap-2.5">
-                    <Icon className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+                    <Icon className="h-4 w-4 shrink-0 text-dcnet-accent" aria-hidden />
                     <span className="truncate">{group.label}</span>
                   </span>
                   <ChevronDown
-                    className={cn("h-4 w-4 shrink-0 text-slate-500 transition-transform", expanded && "rotate-180")}
+                    className={cn("h-4 w-4 shrink-0 text-dcnet-accent transition-transform", expanded && "rotate-180")}
                     aria-hidden
                   />
                 </button>

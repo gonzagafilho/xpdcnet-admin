@@ -1,16 +1,20 @@
+import Image from "next/image";
 import { Suspense } from "react";
 import { LoginForm } from "./login-form";
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-100 px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-dcnet-soft px-4">
       <div className="mb-8 text-center">
-        <p className="text-lg font-semibold tracking-tight text-zinc-900">DCNET</p>
-        <p className="text-sm text-zinc-500">Painel operacional interno</p>
+        <div className="mx-auto mb-4 h-20 w-20 rounded-3xl bg-white/90 p-3 shadow-md">
+          <Image src="/icons/dcnet-client.svg" alt="DC NET" width={72} height={72} className="h-full w-full object-contain" />
+        </div>
+        <p className="text-lg font-semibold tracking-tight text-dcnet-900">DCNET</p>
+        <p className="text-sm text-dcnet-secondary">Painel operacional interno</p>
       </div>
       <Suspense
         fallback={
-          <div className="h-64 w-full max-w-md animate-pulse rounded-lg border border-zinc-200 bg-white" />
+          <div className="h-64 w-full max-w-md animate-pulse rounded-lg border border-dcnet-border bg-white" />
         }
       >
         <LoginForm />

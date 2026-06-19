@@ -10,7 +10,7 @@ export function Label({
   return (
     <label
       htmlFor={htmlFor}
-      className={cn("text-sm font-medium leading-none text-slate-700", className)}
+      className={cn("text-sm font-medium leading-none text-dcnet-900", className)}
       {...props}
     >
       {children}

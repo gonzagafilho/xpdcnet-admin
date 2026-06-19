@@ -60,7 +60,7 @@ export function LoginForm() {
   }
 
   return (
-    <Card className="w-full max-w-md border-zinc-200 shadow-sm">
+    <Card className="w-full max-w-md border-dcnet-border bg-white shadow-lg">
       <CardHeader>
         <CardTitle>Entrar</CardTitle>
         <CardDescription>Use suas credenciais corporativas.</CardDescription>

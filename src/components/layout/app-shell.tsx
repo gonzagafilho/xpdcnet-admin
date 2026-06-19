@@ -19,7 +19,7 @@ function AppShellInner({ title, subtitle, children }: AppShellProps) {
   const { mobileNavOpen, setMobileNavOpen } = useShell();
 
   return (
-    <div className="min-h-screen bg-[#F5F6F8]">
+    <div className="min-h-screen bg-dcnet-background">
       <div
         className="fixed inset-x-0 top-0 z-[60] h-8 bg-yellow-400 shadow-sm"
         aria-hidden
