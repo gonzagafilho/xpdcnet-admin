@@ -369,35 +369,35 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto w-full max-w-[92rem] space-y-7 pb-10">
       {/* 1. TOPO */}
-      <header className="rounded-xl border border-slate-200/90 bg-white px-5 py-5 shadow-sm ring-1 ring-slate-900/[0.03] sm:px-6 sm:py-5">
+      <header className="rounded-xl border border-[rgba(38,215,255,.20)] bg-[#0B1220] px-5 py-5 shadow-sm ring-1 ring-[#26D7FF]/10 sm:px-6 sm:py-5">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0 space-y-2.5">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500">O seu painel</p>
-            <p className="max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-[0.9375rem]">
-              Acompanhe o dinheiro e os clientes num só sítio. O período que escolher abaixo vale para os gráficos e
-              números do meio do ecrã.
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#CFE4FF]">Painel Principal DC NET</p>
+            <p className="max-w-2xl text-sm leading-relaxed text-[#EAF3FF] sm:text-[0.9375rem]">
+              Visão geral da sua operação em tempo real. O período que escolher abaixo vale para os gráficos e
+              números do meio da tela.
             </p>
-            <p className="text-sm text-slate-700">
-              <span className="font-medium text-slate-900">Período analisado:</span>{" "}
-              <span className="rounded-md border border-slate-200/80 bg-slate-50 px-2 py-0.5 font-mono text-sm text-slate-800 tabular-nums">
+            <p className="text-sm text-[#CFE4FF]">
+              <span className="font-medium text-[#EAF3FF]">Mês de referência:</span>{" "}
+              <span className="rounded-md border border-[rgba(38,215,255,.30)] bg-[rgba(38,215,255,.08)] px-2 py-0.5 font-mono text-sm text-[#CFE4FF] tabular-nums">
                 {debouncedCompetence}
               </span>
-              <span className="ml-2 text-slate-500">· {competencePretty(debouncedCompetence)}</span>
+              <span className="ml-2 text-[rgba(207,228,255,0.6)]">· {competencePretty(debouncedCompetence)}</span>
             </p>
           </div>
           <div className="flex flex-shrink-0 flex-col gap-3 sm:flex-row sm:items-end">
             <div className="space-y-1">
-              <Label htmlFor="dash-comp" className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">
-                Período analisado
+              <Label htmlFor="dash-comp" className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#CFE4FF]">
+                Mês de referência
               </Label>
-              <p className="text-[10px] text-slate-500">Ex.: 2026-04</p>
+              <p className="text-[10px] text-[rgba(207,228,255,0.5)]">Ex.: 2026-04</p>
               <Input
                 id="dash-comp"
                 value={competence}
                 onChange={(e) => setCompetence(e.target.value)}
                 disabled={bootLoading}
                 placeholder="Ex.: 2026-04"
-                className="w-40 font-mono tabular-nums"
+                className="w-40 font-mono tabular-nums border-[rgba(38,215,255,.20)] bg-[rgba(38,215,255,.05)] text-[#CFE4FF] placeholder:text-[rgba(207,228,255,0.3)]"
               />
             </div>
             <div className="flex flex-wrap gap-2">
@@ -432,36 +432,36 @@ export default function DashboardPage() {
       ) : null}
 
       {hasReceivablesPressure ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-200/90 bg-amber-50 px-5 py-3.5 text-sm text-amber-950 shadow-sm ring-1 ring-amber-900/5">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[rgba(255,165,0,.25)] bg-[rgba(255,165,0,.08)] px-5 py-3.5 text-sm text-[#FFD700] shadow-sm ring-1 ring-[#FFA500]/5">
           <p>
-            <span className="font-semibold">Tem cobranças por receber:</span> {openItemsCount} cobranças ·{" "}
+            <span className="font-semibold">Cobranças em aberto:</span> {openItemsCount} cobranças ·{" "}
             {brl(openItemsAmount)}
           </p>
-          <Button type="button" variant="outline" size="sm" className="border-amber-300 bg-white hover:bg-amber-50/80" asChild>
-            <Link href="/financeiro">Ir para o financeiro</Link>
+          <Button type="button" variant="outline" size="sm" className="border-[rgba(38,215,255,.30)] bg-[rgba(38,215,255,.08)] text-[#CFE4FF] hover:bg-[rgba(38,215,255,.12)]" asChild>
+            <Link href="/financeiro">Ir para financeiro</Link>
           </Button>
         </div>
       ) : null}
 
       {/* 2. PRIMEIRA FAIXA — faturamento diário + confirmações hoje */}
       <div className="grid gap-5 lg:grid-cols-5 lg:items-stretch">
-        <section className="flex min-h-[19rem] flex-col rounded-xl border border-slate-200/95 bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.035] md:p-6 lg:col-span-3">
-          <h2 className="text-base font-semibold tracking-tight text-slate-900 sm:text-[1.05rem]">
-            Faturamento por dia — {competencePretty(debouncedCompetence)}
+        <section className="flex min-h-[19rem] flex-col rounded-xl border border-[rgba(38,215,255,.20)] bg-[#0B1220] p-5 shadow-sm ring-1 ring-[#26D7FF]/10 md:p-6 lg:col-span-3">
+          <h2 className="text-base font-semibold tracking-tight text-[#CFE4FF] sm:text-[1.05rem]">
+            Recebimentos do mês — {competencePretty(debouncedCompetence)}
           </h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
-            Quanto entrou por dia, só com valores <span className="font-medium text-slate-800">já pagos</span>, ao longo
+          <p className="mt-1.5 text-sm leading-relaxed text-[#EAF3FF]">
+            Quanto entrou por dia, só com valores <span className="font-medium text-[#CFE4FF]">já recebidos</span>, ao longo
             do mês que escolheu.
           </p>
           <div className="mt-6 flex flex-1 flex-col justify-end">
             {!/^\d{4}-\d{2}$/.test(debouncedCompetence) ? (
-              <p className="text-sm text-amber-800">Indique um mês válido, por exemplo 2026-04.</p>
+              <p className="text-sm text-[#FFB84D]">Indique um mês válido, por exemplo 2026-04.</p>
             ) : invoicesMonthLoading ? (
-              <p className="py-10 text-center text-sm text-slate-500">A carregar os dados do mês…</p>
+              <p className="py-10 text-center text-sm text-[rgba(207,228,255,0.5)]">A carregar dados do mês…</p>
             ) : dailyPaidBuckets.days.length === 0 ? (
-              <p className="py-10 text-center text-sm text-slate-500">Não há registos neste período.</p>
+              <p className="py-10 text-center text-sm text-[rgba(207,228,255,0.5)]">Sem registos neste período.</p>
             ) : (
-              <div className="flex h-52 items-end gap-px rounded-b-md border-b border-slate-200 bg-slate-50/30 px-1 pt-2">
+              <div className="flex h-52 items-end gap-px rounded-b-md border-b border-[rgba(38,215,255,.20)] bg-[rgba(38,215,255,.05)] px-1 pt-2">
                 {dailyPaidBuckets.days.map(({ day, amount }) => {
                   const h = Math.round((amount / dailyPaidBuckets.max) * 100) || 0;
                   return (
@@ -480,7 +480,7 @@ export default function DashboardPage() {
               </div>
             )}
             {dailyPaidBuckets.days.length > 0 ? (
-              <div className="mt-2 flex justify-between text-[0.65rem] text-slate-400">
+              <div className="mt-2 flex justify-between text-[0.65rem] text-[rgba(207,228,255,0.4)]">
                 <span>1</span>
                 <span>Dias</span>
                 <span>{dailyPaidBuckets.days.length}</span>
@@ -489,27 +489,27 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section className="flex min-h-[19rem] flex-col rounded-xl border border-slate-200/95 bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.035] md:p-6 lg:col-span-2">
-          <h2 className="text-base font-semibold tracking-tight text-slate-900 sm:text-[1.05rem]">Pagamentos confirmados hoje</h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
-            Pagamentos registados hoje, no horário do seu computador.
+        <section className="flex min-h-[19rem] flex-col rounded-xl border border-[rgba(38,215,255,.20)] bg-[#0B1220] p-5 shadow-sm ring-1 ring-[#26D7FF]/10 md:p-6 lg:col-span-2">
+          <h2 className="text-base font-semibold tracking-tight text-[#CFE4FF] sm:text-[1.05rem]">Entradas confirmadas hoje</h2>
+          <p className="mt-1.5 text-sm leading-relaxed text-[#EAF3FF]">
+            Entradas registadas hoje, no horário do seu computador.
           </p>
           <div className="mt-auto space-y-3 pt-8">
             {bootLoading ? (
-              <p className="text-sm text-slate-500">A carregar…</p>
+              <p className="text-sm text-[rgba(207,228,255,0.5)]">A carregar…</p>
             ) : paidLoadFailed ? (
-              <p className="text-sm text-amber-900">
-                Não foi possível carregar estes números agora. Atualize a página ou tente mais tarde.
+              <p className="text-sm text-[#FFB84D]">
+                Não foi possível carregar estes números. Atualize a página ou tente mais tarde.
               </p>
             ) : (
               <>
-                <div className="rounded-xl border border-slate-200/80 bg-slate-50/90 px-4 py-3 shadow-sm">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-slate-500">Pagamentos hoje</p>
-                  <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-slate-900">{confirmacoesHoje.count}</p>
+                <div className="rounded-xl border border-[rgba(38,215,255,.20)] bg-[rgba(38,215,255,.08)] px-4 py-3 shadow-sm">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#CFE4FF]">Pagamentos recebidos</p>
+                  <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-[#26D7FF]">{confirmacoesHoje.count}</p>
                 </div>
-                <div className="rounded-xl border border-emerald-200/70 bg-emerald-50/60 px-4 py-3 shadow-sm">
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-emerald-800/90">Total recebido hoje</p>
-                  <p className="mt-1 text-xl font-bold tabular-nums tracking-tight text-emerald-800">{brl(confirmacoesHoje.sum)}</p>
+                <div className="rounded-xl border border-[rgba(6,182,212,.25)] bg-[rgba(6,182,212,.08)] px-4 py-3 shadow-sm">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[#22D3EE]">Recebido hoje</p>
+                  <p className="mt-1 text-xl font-bold tabular-nums tracking-tight text-[#06B6D4]">{brl(confirmacoesHoje.sum)}</p>
                 </div>
               </>
             )}
@@ -519,16 +519,16 @@ export default function DashboardPage() {
 
       {/* 3. SEGUNDA FAIXA — balanço doughnut + contratos */}
       <div className="grid gap-5 lg:grid-cols-5 lg:items-stretch">
-        <section className="flex min-h-[21rem] flex-col rounded-xl border border-slate-200/95 bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.035] md:p-6 lg:col-span-3">
-          <h2 className="text-base font-semibold tracking-tight text-slate-900 sm:text-[1.05rem]">
+        <section className="flex min-h-[21rem] flex-col rounded-xl border border-[rgba(38,215,255,.20)] bg-[#0B1220] p-5 shadow-sm ring-1 ring-[#26D7FF]/10 md:p-6 lg:col-span-3">
+          <h2 className="text-base font-semibold tracking-tight text-[#CFE4FF] sm:text-[1.05rem]">
             Resumo do mês — {competencePretty(debouncedCompetence)}
           </h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
-            Como os valores estão repartidos entre pagos, em aberto e cancelados neste mês.
+          <p className="mt-1.5 text-sm leading-relaxed text-[#EAF3FF]">
+            Como os recebimentos estão distribuídos entre pagos, em aberto e cancelados neste mês.
           </p>
           <div className="mt-8 flex flex-1 items-center justify-center">
             {!/^\d{4}-\d{2}$/.test(debouncedCompetence) ? (
-              <p className="text-sm text-amber-800">Período inválido. Use o formato ano-mês, por exemplo 2026-04.</p>
+              <p className="text-sm text-[#FFB84D]">Período inválido. Use o formato ano-mês, por exemplo 2026-04.</p>
             ) : (
               <DonutBalanço
                 pending={donutAmounts.pending}
@@ -541,50 +541,50 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section className="flex min-h-[21rem] flex-col rounded-xl border border-slate-200/95 bg-white p-5 shadow-sm ring-1 ring-slate-900/[0.035] md:p-6 lg:col-span-2">
-          <h2 className="text-base font-semibold tracking-tight text-slate-900 sm:text-[1.05rem]">Clientes por situação</h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
-            Números de <span className="font-medium text-slate-800">{todayLabelPt()}</span>. Contam o estado de cada
-            cliente tal como está no registo hoje.
+        <section className="flex min-h-[21rem] flex-col rounded-xl border border-[rgba(38,215,255,.20)] bg-[#0B1220] p-5 shadow-sm ring-1 ring-[#26D7FF]/10 md:p-6 lg:col-span-2">
+          <h2 className="text-base font-semibold tracking-tight text-[#CFE4FF] sm:text-[1.05rem]">Situação dos clientes</h2>
+          <p className="mt-1.5 text-sm leading-relaxed text-[#EAF3FF]">
+            Números de <span className="font-medium text-[#CFE4FF]">{todayLabelPt()}</span>. Contam o estado de cada
+            cliente tal como está registado hoje.
           </p>
-          <p className="mt-2 rounded-lg border border-slate-100 bg-slate-50/60 px-3 py-2 text-[11px] leading-relaxed text-slate-500">
+          <p className="mt-2 rounded-lg border border-[rgba(38,215,255,.15)] bg-[rgba(38,215,255,.05)] px-3 py-2 text-[11px] leading-relaxed text-[rgba(207,228,255,0.6)]">
             Suspenso: pausa por decisão interna. Inadimplente: há dívida em atraso. Bloqueado: corte ou bloqueio explícito.
             Cancelado ou desativado: contrato fora da operação do dia a dia.
           </p>
           <ul className="mt-6 space-y-0 text-sm">
-            <li className="flex items-baseline justify-between border-b border-slate-100 py-3.5">
-              <span className="text-slate-600">Clientes ativos</span>
-              <span className="text-xl font-bold tabular-nums tracking-tight text-slate-900 sm:text-2xl">
+            <li className="flex items-baseline justify-between border-b border-[rgba(38,215,255,.15)] py-3.5">
+              <span className="text-[#EAF3FF]">Clientes ativos</span>
+              <span className="text-xl font-bold tabular-nums tracking-tight text-[#26D7FF] sm:text-2xl">
                 {bootLoading ? "—" : activeClients}
               </span>
             </li>
-            <li className="flex items-baseline justify-between border-b border-slate-100 py-3.5">
-              <span className="text-slate-600">Suspensos</span>
-              <span className="text-lg font-bold tabular-nums tracking-tight text-amber-800 sm:text-xl">
+            <li className="flex items-baseline justify-between border-b border-[rgba(38,215,255,.15)] py-3.5">
+              <span className="text-[#EAF3FF]">Suspensos</span>
+              <span className="text-lg font-bold tabular-nums tracking-tight text-[#FFB84D] sm:text-xl">
                 {bootLoading ? "—" : suspendedClients}
               </span>
             </li>
-            <li className="flex items-baseline justify-between border-b border-slate-100 py-3.5">
-              <span className="text-slate-600">Cancelados</span>
-              <span className="text-lg font-bold tabular-nums tracking-tight text-slate-700 sm:text-xl">
+            <li className="flex items-baseline justify-between border-b border-[rgba(38,215,255,.15)] py-3.5">
+              <span className="text-[#EAF3FF]">Cancelados</span>
+              <span className="text-lg font-bold tabular-nums tracking-tight text-[rgba(207,228,255,0.7)] sm:text-xl">
                 {bootLoading ? "—" : cancelledClients}
               </span>
             </li>
-            <li className="flex items-baseline justify-between border-b border-slate-100 py-3.5">
-              <span className="text-slate-600">Outras situações</span>
-              <span className="text-lg font-bold tabular-nums tracking-tight text-slate-800 sm:text-xl">
+            <li className="flex items-baseline justify-between border-b border-[rgba(38,215,255,.15)] py-3.5">
+              <span className="text-[#EAF3FF]">Outras situações</span>
+              <span className="text-lg font-bold tabular-nums tracking-tight text-[#CFE4FF] sm:text-xl">
                 {bootLoading ? "—" : otherStatusClients}
               </span>
             </li>
             <li className="flex items-baseline justify-between pt-1">
-              <span className="font-medium text-slate-700">Total de clientes</span>
-              <span className="text-lg font-bold tabular-nums tracking-tight text-slate-900 sm:text-xl">
+              <span className="font-medium text-[#26D7FF]">Total de clientes</span>
+              <span className="text-lg font-bold tabular-nums tracking-tight text-[#CFE4FF] sm:text-xl">
                 {bootLoading ? "—" : totalClients}
               </span>
             </li>
           </ul>
           <div className="mt-auto pt-6">
-            <Button type="button" variant="outline" size="sm" className="w-full sm:w-auto" asChild>
+            <Button type="button" variant="outline" size="sm" className="w-full border-[rgba(38,215,255,.30)] text-[#CFE4FF] hover:bg-[rgba(38,215,255,.08)] sm:w-auto" asChild>
               <Link href="/clientes">Ver todos os clientes</Link>
             </Button>
           </div>
@@ -593,27 +593,27 @@ export default function DashboardPage() {
 
       {/* 4. FAIXA INFERIOR — placeholders honestos */}
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-slate-200/95 bg-white px-5 py-5 shadow-sm ring-1 ring-slate-900/[0.03]">
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">Aniversariantes</h3>
-          <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
+        <div className="rounded-xl border border-[rgba(38,215,255,.15)] bg-[rgba(38,215,255,.05)] px-5 py-5 shadow-sm ring-1 ring-[#26D7FF]/5">
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#CFE4FF]">Aniversariantes</h3>
+          <p className="mt-2.5 text-sm leading-relaxed text-[#EAF3FF]">
             Em breve: aniversários dos clientes, quando o cadastro passar a incluir data de nascimento.
           </p>
         </div>
-        <div className="rounded-xl border border-slate-200/95 bg-white px-5 py-5 shadow-sm ring-1 ring-slate-900/[0.03]">
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+        <div className="rounded-xl border border-[rgba(38,215,255,.15)] bg-[rgba(38,215,255,.05)] px-5 py-5 shadow-sm ring-1 ring-[#26D7FF]/5">
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#CFE4FF]">
             Ativações — {debouncedCompetence}
           </h3>
-          <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
-            Em breve: quantas novas activações houve no mês, assim que o histórico estiver disponível para mostrar com
+          <p className="mt-2.5 text-sm leading-relaxed text-[#EAF3FF]">
+            Em breve: quantas novas ativações houve no mês, assim que o histórico estiver disponível para mostrar com
             segurança.
           </p>
         </div>
-        <div className="rounded-xl border border-slate-200/95 bg-white px-5 py-5 shadow-sm ring-1 ring-slate-900/[0.03]">
-          <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+        <div className="rounded-xl border border-[rgba(38,215,255,.15)] bg-[rgba(38,215,255,.05)] px-5 py-5 shadow-sm ring-1 ring-[#26D7FF]/5">
+          <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#CFE4FF]">
             Desativações — {debouncedCompetence}
           </h3>
-          <p className="mt-2.5 text-sm leading-relaxed text-slate-600">
-            Em breve: quantos contratos deixaram de estar activos no mês, com histórico claro por período.
+          <p className="mt-2.5 text-sm leading-relaxed text-[#EAF3FF]">
+            Em breve: quantos contratos deixaram de estar ativos no mês, com histórico claro por período.
           </p>
         </div>
       </div>
@@ -621,82 +621,82 @@ export default function DashboardPage() {
       {/* 5. CARDS FINANCEIROS — faixa horizontal */}
       <section className="space-y-2.5">
         <div className="px-0.5">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Panorama geral do financeiro</h2>
-          <p className="mt-0.5 text-xs leading-relaxed text-slate-500">Soma de todo o histórico; não depende do mês escolhido acima.</p>
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#CFE4FF]">Panorama geral do financeiro</h2>
+          <p className="mt-0.5 text-xs leading-relaxed text-[rgba(207,228,255,0.5)]">Soma de todo o histórico; não depende do mês escolhido acima.</p>
         </div>
         <div className="grid auto-rows-fr gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="relative flex min-h-[4.65rem] items-center gap-2 overflow-hidden rounded-xl border border-blue-500/25 bg-blue-600 px-4 py-2 shadow-sm ring-1 ring-white/10">
+          <div className="relative flex min-h-[4.65rem] items-center gap-2 overflow-hidden rounded-xl border border-[rgba(59,130,246,.35)] bg-gradient-to-br from-[#1e40af] to-[#1e3a8a] px-4 py-2 shadow-sm ring-1 ring-[#60A5FA]/20">
             <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center gap-1">
               <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-white/70">Por receber</span>
-                <span className="rounded-full bg-white/10 px-1 py-0 text-[8px] font-semibold tabular-nums leading-none text-white/95 ring-1 ring-white/12">
+                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#BAE6FD]">Por receber</span>
+                <span className="rounded-full bg-[#0369A1]/40 px-1 py-0 text-[8px] font-semibold tabular-nums leading-none text-[#E0F2FE] ring-1 ring-[#06B6D4]/30">
                   {bootLoading || !summaryGlobal ? "—" : pendingCount}
                 </span>
               </div>
-              <p className="text-[1.4rem] font-bold leading-[1.05] tracking-tight text-white tabular-nums sm:text-[1.5rem]">
+              <p className="text-[1.4rem] font-bold leading-[1.05] tracking-tight text-[#E0F2FE] tabular-nums sm:text-[1.5rem]">
                 {bootLoading || !summaryGlobal ? "—" : brl(pendingAmount)}
               </p>
             </div>
             <div className="relative z-10 flex shrink-0 items-center pl-0.5" aria-hidden>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] ring-1 ring-white/30">
-                <Wallet className="h-3.5 w-3.5 text-white/95" strokeWidth={2} />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0369A1]/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-[#06B6D4]/40">
+                <Wallet className="h-3.5 w-3.5 text-[#BAE6FD]" strokeWidth={2} />
               </div>
             </div>
           </div>
 
-          <div className="relative flex min-h-[4.65rem] items-center gap-2 overflow-hidden rounded-xl border border-red-500/25 bg-red-600 px-4 py-2 shadow-sm ring-1 ring-white/10">
+          <div className="relative flex min-h-[4.65rem] items-center gap-2 overflow-hidden rounded-xl border border-[rgba(239,68,68,.35)] bg-gradient-to-br from-[#991B1B] to-[#7F1D1D] px-4 py-2 shadow-sm ring-1 ring-[#FCA5A5]/20">
             <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center gap-1">
               <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-white/70">Em atraso</span>
-                <span className="rounded-full bg-white/10 px-1 py-0 text-[8px] font-semibold tabular-nums leading-none text-white/95 ring-1 ring-white/12">
+                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#FECACA]">Em atraso</span>
+                <span className="rounded-full bg-[#7F1D1D]/40 px-1 py-0 text-[8px] font-semibold tabular-nums leading-none text-[#FEE2E2] ring-1 ring-[#EF4444]/30">
                   {bootLoading || !summaryGlobal ? "—" : overdueCount}
                 </span>
               </div>
-              <p className="text-[1.4rem] font-bold leading-[1.05] tracking-tight text-white tabular-nums sm:text-[1.5rem]">
+              <p className="text-[1.4rem] font-bold leading-[1.05] tracking-tight text-[#FECACA] tabular-nums sm:text-[1.5rem]">
                 {bootLoading || !summaryGlobal ? "—" : brl(overdueAmount)}
               </p>
             </div>
             <div className="relative z-10 flex shrink-0 items-center pl-0.5" aria-hidden>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] ring-1 ring-white/30">
-                <AlertCircle className="h-3.5 w-3.5 text-white/95" strokeWidth={2} />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#7F1D1D]/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-[#EF4444]/40">
+                <AlertCircle className="h-3.5 w-3.5 text-[#FECACA]" strokeWidth={2} />
               </div>
             </div>
           </div>
 
-          <div className="relative flex min-h-[4.65rem] items-center gap-2 overflow-hidden rounded-xl border border-emerald-500/25 bg-emerald-600 px-4 py-2 shadow-sm ring-1 ring-white/10">
+          <div className="relative flex min-h-[4.65rem] items-center gap-2 overflow-hidden rounded-xl border border-[rgba(34,197,94,.35)] bg-gradient-to-br from-[#065F46] to-[#0B5345] px-4 py-2 shadow-sm ring-1 ring-[#86EFAC]/20">
             <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center gap-1">
               <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-white/70">Já recebido</span>
-                <span className="rounded-full bg-white/10 px-1 py-0 text-[8px] font-semibold tabular-nums leading-none text-white/95 ring-1 ring-white/12">
+                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#BBFBEE]">Já recebido</span>
+                <span className="rounded-full bg-[#0B5345]/40 px-1 py-0 text-[8px] font-semibold tabular-nums leading-none text-[#CCFBF1] ring-1 ring-[#14B8A6]/30">
                   {bootLoading || !summaryGlobal ? "—" : (summaryGlobal.paid?.count ?? 0)}
                 </span>
               </div>
-              <p className="text-[1.4rem] font-bold leading-[1.05] tracking-tight text-white tabular-nums sm:text-[1.5rem]">
+              <p className="text-[1.4rem] font-bold leading-[1.05] tracking-tight text-[#BBFBEE] tabular-nums sm:text-[1.5rem]">
                 {bootLoading || !summaryGlobal ? "—" : brl(summaryGlobal.paid?.amount)}
               </p>
             </div>
             <div className="relative z-10 flex shrink-0 items-center pl-0.5" aria-hidden>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] ring-1 ring-white/30">
-                <BadgeCheck className="h-3.5 w-3.5 text-white/95" strokeWidth={2} />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#0B5345]/40 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)] ring-1 ring-[#14B8A6]/40">
+                <BadgeCheck className="h-3.5 w-3.5 text-[#BBFBEE]" strokeWidth={2} />
               </div>
             </div>
           </div>
 
-          <div className="relative flex min-h-[4.65rem] items-center gap-2 overflow-hidden rounded-xl border border-slate-200/95 bg-white px-4 py-2 shadow-sm ring-1 ring-slate-900/[0.04]">
+          <div className="relative flex min-h-[4.65rem] items-center gap-2 overflow-hidden rounded-xl border border-[rgba(38,215,255,.25)] bg-[rgba(38,215,255,.08)] px-4 py-2 shadow-sm ring-1 ring-[#26D7FF]/10">
             <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center gap-1">
               <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-500">Volume total</span>
-                <span className="rounded-full bg-slate-100 px-1 py-0 text-[8px] font-semibold tabular-nums leading-none text-slate-700 ring-1 ring-slate-200/80">
+                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#CFE4FF]">Volume total</span>
+                <span className="rounded-full bg-[rgba(38,215,255,.15)] px-1 py-0 text-[8px] font-semibold tabular-nums leading-none text-[#CFE4FF] ring-1 ring-[#26D7FF]/30">
                   {bootLoading || !summaryGlobal ? "—" : (summaryGlobal.totalInvoices ?? 0)}
                 </span>
               </div>
-              <p className="text-[1.4rem] font-bold leading-[1.05] tracking-tight text-slate-950 tabular-nums sm:text-[1.5rem]">
+              <p className="text-[1.4rem] font-bold leading-[1.05] tracking-tight text-[#26D7FF] tabular-nums sm:text-[1.5rem]">
                 {bootLoading || !summaryGlobal ? "—" : brl(summaryGlobal.totalAmount)}
               </p>
             </div>
             <div className="relative z-10 flex shrink-0 items-center pl-0.5" aria-hidden>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 ring-1 ring-slate-200/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-                <PieChart className="h-3.5 w-3.5 text-slate-600" strokeWidth={2} />
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[rgba(38,215,255,.15)] ring-1 ring-[#26D7FF]/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                <PieChart className="h-3.5 w-3.5 text-[#CFE4FF]" strokeWidth={2} />
               </div>
             </div>
           </div>
@@ -704,65 +704,65 @@ export default function DashboardPage() {
       </section>
 
       {/* Sistema + planos — linha compacta */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-slate-200/95 bg-white px-5 py-3.5 text-sm text-slate-700 shadow-sm ring-1 ring-slate-900/[0.03]">
-        <span className="flex items-center gap-2 font-medium text-slate-800">
-          <Activity className="h-4 w-4 text-slate-500" />
-          Situação do painel
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-[rgba(38,215,255,.20)] bg-[#0B1220] px-5 py-3.5 text-sm text-[#EAF3FF] shadow-sm ring-1 ring-[#26D7FF]/10">
+        <span className="flex items-center gap-2 font-medium text-[#CFE4FF]">
+          <Activity className="h-4 w-4 text-[#26D7FF]" />
+          Situação do Painel DC NET
         </span>
         {bootLoading ? (
-          <span className="text-slate-500">…</span>
+          <span className="text-[rgba(207,228,255,0.5)]">…</span>
         ) : sysOk ? (
           <Badge variant="success">Tudo a funcionar</Badge>
         ) : (
           <Badge variant="warning">Com limitações</Badge>
         )}
-        <span className="text-slate-600">
+        <span className="text-[rgba(207,228,255,0.7)]">
           {health?.systemMode ?? "—"}
           {" · "}
           {health?.database === "connected"
             ? "Sistema conectado"
             : `Ligação: ${health?.database ?? "—"}`}
         </span>
-        <span className="hidden h-4 w-px bg-slate-200 sm:inline-block" />
-        <span className="flex items-center gap-1 text-slate-600">
-          <Wallet className="h-4 w-4 text-slate-400" />
+        <span className="hidden h-4 w-px bg-[rgba(38,215,255,.20)] sm:inline-block" />
+        <span className="flex items-center gap-1 text-[rgba(207,228,255,0.7)]">
+          <Wallet className="h-4 w-4 text-[#CFE4FF]" />
           Planos em uso: {bootLoading ? "—" : plans.filter((p) => p.isActive !== false).length} / {bootLoading ? "—" : plans.length}
         </span>
-        <span className="flex items-center gap-1 text-slate-600">
-          <Users className="h-4 w-4 text-slate-400" />
-          <Link href="/planos" className="font-medium text-emerald-800 underline-offset-2 hover:underline">
+        <span className="flex items-center gap-1 text-[rgba(207,228,255,0.7)]">
+          <Users className="h-4 w-4 text-[#CFE4FF]" />
+          <Link href="/planos" className="font-medium text-[#26D7FF] underline-offset-2 hover:underline">
             Ver planos
           </Link>
         </span>
       </div>
 
       {/* Tabela resumo de clientes */}
-      <div className="overflow-hidden rounded-xl border border-slate-200/95 bg-white shadow-sm ring-1 ring-slate-900/[0.03]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/90 bg-slate-50/70 px-5 py-3.5">
+      <div className="overflow-hidden rounded-xl border border-[rgba(38,215,255,.20)] bg-[#0B1220] shadow-sm ring-1 ring-[#26D7FF]/10">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[rgba(38,215,255,.20)] bg-[rgba(38,215,255,.05)] px-5 py-3.5">
           <div>
-            <h3 className="text-sm font-semibold tracking-tight text-slate-900">Resumo dos clientes</h3>
-            <p className="mt-0.5 text-[11px] text-slate-500">Até {TABLE_PREVIEW} linhas · ajuste a pesquisa ao lado</p>
+            <h3 className="text-sm font-semibold tracking-tight text-[#CFE4FF]">Resumo dos clientes</h3>
+            <p className="mt-0.5 text-[11px] text-[rgba(207,228,255,0.5)]">Até {TABLE_PREVIEW} linhas · ajuste a pesquisa ao lado</p>
           </div>
           <div className="flex min-w-[12rem] flex-1 flex-col gap-1 sm:max-w-xs">
             <Label htmlFor="dash-client-filter" className="sr-only">
               Pesquisar clientes
             </Label>
             <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#CFE4FF]" />
               <Input
                 id="dash-client-filter"
                 placeholder="Nome, documento, telefone, e-mail…"
                 value={clientFilter}
                 onChange={(e) => setClientFilter(e.target.value)}
                 disabled={bootLoading}
-                className="border-slate-200 bg-white pl-9"
+                className="border-[rgba(38,215,255,.20)] bg-[rgba(38,215,255,.05)] text-[#CFE4FF] placeholder:text-[rgba(207,228,255,0.3)] pl-9"
               />
             </div>
           </div>
           <Button
             type="button"
             size="sm"
-            className="border-0 bg-emerald-600 font-semibold text-white hover:bg-emerald-700"
+            className="border-0 bg-[#26D7FF] font-semibold text-[#020617] hover:bg-[#CFE4FF]"
             asChild
           >
             <Link href="/clientes">Ver todos</Link>
@@ -771,7 +771,7 @@ export default function DashboardPage() {
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/90 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-600">
+              <tr className="border-b border-[rgba(38,215,255,.15)] bg-[rgba(38,215,255,.05)] text-[10px] font-semibold uppercase tracking-[0.08em] text-[#CFE4FF]">
                 <th className="px-5 py-3">Cliente</th>
                 <th className="px-5 py-3">Documento</th>
                 <th className="px-5 py-3">Estado</th>
@@ -782,13 +782,13 @@ export default function DashboardPage() {
             <tbody>
               {bootLoading ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-500">
+                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-[rgba(207,228,255,0.5)]">
                     A carregar a lista…
                   </td>
                 </tr>
               ) : tableRows.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-slate-500">
+                  <td colSpan={5} className="px-5 py-10 text-center text-sm text-[rgba(207,228,255,0.5)]">
                     {clients.length === 0
                       ? "Ainda não há clientes para mostrar."
                       : "Nenhum cliente corresponde à pesquisa."}
@@ -796,17 +796,17 @@ export default function DashboardPage() {
                 </tr>
               ) : (
                 tableRows.map((c) => (
-                  <tr key={c._id} className="border-b border-slate-100 transition-colors hover:bg-slate-50/80">
-                    <td className="px-5 py-3 font-medium text-slate-900">{c.fullName}</td>
-                    <td className="px-5 py-3 tabular-nums text-slate-600">{c.document ?? "—"}</td>
+                  <tr key={c._id} className="border-b border-[rgba(38,215,255,.10)] transition-colors hover:bg-[rgba(38,215,255,.08)]">
+                    <td className="px-5 py-3 font-medium text-[#CFE4FF]">{c.fullName}</td>
+                    <td className="px-5 py-3 tabular-nums text-[rgba(207,228,255,0.6)]">{c.document ?? "—"}</td>
                     <td className="px-5 py-3">
                       <Badge variant={clientStatusBadgeVariant(c.status)}>{clientStatusLabelPt(c.status)}</Badge>
                     </td>
-                    <td className="max-w-[12rem] truncate px-5 py-3 text-slate-700">{planLabel(c.planId)}</td>
+                    <td className="max-w-[12rem] truncate px-5 py-3 text-[#EAF3FF]">{planLabel(c.planId)}</td>
                     <td className="px-5 py-3 text-right">
                       <Link
                         href="/clientes"
-                        className="text-xs font-semibold text-emerald-700 underline-offset-2 hover:underline"
+                        className="text-xs font-semibold text-[#26D7FF] underline-offset-2 hover:underline"
                       >
                         Ficha
                       </Link>
