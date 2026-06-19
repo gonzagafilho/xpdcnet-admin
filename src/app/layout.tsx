@@ -29,6 +29,7 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  themeColor: [{ media: "(prefers-color-scheme: light)", color: "#0f8cff" }],
   icons: {
     icon: [
       { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },

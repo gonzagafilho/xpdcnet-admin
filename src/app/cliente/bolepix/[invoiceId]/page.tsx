@@ -14,6 +14,7 @@ import {
   Wifi,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/BrandLogo";
 import { CustomerApiError, customerApiFetch, getCustomerToken } from "@/lib/customer-app-api";
 import { resolveApiAssetUrl } from "@/lib/api-assets";
 
@@ -260,7 +261,7 @@ export default function BolepixPage() {
         <header className="bolepix-brand-bar flex min-h-14 items-center justify-between gap-3 bg-[linear-gradient(105deg,#061b34_0%,#063b4a_60%,#087f75_100%)] px-3 py-2 text-white sm:px-4">
           <div className="flex min-w-0 items-center gap-2.5">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded border border-white/30 bg-white p-0.5">
-              <Image src="/icons/dcnet-client.svg" alt="DC NET" width={36} height={36} priority className="h-full w-full rounded-sm" />
+              <BrandLogo width={36} height={36} priority className="h-full w-full rounded-sm" />
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">

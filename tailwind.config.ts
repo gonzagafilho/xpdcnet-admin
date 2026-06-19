@@ -29,6 +29,7 @@ export default {
           surface: "var(--surface)",
           border: "var(--border)",
           "border-strong": "var(--border-strong)",
+          900: "var(--text-primary)",
           text: "var(--text-primary)",
           secondary: "var(--text-secondary)",
           muted: "var(--text-muted)",

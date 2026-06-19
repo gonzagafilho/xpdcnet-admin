@@ -1,13 +1,13 @@
-import Image from "next/image";
 import { Suspense } from "react";
 import { LoginForm } from "./login-form";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default function LoginPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-dcnet-soft px-4">
       <div className="mb-8 text-center">
         <div className="mx-auto mb-4 h-20 w-20 rounded-3xl bg-white/90 p-3 shadow-md">
-          <Image src="/icons/dcnet-client.svg" alt="DC NET" width={72} height={72} className="h-full w-full object-contain" />
+          <BrandLogo width={72} height={72} className="h-full w-full object-contain" />
         </div>
         <p className="text-lg font-semibold tracking-tight text-dcnet-900">DCNET</p>
         <p className="text-sm text-dcnet-secondary">Painel operacional interno</p>

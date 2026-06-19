@@ -4,24 +4,24 @@
 
 /**
  * DC NET — Design system oficial para o painel interno.
- * Superfícies claras com acentos verdes e navegação corporativa.
+ * Superfícies claras com acentos azul/ciano e navegação corporativa.
  */
 :root {
-  --background: #ecfdf5;
+  --background: #eef4ff;
   --foreground: #0f172a;
   --surface: #ffffff;
-  --border: #d1fae5;
-  --border-strong: #a7f3d0;
+  --border: #d8e4ff;
+  --border-strong: #bbd7ff;
   --text-primary: #0f172a;
-  --text-secondary: #134e4a;
-  --text-muted: #475569;
-  --accent: #10b981;
-  --accent-dark: #065f46;
-  --accent-soft: #ecfdf5;
-  --ring: #6ee7b7;
-  --nav-background: #071f36;
-  --nav-text: #f8fafc;
-  --nav-border: #0f766e;
+  --text-secondary: #194278;
+  --text-muted: #5e6e8e;
+  --accent: #0f8cff;
+  --accent-dark: #0b5cb5;
+  --accent-soft: #eaf4ff;
+  --ring: #99c5ff;
+  --nav-background: #061630;
+  --nav-text: #f8fbff;
+  --nav-border: #194278;
   --topbar-bg: rgba(255, 255, 255, 0.92);
 }
 

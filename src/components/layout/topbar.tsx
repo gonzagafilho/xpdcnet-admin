@@ -84,7 +84,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
         <Button
           type="button"
           size="sm"
-          className="border-0 bg-emerald-600 font-semibold text-white hover:bg-emerald-700"
+          className="border-0 bg-dcnet-accent font-semibold text-white hover:bg-dcnet-accent-dark"
           asChild
         >
           <Link href="/clientes">Clientes</Link>
