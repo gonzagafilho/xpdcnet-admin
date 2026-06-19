@@ -39,7 +39,7 @@ const navGroups: NavGroup[] = [
     icon: Users,
     children: [
       { label: "Todos", href: "/clientes" },
-      { label: "Pré Registros", href: null, hint: "Sem rota nesta versão" },
+      { label: "Pré-cadastros", href: null, hint: "Disponível em breve" },
     ],
   },
   {
@@ -48,7 +48,7 @@ const navGroups: NavGroup[] = [
     icon: FileText,
     children: [
       { label: "Contratos", href: "/contratos" },
-      { label: "Layouts de Contratos", href: "/contratos/layouts" },
+      { label: "Modelos de Contratos", href: "/contratos/layouts" },
     ],
   },
   {
@@ -64,8 +64,8 @@ const navGroups: NavGroup[] = [
     children: [
       { label: "Central NOC", href: "/redes/noc" },
       { label: "Equipamentos", href: "/redes/servidores" },
-      { label: "Agentes", href: "/redes/agents" },
-      { label: "Histórico", href: "/redes/logs" },
+      { label: "Unidades Remotas", href: "/redes/agents" },
+      { label: "Histórico da Rede", href: "/redes/logs" },
     ],
   },
   {
@@ -96,8 +96,8 @@ const navGroups: NavGroup[] = [
     icon: Wallet,
     children: [
       { label: "Cobranças", href: "/financeiro" },
-      { label: "Carnês", href: null, hint: "Sem rota nesta versão" },
-      { label: "Contratos sem Cobrança", href: null, hint: "Sem rota nesta versão" },
+      { label: "Carnês", href: null, hint: "Disponível em breve" },
+      { label: "Contratos sem Cobrança", href: null, hint: "Disponível em breve" },
     ],
   },
   {
@@ -121,7 +121,7 @@ const navGroups: NavGroup[] = [
        * Formas de Pagamento, Usuários, Permissões, Chatbot (hiddenFromMenu: false).
        */
       { label: "Planos (catálogo)", href: "/planos", hiddenFromMenu: true },
-      { label: "Fila de Sincronização", href: "/fila-sync", hiddenFromMenu: true },
+      { label: "Atualizações de Rede", href: "/fila-sync", hiddenFromMenu: true },
       { label: "Configurações", href: "/configuracoes" },
       { label: "BolePix", href: "/configuracoes/bolepix" },
     ],

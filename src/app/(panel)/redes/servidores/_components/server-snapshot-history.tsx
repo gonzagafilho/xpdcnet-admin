@@ -34,7 +34,7 @@ export function ServerSnapshotHistory({ rows }: Props) {
       <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-4 py-8 text-center text-sm text-slate-600">
         <History className="mx-auto h-8 w-8 text-slate-300" aria-hidden />
         <p className="mt-2">Ainda não há histórico gravado para este servidor.</p>
-        <p className="mt-1 text-xs text-slate-500">Os snapshots são guardados a cada consulta ao detalhe (máx. 20 por servidor).</p>
+        <p className="mt-1 text-xs text-slate-500">As últimas leituras são guardadas a cada consulta do equipamento (máximo de 20).</p>
       </div>
     );
   }

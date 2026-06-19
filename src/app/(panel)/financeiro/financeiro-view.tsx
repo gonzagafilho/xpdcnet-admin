@@ -497,11 +497,7 @@ export function FinanceiroView() {
           <div className="min-w-0">
             <h2 className="text-base font-bold tracking-tight text-neutral-900">Cobranças e faturação</h2>
             <p className="mt-1 max-w-3xl text-sm text-neutral-600">
-              Listagem com <span className="font-mono text-xs">GET /invoices</span> (query{" "}
-              <span className="font-mono text-xs">status</span>, <span className="font-mono text-xs">clientId</span>,{" "}
-              <span className="font-mono text-xs">competence</span>). Totais por estado:{" "}
-              <span className="font-mono text-xs">GET /invoices/summary</span> com os mesmos filtros. Geração em lote:{" "}
-              <span className="font-mono text-xs">POST /invoices/generate-month</span>.
+              Consulte cobranças, acompanhe os totais por situação e gere o faturamento mensal da carteira ativa.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -577,7 +573,7 @@ export function FinanceiroView() {
               htmlFor="inv-comp-filter"
               className="text-xs font-semibold uppercase tracking-wide text-neutral-500"
             >
-              Competência (YYYY-MM)
+              Mês de referência
             </Label>
             <Input
               id="inv-comp-filter"
@@ -600,7 +596,7 @@ export function FinanceiroView() {
             ) : null}
           </p>
         ) : (
-          <p className="pt-3 text-xs text-neutral-500">Sem filtros restritivos — visão de todas as cobranças devolvidas pela API.</p>
+          <p className="pt-3 text-xs text-neutral-500">Sem filtros restritivos — visão completa das cobranças cadastradas.</p>
         )}
       </div>
 
@@ -614,7 +610,7 @@ export function FinanceiroView() {
         <div className="px-1">
           <h3 className="text-xs font-bold uppercase tracking-wide text-neutral-500">Leitura por estado</h3>
           <p className="mt-1 text-xs text-neutral-500">
-            Valores da API com os filtros atuais. O estado «em atraso» é o registado na cobrança — não há cálculo
+            Valores consolidados conforme os filtros atuais. O estado «em atraso» segue a situação registrada na cobrança — não há cálculo
             automático por data de vencimento neste painel.
           </p>
         </div>
@@ -685,7 +681,7 @@ export function FinanceiroView() {
             </p>
             {summary?.filters.competence ? (
               <p className="mt-2 font-mono text-[0.65rem] text-neutral-500">
-                Competência API: {summary.filters.competence}
+                Mês de referência: {summary.filters.competence}
               </p>
             ) : null}
           </div>
@@ -875,8 +871,7 @@ export function FinanceiroView() {
         >
           <h3 className="text-sm font-bold text-neutral-900">Movimentos recentes</h3>
           <p className="mt-1 text-xs leading-relaxed text-neutral-500">
-            Ordenação por <span className="font-mono text-[0.65rem]">updatedAt</span> ou{" "}
-            <span className="font-mono text-[0.65rem]">createdAt</span> quando a API os envia na lista filtrada.
+            Ordenação pelas datas mais recentes disponíveis em cada cobrança.
           </p>
           {loading ? (
             <p className="mt-6 text-sm text-neutral-500">A carregar…</p>
@@ -885,7 +880,7 @@ export function FinanceiroView() {
           ) : recentMovements.kind === "no_timestamps" ? (
             <p className="mt-4 text-sm leading-relaxed text-neutral-600">
               As cobranças desta consulta não incluem datas de criação ou atualização — não é possível listar
-              «recentes» de forma honesta. Quando o backend as popular, aparecem aqui automaticamente.
+              como recentes. Quando as datas estiverem disponíveis, elas aparecerão aqui automaticamente.
             </p>
           ) : recentMovements.items.length === 0 ? (
             <p className="mt-4 text-sm text-neutral-500">Sem linhas com data na lista atual.</p>
@@ -915,8 +910,8 @@ export function FinanceiroView() {
         title={editing ? "Editar cobrança" : "Nova cobrança"}
         description={
           editing
-            ? "PUT /invoices/:id — campos alinhados ao invoiceService."
-            : "POST /invoices — clientId, planId, amount, dueDate, status e competence (YYYY-MM) obrigatórios no serviço."
+            ? "Atualize os dados e a situação desta cobrança."
+            : "Cadastre a cobrança informando cliente, plano, valor, vencimento, situação e mês de referência."
         }
         className="max-w-xl"
       >
@@ -971,7 +966,7 @@ export function FinanceiroView() {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label htmlFor="if-comp">Competência (YYYY-MM) *</Label>
+              <Label htmlFor="if-comp">Mês de referência *</Label>
               <Input
                 id="if-comp"
                 placeholder="2026-04"
@@ -1037,13 +1032,13 @@ export function FinanceiroView() {
           if (!o) setGenerateError(null);
         }}
         title="Gerar cobranças do mês"
-        description="Cria faturas pendentes para todos os clientes ativos (POST /invoices/generate-month). Valor e vencimento seguem o cadastro. Quem já tem cobrança na competência é ignorado."
+        description="Cria cobranças pendentes para todos os clientes ativos. Valor e vencimento seguem o cadastro; clientes que já possuem cobrança no mês não serão duplicados."
         className="max-w-md"
       >
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="gen-comp" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-              Competência (YYYY-MM)
+              Mês de referência
             </Label>
             <Input
               id="gen-comp"

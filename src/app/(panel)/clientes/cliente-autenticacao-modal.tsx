@@ -71,8 +71,8 @@ export function ClienteAutenticacaoModal({
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Autenticação de rede"
-      description="Credenciais e parâmetros técnicos enviados em access (login/senha/tipo) e, quando não há campo dedicado, sintetizados em notes no guardar do cliente."
+      title="Dados de acesso do cliente"
+      description="Organize as credenciais e informações necessárias para liberar e identificar o acesso do cliente."
       className="max-w-lg"
     >
       <div className="space-y-4">
@@ -87,7 +87,7 @@ export function ClienteAutenticacaoModal({
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Contrato (referência)</Label>
           <Input readOnly value={contractHint} className="border-neutral-200 bg-neutral-50 text-sm" />
-          <p className="text-[0.65rem] text-neutral-500">Sem entidade contrato na API — resumo operacional.</p>
+          <p className="text-[0.65rem] text-neutral-500">Resumo das condições comerciais atuais.</p>
         </div>
         <div className="space-y-1.5">
           <Label className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Planos</Label>
@@ -127,13 +127,13 @@ export function ClienteAutenticacaoModal({
             value={local.server}
             onChange={(e) => setLocal((x) => ({ ...x, server: e.target.value }))}
             className="border-neutral-200"
-            placeholder="RADIUS / concentrador"
+            placeholder="Equipamento ou ponto de acesso"
           />
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="ca-mt" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-              MikroTik (perfil / fila)
+              Perfil de velocidade
             </Label>
             <Input
               id="ca-mt"
@@ -159,7 +159,7 @@ export function ClienteAutenticacaoModal({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="ca-mtcomm" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-            MikroTik (comentário)
+            Observação de rede
           </Label>
           <textarea
             id="ca-mtcomm"
@@ -207,7 +207,7 @@ export function ClienteAutenticacaoModal({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="ca-st" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-            Status (operacional / fluxo)
+            Situação do acesso
           </Label>
           <Select
             id="ca-st"
@@ -220,7 +220,7 @@ export function ClienteAutenticacaoModal({
             <option value="em_configuracao">Em configuração</option>
           </Select>
           <p className="text-[0.65rem] text-neutral-500">
-            Reflete preferência no texto de notes; o estado comercial do cliente continua no campo «Status» da ficha.
+            Esta situação complementa o estado comercial definido na ficha do cliente.
           </p>
         </div>
         <label className="flex cursor-pointer items-center gap-2 text-sm text-neutral-700">
@@ -230,7 +230,7 @@ export function ClienteAutenticacaoModal({
             onChange={(e) => setLocal((x) => ({ ...x, mikrotikLinked: e.target.checked }))}
             className="h-4 w-4 rounded border-neutral-300"
           />
-          Vincular ao MikroTik (registado em notes)
+          Vincular ao equipamento de rede
         </label>
 
         <div className="flex flex-wrap justify-end gap-2 border-t border-neutral-100 pt-4">
@@ -242,7 +242,7 @@ export function ClienteAutenticacaoModal({
             className="border-0 bg-emerald-600 font-semibold text-white hover:bg-emerald-700"
             onClick={handleSave}
           >
-            Guardar autenticação
+            Guardar dados de acesso
           </Button>
         </div>
       </div>

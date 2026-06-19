@@ -188,7 +188,7 @@ export function ClientesView() {
     await handleQuickStatus(
       c,
       "blocked",
-      "Cliente bloqueado no cadastro (PUT /clients/:id). Sem corte técnico nem MikroTik nesta fase.",
+      "Cliente marcado como bloqueado no cadastro. A alteração não interrompe o acesso à rede automaticamente.",
     );
   };
 
@@ -237,11 +237,8 @@ export function ClientesView() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Operação</p>
               <h1 className="mt-0.5 text-lg font-semibold tracking-tight text-slate-900 sm:text-xl">Carteira de clientes</h1>
               <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">
-                Consulta em tempo real via <span className="font-mono text-[0.8rem] text-slate-700">GET /clients</span>
-                {` `}(parâmetros opcionais{` `}
-                <span className="font-mono text-[0.8rem] text-slate-700">search</span>,{` `}
-                <span className="font-mono text-[0.8rem] text-slate-700">status</span>). Criação e edição partilham a mesma
-                ficha; autenticação em modal à parte.{" "}
+                Consulte, pesquise e acompanhe a situação de cada cliente em uma única carteira. Criação e edição
+                utilizam a mesma ficha, com os dados de acesso organizados separadamente.{" "}
                 <span className="text-slate-700">{CLIENT_STATUS_DISTINCTION_SUMMARY}</span>
               </p>
             </div>
@@ -271,7 +268,7 @@ export function ClientesView() {
           </span>
           <span
             className="inline-flex cursor-not-allowed items-center rounded-full border border-transparent bg-slate-50 px-3 py-1 text-xs text-slate-400"
-            title="Sem rota nesta versão — estrutura preparada"
+            title="Disponível em breve"
           >
             Pré-registros <span className="ml-1 font-normal text-slate-400">(em breve)</span>
           </span>
@@ -372,8 +369,8 @@ export function ClientesView() {
             </Select>
           </div>
           <p className="text-xs leading-relaxed text-slate-500 lg:col-span-3 lg:pb-2">
-            Pesquisa e filtro reenviam o pedido à API. Passe o rato sobre cada opção de estado para ver a dica. A
-            paginação abaixo é local ({PAGE_SIZE} linhas por página) sobre o resultado devolvido.
+            Use a pesquisa e o estado para refinar a carteira. Passe o rato sobre cada opção para ver a orientação.
+            São exibidos até {PAGE_SIZE} clientes por página.
           </p>
         </div>
 
@@ -404,7 +401,7 @@ export function ClientesView() {
       {loading ? (
         <div className="rounded-xl border border-slate-200/95 bg-white px-6 py-16 text-center shadow-sm ring-1 ring-slate-900/[0.035]">
           <p className="text-sm font-medium text-slate-700">A carregar clientes…</p>
-          <p className="mt-1.5 text-xs text-slate-500">A aguardar resposta de /clients e /plans</p>
+          <p className="mt-1.5 text-xs text-slate-500">A atualizar a carteira e os planos disponíveis</p>
         </div>
       ) : clients.length === 0 ? (
         <div className="rounded-xl border border-slate-200/95 bg-white px-6 py-10 shadow-sm ring-1 ring-slate-900/[0.035]">
@@ -507,8 +504,8 @@ export function ClientesView() {
                     {c.status === "delinquent" && !overdueByClient.has(c._id) ? (
                       <div className="mt-2 max-w-md rounded-lg border border-slate-200/90 bg-slate-50/90 px-2.5 py-2 text-xs text-slate-800 ring-1 ring-slate-900/[0.03]">
                         <p className="text-[0.65rem] leading-relaxed text-slate-600">
-                          Sem faturas «overdue» na API para este cliente. Ainda pode bloquear o cadastro após decisão
-                          interna (sem automação de rede).
+                          Nenhuma cobrança vencida foi encontrada para este cliente. O bloqueio cadastral continua
+                          disponível após decisão interna, sem interrupção automática da rede.
                         </p>
                         <Button
                           type="button"
@@ -532,7 +529,7 @@ export function ClientesView() {
                         className="gap-1 border-slate-200 bg-white shadow-sm"
                         asChild
                       >
-                        <Link href={`/clientes/timeline/${c._id}`}>Timeline</Link>
+                        <Link href={`/clientes/timeline/${c._id}`}>Histórico</Link>
                       </Button>
                       <Button
                         type="button"
@@ -608,7 +605,7 @@ export function ClientesView() {
             variant: "success",
             message:
               kind === "create"
-                ? "Cliente criado. POST /clients inclui address e geo quando válidos; campos sem modelo na API seguem em notes."
+                ? "Cliente criado com sucesso. Endereço, localização e observações foram guardados na ficha."
                 : "Cliente atualizado.",
           });
           await loadClients();
@@ -623,7 +620,7 @@ export function ClientesView() {
         title="Eliminar cliente"
         description={
           deleteTarget
-            ? `Eliminar «${deleteTarget.fullName}»? Esta ação remove o registo na API (DELETE /clients/:id).`
+            ? `Eliminar «${deleteTarget.fullName}»? Esta ação remove definitivamente o cadastro do cliente.`
             : ""
         }
         confirmLabel="Eliminar"
@@ -637,7 +634,7 @@ export function ClientesView() {
         title="Bloquear cliente"
         description={
           blockConfirmTarget
-            ? `Confirma bloquear «${blockConfirmTarget.fullName}» no cadastro? O estado passará a «Bloqueado» (PUT /clients/:id com status blocked). Não há corte de acesso na rede nem MikroTik nesta fase.`
+            ? `Confirma bloquear «${blockConfirmTarget.fullName}» no cadastro? O cliente ficará com o estado «Bloqueado», sem interrupção automática do acesso à rede.`
             : ""
         }
         confirmLabel="Bloquear"

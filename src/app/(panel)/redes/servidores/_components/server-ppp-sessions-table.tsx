@@ -91,7 +91,7 @@ export function ServerPppSessionsTable({ sessions, total, truncated, online, ser
     const lc = row.linkedClient;
     if (!lc?.clientId || !lc.matchesThisServer) return;
     const ok = window.confirm(
-      `Enfileirar sincronização MikroTik para o cliente «${lc.fullName || lc.clientId}»?\n\nOperação auditada; pode ficar pendente se já existir job aberto.`,
+      `Solicitar atualização de rede para o cliente «${lc.fullName || lc.clientId}»?\n\nA solicitação pode aguardar caso já exista outra atualização em andamento.`,
     );
     if (!ok) return;
     const k = `enq-${row.sessionId || row.name}`;
@@ -112,15 +112,15 @@ export function ServerPppSessionsTable({ sessions, total, truncated, online, ser
         },
       );
       if (res.skipped) {
-        setFeedback(res.message || "Sync não enfileirado.");
+        setFeedback(res.message || "Atualização não solicitada.");
       } else if (res.duplicate) {
-        setFeedback("Já existe job pendente ou em processamento para este cliente.");
+        setFeedback("Já existe uma atualização pendente ou em andamento para este cliente.");
       } else {
-        setFeedback("Job de sync enfileirado.");
+        setFeedback("Atualização de rede solicitada.");
       }
       setTimeout(() => setFeedback(null), 4000);
     } catch (e) {
-      const msg = e instanceof ApiRequestError ? e.message : "Falha ao enfileirar.";
+      const msg = e instanceof ApiRequestError ? e.message : "Falha ao solicitar a atualização.";
       setFeedback(msg);
       setTimeout(() => setFeedback(null), 5000);
     } finally {
@@ -144,7 +144,7 @@ export function ServerPppSessionsTable({ sessions, total, truncated, online, ser
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ reason: "manual_ppp_session_panel" }),
       });
-      setFeedback("Reconciliação solicitada — verifique a fila de sync.");
+      setFeedback("Verificação solicitada — acompanhe a atualização de rede.");
       setTimeout(() => setFeedback(null), 4000);
     } catch (e) {
       const msg = e instanceof ApiRequestError ? e.message : "Falha na reconciliação.";
@@ -277,7 +277,7 @@ export function ServerPppSessionsTable({ sessions, total, truncated, online, ser
                         variant="outline"
                         className="h-8 px-2 text-[11px]"
                         onClick={() => void copySession(row)}
-                        title="Copiar JSON da sessão"
+                        title="Copiar detalhes da conexão"
                       >
                         <ClipboardCopy className="h-3.5 w-3.5" aria-hidden />
                       </Button>
@@ -314,7 +314,7 @@ export function ServerPppSessionsTable({ sessions, total, truncated, online, ser
                             className="h-8 px-2 text-[11px]"
                             disabled={rowBusy}
                             onClick={() => void runEnqueue(row)}
-                            title="Reenfileirar sync"
+                            title="Solicitar nova atualização"
                           >
                             {busyKey === `enq-${row.sessionId || row.name}` ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />

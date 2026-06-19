@@ -170,11 +170,11 @@ function NetworkExecutiveSummary({
 }) {
   if (!summary) return null;
   const items = [
-    { label: "Servidores", value: summary.totalServers, sub: "inventário" },
-    { label: "Online", value: summary.onlineServers, sub: "API RouterOS" },
+    { label: "Equipamentos", value: summary.totalServers, sub: "cadastrados" },
+    { label: "Online", value: summary.onlineServers, sub: "Disponibilidade atual" },
     { label: "Offline", value: summary.offlineServers, sub: "indisponíveis" },
-    { label: "Clientes (cadastro)", value: summary.totalClients, sub: "no MikroTik" },
-    { label: "PPP activas", value: summary.totalPppSessions, sub: "/ppp/active" },
+    { label: "Clientes vinculados", value: summary.totalClients, sub: "na rede" },
+    { label: "Conexões ativas", value: summary.totalPppSessions, sub: "neste momento" },
     { label: "Alertas críticos", value: summary.criticalAlerts, sub: "soma por equipamento" },
     { label: "Alertas aviso", value: summary.warningAlerts, sub: "soma por equipamento" },
   ];
@@ -273,12 +273,12 @@ const CARD_MENU_ACTIONS = [
   "Editar",
   "Localização",
   "Checar conexão",
-  "Script de conexão",
+  "Roteiro de conexão",
   "Reiniciar",
-  "Sincronização",
+  "Atualização da rede",
   "Importação",
   "Exportação",
-  "Sincronizar clientes",
+  "Atualizar acessos dos clientes",
   "Migrar clientes",
 ] as const;
 
@@ -364,7 +364,7 @@ function ServerCard({
       <CardContent className="space-y-4 pt-0">
         <div className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">IP / API</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">Endereço / acesso</p>
             <p className="mt-0.5 font-mono text-sm font-medium text-slate-800">{s.ip}</p>
           </div>
           <div>
@@ -406,11 +406,11 @@ function ServerCard({
         <div className="rounded-lg border border-slate-100 bg-slate-50/90 px-3 py-2 text-[11px] text-slate-600">
           <p className="font-semibold uppercase tracking-[0.06em] text-slate-500">Última comunicação</p>
           <p className="mt-1">
-            <span className="text-slate-500">Consulta API: </span>
+            <span className="text-slate-500">Última verificação: </span>
             <span className="font-medium text-slate-800">{formatPtDate(s.lastPolledAt)}</span>
           </p>
           <p className="mt-0.5">
-            <span className="text-slate-500">Último job sync: </span>
+            <span className="text-slate-500">Última atualização: </span>
             <span className="font-medium text-slate-800">{formatPtDate(s.lastSyncAt)}</span>
             {s.lastJobStatus ? (
               <span className="ml-1.5 rounded bg-white/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-600 ring-1 ring-slate-200/80">
@@ -509,7 +509,7 @@ function ServerCard({
   );
 }
 
-const SCRIPT_MENU_LABEL = "Script de conexão" as const;
+const SCRIPT_MENU_LABEL = "Roteiro de conexão" as const;
 
 function ServerCardActions({
   serverId,
@@ -701,7 +701,7 @@ export default function RedesServidoresPage() {
               </li>
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
-                <span>Integração preparada com MikroTik RouterOS e fila de sincronização de clientes.</span>
+                <span>Estrutura preparada para acompanhar os equipamentos e atualizar os acessos dos clientes.</span>
               </li>
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
@@ -709,11 +709,11 @@ export default function RedesServidoresPage() {
               </li>
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
-                <span>Fluxos seguros para importação, exportação e migração quando a API estiver ligada.</span>
+                <span>Importação, exportação e migração estarão disponíveis em uma próxima etapa.</span>
               </li>
             </ul>
             <p className="rounded-lg border border-slate-100 bg-slate-50/90 px-3 py-2 text-xs leading-relaxed text-slate-500">
-              A grelha ao lado consulta o RouterOS em tempo real por equipamento; falhas isoladas não bloqueiam os
+              A lista ao lado verifica cada equipamento individualmente; uma falha isolada não impede os
               restantes cards.
             </p>
           </CardContent>
@@ -728,7 +728,7 @@ export default function RedesServidoresPage() {
             </div>
             {generatedAt && !loading ? (
               <p className="text-[11px] text-slate-500">
-                Snapshot: {formatPtDate(generatedAt)}
+                Leitura atualizada em: {formatPtDate(generatedAt)}
               </p>
             ) : null}
           </div>
@@ -770,9 +770,9 @@ export default function RedesServidoresPage() {
           ) : !error && rows.length === 0 ? (
             <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-6 py-12 text-center">
               <Server className="mx-auto h-10 w-10 text-slate-300" aria-hidden />
-              <p className="mt-3 text-sm font-semibold text-slate-800">Nenhum servidor MikroTik cadastrado</p>
+              <p className="mt-3 text-sm font-semibold text-slate-800">Nenhum equipamento de rede cadastrado</p>
               <p className="mt-1 text-sm text-slate-600">
-                Cadastre equipamentos em <span className="font-mono text-xs">GET /mikrotik/servers</span> para aparecerem
+                Cadastre equipamentos de rede para que apareçam
                 aqui com estado online/offline.
               </p>
             </div>

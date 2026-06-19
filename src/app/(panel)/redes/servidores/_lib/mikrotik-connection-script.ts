@@ -33,7 +33,7 @@ export type MikrotikDeactivationScriptInput = {
 
 function assertPort(p: number): void {
   if (!Number.isFinite(p) || p < 1 || p > 65535) {
-    throw new Error("Porta API inválida (use 1–65535).");
+    throw new Error("Porta de acesso inválida (use 1–65535).");
   }
 }
 
@@ -46,8 +46,8 @@ export function buildMikrotikActivationScript(input: MikrotikActivationScriptInp
   assertPort(port);
   if (!tag) throw new Error("Indique o comentário / prefixo identificador.");
   if (!allow) throw new Error("Indique o IP permitido do servidor XPDCNET.");
-  if (!user) throw new Error("Indique o utilizador da API.");
-  if (!pass) throw new Error("Indique a senha da API.");
+  if (!user) throw new Error("Indique o usuário de acesso.");
+  if (!pass) throw new Error("Indique a senha de acesso.");
 
   const t = escapeRouterOsDoubleQuotedString(tag);
   const a = escapeRouterOsDoubleQuotedString(allow);
@@ -57,7 +57,7 @@ export function buildMikrotikActivationScript(input: MikrotikActivationScriptInp
 
   return [
     "# ============================================",
-    "# XPDCNET — Ativar monitoramento (API RouterOS)",
+    "# XPDCNET — Ativar monitoramento do equipamento",
     "# Colar no terminal do MikroTik. Não executa automaticamente a partir do painel.",
     `# Equipamento (referência): ${headerRef}`,
     "# ============================================",
@@ -77,7 +77,7 @@ export function buildMikrotikActivationScript(input: MikrotikActivationScriptInp
     `/user group add name=${GROUP_NAME} comment=$TAG policy=local,read,write,api,test`,
     "/user add name=$U password=$P group=" + GROUP_NAME + " comment=$TAG",
     "",
-    "# --- API: porta e restrição de origem ao servidor XPDCNET ---",
+    "# --- porta e restrição de origem ao servidor XPDCNET ---",
     "/ip service set [find name=api] disabled=no port=$PPORT address=$ALLOW",
     "",
     "# --- address-list e regra input (defesa em profundidade) ---",
@@ -109,10 +109,10 @@ export function buildMikrotikDeactivationScript(input: MikrotikDeactivationScrip
   ];
 
   if (input.clearApiServiceAddress) {
-    lines.push("", "# --- opcional: limpar restrição de IP do serviço API ---", '/ip service set [find name=api] address=""');
+    lines.push("", "# --- opcional: limpar restrição de IP do serviço de acesso ---", '/ip service set [find name=api] address=""');
   }
   if (input.disableApiService) {
-    lines.push("", "# --- opcional: desativar o serviço API ---", "/ip service set [find name=api] disabled=yes");
+    lines.push("", "# --- opcional: desativar o serviço de acesso ---", "/ip service set [find name=api] disabled=yes");
   }
 
   lines.push("", "# --- fim ---");

@@ -143,15 +143,15 @@ export function ServerConnectionScriptModal({ open, onOpenChange, seed }: Props)
     <Modal
       open={open}
       onOpenChange={onOpenChange}
-      title="Script de conexão"
-      description="Este script cria acesso seguro para o XPDCNET monitorar este MikroTik pela API, sem alterar clientes ou a configuração operacional do provedor."
+      title="Roteiro de conexão"
+      description="Este roteiro cria um acesso seguro para o XPDCNET acompanhar o equipamento, sem alterar clientes ou a configuração operacional do provedor."
       className="max-w-2xl"
     >
       <div className="mt-4 space-y-4">
         <p className="rounded-lg border border-slate-100 bg-slate-50/90 px-3 py-2 text-sm leading-relaxed text-slate-700">
-          Este script cria um acesso seguro para o XPDCNET ler informações do MikroTik. Ele não altera clientes, não mexe
+          Este roteiro cria um acesso seguro para o XPDCNET ler informações do MikroTik. Ele não altera clientes, não mexe
           no PPPoE, não muda internet, não mexe em bridge, VLAN ou rotas. Ele cria apenas: um utilizador dedicado, um
-          grupo dedicado, uma liberação controlada da API e uma regra de firewall específica.
+          grupo dedicado, uma liberação controlada de acesso e uma regra de segurança específica.
         </p>
 
         {seed?.serverId ? (
@@ -159,7 +159,7 @@ export function ServerConnectionScriptModal({ open, onOpenChange, seed }: Props)
             Servidor: <span className="font-semibold text-slate-700">{seed.serverName || seed.serverId}</span>
             {loadingUser ? (
               <span className="ml-2 inline-flex items-center gap-1">
-                <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> A carregar utilizador API do cadastro…
+                <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> A carregar usuário de acesso do cadastro…
               </span>
             ) : null}
           </p>
@@ -215,12 +215,12 @@ export function ServerConnectionScriptModal({ open, onOpenChange, seed }: Props)
                 onChange={(e) => setAllowedServerIp(e.target.value)}
                 autoComplete="off"
               />
-              <p className="text-[11px] text-slate-500">Endereço a partir do qual a API RouterOS aceita ligações.</p>
+              <p className="text-[11px] text-slate-500">Endereço autorizado a comunicar com o equipamento.</p>
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-600" htmlFor={`${formId}-user`}>
-                  Utilizador da API
+                  Usuário de acesso
                 </label>
                 <Input
                   id={`${formId}-user`}
@@ -233,7 +233,7 @@ export function ServerConnectionScriptModal({ open, onOpenChange, seed }: Props)
               </div>
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-600" htmlFor={`${formId}-port`}>
-                  Porta da API
+                  Porta de acesso
                 </label>
                 <Input
                   id={`${formId}-port`}
@@ -247,7 +247,7 @@ export function ServerConnectionScriptModal({ open, onOpenChange, seed }: Props)
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-semibold text-slate-600" htmlFor={`${formId}-pass`}>
-                Senha da API
+                Senha de acesso
               </label>
               <Input
                 id={`${formId}-pass`}
@@ -270,7 +270,7 @@ export function ServerConnectionScriptModal({ open, onOpenChange, seed }: Props)
                 autoComplete="off"
               />
               <p className="text-[11px] text-slate-500">
-                Usado em comentários para poder remover com segurança no script de desativação. Grupo:{" "}
+                Usado em comentários para poder remover com segurança no roteiro de desativação. Grupo:{" "}
                 <span className="font-mono">{MIKROTIK_XPDCNET_GROUP_NAME}</span> · lista:{" "}
                 <span className="font-mono">{MIKROTIK_XPDCNET_ADDRESS_LIST_NAME}</span>.
               </p>
@@ -279,7 +279,7 @@ export function ServerConnectionScriptModal({ open, onOpenChange, seed }: Props)
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-slate-700">
-              Este script remove apenas o acesso criado para o XPDCNET monitorar o MikroTik (mesmo comentário, lista e
+              Este roteiro remove apenas o acesso criado para o XPDCNET monitorar o MikroTik (mesmo comentário, lista e
               grupo dedicados).
             </p>
             <div className="space-y-1.5">
@@ -301,7 +301,7 @@ export function ServerConnectionScriptModal({ open, onOpenChange, seed }: Props)
                 onChange={(e) => setClearApiServiceAddress(e.target.checked)}
               />
               <span>
-                Limpar restrição de IP do serviço API (<span className="font-mono">address</span> vazio — aceita de
+                Remover a restrição de endereço do serviço de acesso (passará a aceitar ligações de
                 qualquer origem). Use só se souber o impacto.
               </span>
             </label>
@@ -313,7 +313,7 @@ export function ServerConnectionScriptModal({ open, onOpenChange, seed }: Props)
                 onChange={(e) => setDisableApiService(e.target.checked)}
               />
               <span>
-                Desactivar o serviço API no router (<span className="font-mono">disabled=yes</span>). Opcional; pode
+                Desativar o serviço de acesso no equipamento. Opcional; pode
                 afectar outras integrações.
               </span>
             </label>
@@ -332,30 +332,30 @@ export function ServerConnectionScriptModal({ open, onOpenChange, seed }: Props)
           <ul className="mt-1 list-inside list-disc">
             <li>Utilizador dedicado (comentário identificável)</li>
             <li>Grupo dedicado ({MIKROTIK_XPDCNET_GROUP_NAME})</li>
-            <li>Serviço API activo, porta configurada, origem restrita ao IP do XPDCNET</li>
+            <li>Serviço de acesso ativo, porta configurada e origem restrita ao XPDCNET</li>
             <li>Address-list e regra de firewall de entrada específica</li>
           </ul>
           <p className="mt-2 font-semibold text-slate-800">O que não será alterado</p>
           <ul className="mt-1 list-inside list-disc">
             <li>Clientes, PPPoE, secrets, pools</li>
             <li>Rotas, bridge, VLAN, DNS</li>
-            <li>Internet ou tráfego alheio à API</li>
+            <li>Internet ou tráfego não relacionado ao monitoramento</li>
           </ul>
         </div>
 
         <div className="flex flex-wrap gap-2">
           <Button type="button" className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700" onClick={handleGenerate}>
             <FileCode2 className="h-4 w-4" aria-hidden />
-            {mode === "activate" ? "Gerar script de ativação" : "Gerar script de desativação"}
+            {mode === "activate" ? "Gerar roteiro de ativação" : "Gerar roteiro de desativação"}
           </Button>
           <Button type="button" variant="outline" className="gap-2" onClick={() => void handleCopy()} disabled={!scriptOut}>
             <ClipboardCopy className="h-4 w-4" aria-hidden />
-            Copiar script
+            Copiar roteiro
           </Button>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-slate-600">Script RouterOS</label>
+          <label className="text-xs font-semibold text-slate-600">Roteiro de configuração</label>
           <textarea
             readOnly
             className={cn(

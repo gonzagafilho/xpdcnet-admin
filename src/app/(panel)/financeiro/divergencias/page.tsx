@@ -114,7 +114,7 @@ export default function FinanceiroDivergenciasPage() {
   const runReconcile = useCallback(
     async (clientId: string, clientName: string) => {
       const ok = window.confirm(
-        `Enfileirar sync oficial no pipeline para corrigir divergência?\n\nCliente: ${clientName}\n\nConfirma?`,
+        `Solicitar a correção da situação de rede deste cliente?\n\nCliente: ${clientName}\n\nConfirma?`,
       );
       if (!ok) return;
       const msg = window.prompt(
@@ -142,10 +142,10 @@ export default function FinanceiroDivergenciasPage() {
         );
         const jobId = payload.job && typeof payload.job === "object" && "_id" in payload.job ? String(payload.job._id) : "";
         const parts = [
-          payload.enqueued ? "Job enfileirado." : null,
-          payload.duplicate ? "Já existia job pendente/processing (contexto actualizado)." : null,
-          payload.skipped ? "Sync não enfileirada (ver detalhes)." : null,
-          jobId ? `Job: ${jobId}` : null,
+          payload.enqueued ? "Correção solicitada." : null,
+          payload.duplicate ? "Já existe uma correção pendente ou em andamento." : null,
+          payload.skipped ? "Correção não solicitada; consulte os detalhes." : null,
+          jobId ? `Protocolo: ${jobId}` : null,
         ].filter(Boolean);
         setReconcileFeedback((f) => ({ ...f, [clientId]: parts.join(" ") || "Concluído." }));
       } catch (e) {
@@ -215,7 +215,7 @@ export default function FinanceiroDivergenciasPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             <Card><CardContent className="pt-5"><p className="text-xs text-neutral-500">Itens</p><p className="text-2xl font-bold">{data.totals.items}</p></CardContent></Card>
             <Card><CardContent className="pt-5"><p className="text-xs text-neutral-500">Divergentes</p><p className="text-2xl font-bold text-red-700">{data.totals.divergent}</p></CardContent></Card>
-            <Card><CardContent className="pt-5"><p className="text-xs text-neutral-500">Em sync</p><p className="text-2xl font-bold text-emerald-700">{data.totals.inSync}</p></CardContent></Card>
+            <Card><CardContent className="pt-5"><p className="text-xs text-neutral-500">Em conformidade</p><p className="text-2xl font-bold text-emerald-700">{data.totals.inSync}</p></CardContent></Card>
             <Card><CardContent className="pt-5"><p className="text-xs text-neutral-500">Indefinido</p><p className="text-2xl font-bold">{data.totals.unknown}</p></CardContent></Card>
             <Card><CardContent className="pt-5"><p className="text-xs text-neutral-500">Erros consulta</p><p className="text-2xl font-bold text-amber-700">{data.totals.queryErrors}</p></CardContent></Card>
           </div>
@@ -223,7 +223,7 @@ export default function FinanceiroDivergenciasPage() {
           <Card>
             <CardHeader>
               <CardTitle className="text-base">
-                Snapshot {data.tenant.slug} - janela ativa agora: {yesNo(data.evaluation.cutoffWindowActiveNow)}
+                Leitura de {data.tenant.slug} — período de bloqueio ativo: {yesNo(data.evaluation.cutoffWindowActiveNow)}
               </CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-neutral-600">
@@ -264,7 +264,7 @@ export default function FinanceiroDivergenciasPage() {
                         <div>Elegivel delinquent: {yesNo(item.policyDecision.eligibleForDelinquent)}</div>
                       </TableCell>
                       <TableCell className="text-xs">
-                        <div>Goal: {item.desiredNetworkState.recommendedSyncGoal}</div>
+                        <div>Ação recomendada: {item.desiredNetworkState.recommendedSyncGoal}</div>
                         <div>Acesso: {item.desiredNetworkState.effectiveAccess}</div>
                         <div>Esperado: {item.desiredNetworkState.expectedDeviceStatus || "-"}</div>
                       </TableCell>
@@ -280,15 +280,15 @@ export default function FinanceiroDivergenciasPage() {
                         {item.divergence.status === "divergent" ? (
                           <Badge variant="error">Divergente</Badge>
                         ) : item.divergence.status === "in_sync" ? (
-                          <Badge variant="success">Em sync</Badge>
+                          <Badge variant="success">Em conformidade</Badge>
                         ) : (
                           <Badge variant="warning">Indefinido</Badge>
                         )}
                         <div className="mt-1 text-neutral-700">{item.divergence.reason || "-"}</div>
                       </TableCell>
                       <TableCell className="text-xs">
-                        <div>Sync state: {item.lastExecution.syncState}</div>
-                        <div>Job: {item.lastExecution.lastJobStatus || "-"}</div>
+                        <div>Situação da atualização: {item.lastExecution.syncState}</div>
+                        <div>Processamento: {item.lastExecution.lastJobStatus || "-"}</div>
                         <div>Tentativas: {item.lastExecution.lastJobAttempts ?? "-"}</div>
                         <div>Ult. tentativa: {formatDateTime(item.lastExecution.lastAttemptAt)}</div>
                         <div>Ult. sucesso: {formatDateTime(item.lastExecution.lastSuccessAt)}</div>

@@ -228,7 +228,7 @@ function buildAuxiliaryNotes(w: ClienteFormState): string {
   if (w.personType === "juridica") lines.push("Tipo de pessoa: jurídica");
   if (w.birthDate.trim()) lines.push(`Data de nascimento: ${w.birthDate.trim()}`);
   if (w.phoneSecondary.trim()) lines.push(`Telefone alternativo: ${w.phoneSecondary.trim()}`);
-  if (w.monitoringPinned) lines.push("Monitoramento: marcado como fixado por cliente (aguarda API de monitorização).");
+  if (w.monitoringPinned) lines.push("Monitoramento: cliente marcado para acompanhamento prioritário.");
   if (w.paymentMethod.trim()) lines.push(`Forma de pagamento: ${w.paymentMethod.trim()}`);
   if (w.contractModel.trim()) lines.push(`Modelo de contrato: ${w.contractModel.trim()}`);
   if (w.discount.trim()) lines.push(`Desconto: ${w.discount.trim()}`);
@@ -486,7 +486,7 @@ export function ClienteFormModal({
 
   const contractHint = useMemo(() => {
     const d = Number(form.dueDay) || 10;
-    return `Vencimento dia ${d} (campo dueDay na API)`;
+    return `Vencimento no dia ${d}`;
   }, [form.dueDay]);
 
   const geoPoint = useMemo(() => parseGeo(form), [form]);
@@ -513,7 +513,7 @@ export function ClienteFormModal({
         body: JSON.stringify({ status: "blocked" }),
       });
       setForm((f) => ({ ...f, status: "blocked" }));
-      onInform?.("Cliente bloqueado no cadastro (PUT /clients/:id). Sem corte técnico nem MikroTik nesta fase.", "success");
+      onInform?.("Cliente marcado como bloqueado no cadastro, sem interrupção automática do acesso à rede.", "success");
       await onSuccess("edit");
     } catch (e) {
       onInform?.(userFacingApiError(e), "error");
@@ -532,7 +532,7 @@ export function ClienteFormModal({
         body: JSON.stringify({ status: "delinquent" }),
       });
       setForm((f) => ({ ...f, status: "delinquent" }));
-      onInform?.("Cliente marcado como inadimplente (apenas estado — PUT /clients/:id).", "success");
+      onInform?.("Cliente marcado como inadimplente no cadastro.", "success");
       await onSuccess("edit");
       try {
         const r = await fetchClientOverdueRollup(client._id);
@@ -550,7 +550,7 @@ export function ClienteFormModal({
   const clearAuthentication = () => {
     if (mode === "edit") {
       onInform?.(
-        "A API exige login e senha de acesso para o cliente. Para alterar credenciais use «Atualizar autenticação»; não é possível remover o bloco access nesta versão.",
+        "O cliente precisa manter login e senha de acesso. Para alterar estes dados, use «Atualizar acesso».",
         "error",
       );
       return;
@@ -709,8 +709,8 @@ export function ClienteFormModal({
   const title = mode === "create" ? "Novo cliente" : "Editar cliente";
   const description =
     mode === "create"
-      ? "Ficha única: dados, contactos, endereço com mapa, contrato, plano/comodato e autenticação num modal separado. POST /clients com address e geo quando válidos."
-      : "PUT /clients/:id com address, geo e notes alinhados ao fluxo anterior; access com authType e senha preservada se deixar vazio no modal.";
+      ? "Ficha completa com dados pessoais, contactos, endereço, contrato, plano, comodato e acesso do cliente."
+      : "Atualize os dados cadastrais, comerciais, de localização e acesso do cliente em uma única ficha.";
 
   const statusLabelAuth = (() => {
     const m: Record<string, string> = {
@@ -746,7 +746,7 @@ export function ClienteFormModal({
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="cf-doc" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                    Documento (API)
+                    Documento
                   </Label>
                   <Input
                     id="cf-doc"
@@ -781,9 +781,9 @@ export function ClienteFormModal({
                       onChange={(e) => setForm((x) => ({ ...x, portalPassword: e.target.value }))}
                       className="border-neutral-200"
                       disabled
-                      title="Sem campo na API atual — não armazenada"
+                      title="Campo disponível em breve"
                     />
-                    <p className="text-[0.65rem] text-neutral-500">Não persistido na API atual.</p>
+                    <p className="text-[0.65rem] text-neutral-500">Informação ainda não disponível para cadastro.</p>
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -943,7 +943,7 @@ export function ClienteFormModal({
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="cf-map" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                    Referência local / mapa → address.reference
+                    Referência do endereço
                   </Label>
                   <textarea
                     id="cf-map"
@@ -957,7 +957,7 @@ export function ClienteFormModal({
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label htmlFor="cf-lat" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                      Latitude (geo.lat)
+                      Latitude
                     </Label>
                     <Input
                       id="cf-lat"
@@ -970,7 +970,7 @@ export function ClienteFormModal({
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="cf-lng" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-                      Longitude (geo.lng)
+                      Longitude
                     </Label>
                     <Input
                       id="cf-lng"
@@ -983,8 +983,7 @@ export function ClienteFormModal({
                   </div>
                 </div>
                 <p className="text-[0.65rem] text-neutral-500">
-                  <span className="font-mono">address</span> no corpo; <span className="font-mono">geo</span> só com lat/lng
-                  válidos.
+                  A localização no mapa é guardada quando latitude e longitude são válidas.
                 </p>
                 {mapEmbedSrc ? (
                   <div className="overflow-hidden rounded-md border border-neutral-200 bg-neutral-50">
@@ -1105,9 +1104,7 @@ export function ClienteFormModal({
                     Notas livres (contrato / observações)
                   </Label>
                   <p className="text-[0.65rem] leading-relaxed text-neutral-500">
-                    Apenas texto livre aqui. Ao guardar, o sistema acrescenta um bloco técnico separado (MikroTik, servidor em
-                    notes, etc.) sem repetir em cada edição. Registos antigos sem marcador são limpos pela cauda conhecida
-                    (— / MikroTik / rodapé).
+                    Use este espaço para informações comerciais, contratuais ou observações importantes sobre o cliente.
                   </p>
                   <textarea
                     id="cf-cnotes"
@@ -1122,8 +1119,7 @@ export function ClienteFormModal({
               <div className="space-y-4">
                 {sectionTitle("Plano de acesso / comodato")}
                 <p className="text-xs text-neutral-500">
-                  <span className="font-mono">planId</span> e <span className="font-mono">monthlyPrice</span> no guardar.
-                  Comodato e itens relacionados em notas até API dedicada.
+                  O plano, o valor mensal e os itens em comodato ficam associados à ficha do cliente.
                 </p>
                 <div className="space-y-1.5">
                   <Label htmlFor="cf-plan" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
@@ -1187,7 +1183,7 @@ export function ClienteFormModal({
                 <div className="space-y-1.5">
                   {mode === "edit" && client ? (
                     overdueCheckLoading ? (
-                      <p className="text-[0.65rem] text-neutral-500">A carregar régua de inadimplência (faturas overdue)…</p>
+                      <p className="text-[0.65rem] text-neutral-500">A carregar situação das cobranças vencidas…</p>
                     ) : overdueRollup && overdueRollup.count > 0 ? (
                       <ClientDelinquencyRulerPanel
                         variant="modal"
@@ -1204,8 +1200,8 @@ export function ClienteFormModal({
                   {mode === "edit" && client && form.status === "delinquent" && !overdueCheckLoading && (!overdueRollup || overdueRollup.count === 0) ? (
                     <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-800">
                       <p className="text-[0.65rem] leading-relaxed text-neutral-600">
-                        Sem faturas «overdue» na API. Pode bloquear o cadastro após decisão interna (sem automação de
-                        rede).
+                        Nenhuma cobrança vencida foi encontrada. O bloqueio cadastral continua disponível após decisão
+                        interna, sem interrupção automática da rede.
                       </p>
                       <Button
                         type="button"
@@ -1221,7 +1217,7 @@ export function ClienteFormModal({
                   ) : null}
                   {mode === "edit" && form.status === "blocked" ? (
                     <div className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm font-semibold text-red-950">
-                      Cliente bloqueado — estado cadastral. Sem corte técnico nem MikroTik nesta fase.
+                      Cliente bloqueado no cadastro, sem interrupção automática do acesso à rede.
                     </div>
                   ) : null}
                   <Label htmlFor="cf-status" className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
@@ -1246,27 +1242,26 @@ export function ClienteFormModal({
                 </div>
                 {selectedPlan?.mikrotik ? (
                   <div className="rounded-md border border-neutral-200 bg-neutral-50 px-3 py-2 text-xs text-neutral-600">
-                    <span className="font-semibold text-neutral-800">Metadados do plano (API):</span>{" "}
+                    <span className="font-semibold text-neutral-800">Configuração de velocidade do plano:</span>{" "}
                     {selectedPlan.mikrotik.profile ? `perfil ${selectedPlan.mikrotik.profile}` : ""}
                     {selectedPlan.mikrotik.rateLimit ? ` · limite ${selectedPlan.mikrotik.rateLimit}` : ""}
                     {!selectedPlan.mikrotik.profile && !selectedPlan.mikrotik.rateLimit ? "—" : null}
                   </div>
                 ) : (
-                  <p className="text-xs text-neutral-500">Plano sem bloco <span className="font-mono">mikrotik</span> na resposta.</p>
+                  <p className="text-xs text-neutral-500">Este plano ainda não possui configuração de velocidade vinculada.</p>
                 )}
 
-                {sectionTitle("MikroTik — cadastro e confiança")}
+                {sectionTitle("Vínculo com a rede")}
                 <p className="text-xs leading-relaxed text-neutral-600">
-                  Vínculo ao servidor e campos abaixo são persistidos na API.{" "}
-                  <span className="font-semibold text-neutral-800">Não há</span> execução RouterOS nem corte real nesta
-                  fase. Perfil/comentário também existem no modal de autenticação.
+                  Associe o cliente ao equipamento responsável pelo acesso. Esta configuração não interrompe nem libera
+                  a conexão automaticamente.
                 </p>
                 <div className="space-y-1.5">
                   <Label
                     htmlFor="cf-mt-server"
                     className="text-xs font-semibold uppercase tracking-wide text-neutral-500"
                   >
-                    Servidor MikroTik
+                    Equipamento de rede
                   </Label>
                   <Select
                     id="cf-mt-server"
@@ -1283,14 +1278,13 @@ export function ClienteFormModal({
                   </Select>
                   {mikrotikServers.length === 0 ? (
                     <p className="text-[0.65rem] text-amber-800">
-                      Nenhum servidor em <span className="font-mono">GET /mikrotik/servers</span>. Cadastre um equipamento
-                      antes de vincular.
+                      Nenhum equipamento disponível. Cadastre um equipamento de rede antes de vincular o cliente.
                     </p>
                   ) : null}
                 </div>
                 {mode === "edit" && client?.mikrotik?.sync ? (
                   <div className="rounded border border-neutral-200 bg-neutral-50 px-2 py-1.5 text-[0.65rem] text-neutral-700">
-                    <span className="font-semibold">Estado de sync (API, preparatório):</span>{" "}
+                    <span className="font-semibold">Situação da atualização de rede:</span>{" "}
                     <span className="font-mono">{client.mikrotik.sync.state ?? "—"}</span>
                     {client.mikrotik.sync.lastAttemptAt
                       ? ` · última tentativa ${new Date(client.mikrotik.sync.lastAttemptAt).toLocaleString("pt-BR")}`
@@ -1371,10 +1365,9 @@ export function ClienteFormModal({
                       </pre>
                     ) : null}
                     <div className="mt-3 space-y-2 rounded-md border border-sky-200/80 bg-sky-50/50 px-3 py-2">
-                      <p className="text-xs font-semibold text-sky-950">Estado no MikroTik (leitura RouterOS)</p>
+                      <p className="text-xs font-semibold text-sky-950">Situação no equipamento</p>
                       <p className="text-[0.65rem] leading-relaxed text-sky-900/90">
-                        GET /mikrotik-monitoring/client/:id — consulta o secret PPPoE no equipamento vinculado; sem alterar
-                        configuração.
+                        Consulte a situação atual do acesso no equipamento vinculado, sem alterar a configuração.
                       </p>
                       <Button
                         type="button"
@@ -1384,13 +1377,13 @@ export function ClienteFormModal({
                         disabled={mikrotikMonitoringLoading}
                         onClick={() => void loadMikrotikMonitoring()}
                       >
-                        {mikrotikMonitoringLoading ? "A consultar…" : "Consultar estado no MikroTik"}
+                        {mikrotikMonitoringLoading ? "A consultar…" : "Consultar situação na rede"}
                       </Button>
                       {mikrotikMonitoring ? (
                         <div className="space-y-2 text-[0.65rem] text-neutral-800">
                           <div className="grid gap-1 sm:grid-cols-2">
                             <div>
-                              <span className="font-semibold text-neutral-600">Real (equipamento)</span>
+                              <span className="font-semibold text-neutral-600">Situação atual</span>
                               <p className="mt-0.5">
                                 <span className="font-mono">{deviceStatusLabelPt(mikrotikMonitoring.status)}</span>
                                 {mikrotikMonitoring.exists ? (
@@ -1403,11 +1396,11 @@ export function ClienteFormModal({
                               </p>
                             </div>
                             <div>
-                              <span className="font-semibold text-neutral-600">Esperado (política)</span>
+                              <span className="font-semibold text-neutral-600">Situação esperada</span>
                               <p className="mt-0.5">
                                 {mikrotikMonitoring.expected.deviceStatus == null ? (
                                   <span className="text-neutral-600">
-                                    N/A (noop/hold) — goal {mikrotikMonitoring.intent.recommendedSyncGoal}
+                                    Sem alteração prevista — orientação {mikrotikMonitoring.intent.recommendedSyncGoal}
                                   </span>
                                 ) : (
                                   <>
@@ -1459,8 +1452,7 @@ export function ClienteFormModal({
               <div className="space-y-4 border-t border-neutral-200 pt-6">
                 {sectionTitle("Autenticação de rede")}
                 <p className="text-xs text-neutral-500">
-                  Login, senha e tipo ficam em <span className="font-mono">access</span>; os restantes campos técnicos
-                  sintetizam-se em <span className="font-mono">notes</span> ao guardar a ficha.
+                  Login, senha e tipo de acesso ficam associados à ficha; as demais informações são guardadas como observações.
                 </p>
                 {!showAuthSummary ? (
                   <Button
@@ -1543,7 +1535,7 @@ export function ClienteFormModal({
         title="Bloquear cliente"
         description={
           client && form.status === "delinquent"
-            ? `Confirma bloquear «${client.fullName}» no cadastro? O estado passará a «Bloqueado» (PUT /clients/:id). Não há corte de acesso na rede nem MikroTik nesta fase.`
+            ? `Confirma bloquear «${client.fullName}» no cadastro? O cliente ficará com o estado «Bloqueado», sem interrupção automática do acesso à rede.`
             : ""
         }
         confirmLabel="Bloquear"

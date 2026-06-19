@@ -22,7 +22,12 @@ import {
   AlertCircle,
   ArrowRight,
   BadgeCheck,
+  ChevronLeft,
+  ChevronRight,
+  Gift,
   PieChart,
+  QrCode,
+  Rocket,
   Search,
   Settings,
   Users,
@@ -60,21 +65,41 @@ function competencePretty(ym: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function todayLabelPt(): string {
-  return new Date().toLocaleDateString("pt-BR", {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-}
-
 function planLabel(planId: ClientFromApi["planId"]): string {
   if (planId && typeof planId === "object" && "name" in planId) return planId.name || "—";
   return "—";
 }
 
 const TABLE_PREVIEW = 20;
+const COMMERCIAL_CAMPAIGNS = [
+  {
+    eyebrow: "Mais velocidade para crescer",
+    title: "Upgrade para",
+    accent: "700 Mega",
+    description: "Mais desempenho para conectar todos os dispositivos, trabalhar e aproveitar sem travamentos.",
+    cta: "Conhecer planos",
+    href: "/planos",
+    icon: Rocket,
+  },
+  {
+    eyebrow: "Pagamento simples e rápido",
+    title: "Conheça o",
+    accent: "BolePix DC NET",
+    description: "Boleto e Pix no mesmo lugar para deixar a rotina de pagamentos muito mais prática.",
+    cta: "Ver no financeiro",
+    href: "/financeiro",
+    icon: QrCode,
+  },
+  {
+    eyebrow: "Benefício para todo mundo",
+    title: "Indique e",
+    accent: "Ganhe",
+    description: "Apresente a DC NET para quem você conhece e aproveite vantagens exclusivas.",
+    cta: "Ver clientes",
+    href: "/clientes",
+    icon: Gift,
+  },
+] as const;
 
 function DonutBalanço({
   pending,
@@ -190,6 +215,14 @@ export default function DashboardPage() {
   const [competence, setCompetence] = useState(currentCompetence);
   const [debouncedCompetence, setDebouncedCompetence] = useState(currentCompetence);
   const [clientFilter, setClientFilter] = useState("");
+  const [campaignIndex, setCampaignIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setCampaignIndex((current) => (current + 1) % COMMERCIAL_CAMPAIGNS.length);
+    }, 7000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedCompetence(competence.trim()), 350);
@@ -309,9 +342,7 @@ export default function DashboardPage() {
   const overdueAmount = summaryGlobal?.overdue?.amount ?? 0;
   const pendingCount = summaryGlobal?.pending?.count ?? 0;
   const pendingAmount = summaryGlobal?.pending?.amount ?? 0;
-  const openItemsCount = pendingCount + overdueCount;
-  const openItemsAmount = pendingAmount + overdueAmount;
-  const hasReceivablesPressure = !bootLoading && summaryGlobal && openItemsCount > 0;
+  
 
   const todayKey = useMemo(() => {
     const n = new Date();
@@ -366,18 +397,97 @@ export default function DashboardPage() {
       }
     : { pending: 0, overdue: 0, paid: 0, cancelled: 0 };
 
+  const activeCampaign = COMMERCIAL_CAMPAIGNS[campaignIndex];
+  const CampaignIcon = activeCampaign.icon;
+
   return (
-    <div className="mx-auto w-full max-w-[92rem] space-y-7 pb-10 bg-[#EEF6FF]">
+    <div className="mx-auto w-full max-w-[92rem] space-y-7 bg-[#E7EEF8] pb-10">
+      {/* Banner comercial rotativo */}
+      <section
+        className="relative isolate overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(118deg,#020617_0%,#041A3D_52%,#0A6CFF_100%)] px-3 py-2 text-white shadow-[0_14px_32px_rgba(4,26,61,0.18)] sm:px-6 sm:py-5"
+        aria-roledescription="carrossel"
+        aria-label="Campanhas DC NET"
+      >
+        <div className="pointer-events-none absolute -right-16 -top-24 h-72 w-72 rounded-full bg-[#26D7FF]/20 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-[-7rem] left-[42%] h-56 w-56 rounded-full bg-white/10 blur-3xl" />
+         <div className="relative grid min-h-[3.5rem] items-center gap-2 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <div key={campaignIndex} className="max-w-3xl">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#26D7FF]">
+              {activeCampaign.eyebrow}
+            </p>
+            <h1 className="mt-1 text-lg font-bold leading-tight tracking-tight sm:text-xl">
+              {activeCampaign.title}{" "}
+              <span className="text-[#26D7FF]">{activeCampaign.accent}</span>
+            </h1>
+            <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-200 sm:text-sm">
+              {activeCampaign.description}
+            </p>
+            <Button
+              type="button"
+              className="mt-2 h-9 border border-white/70 bg-white font-semibold text-[#041A3D] shadow-sm hover:bg-[#EAF8FF]"
+              asChild
+            >
+              <Link href={activeCampaign.href}>
+                {activeCampaign.cta}
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+
+          <div
+            className="hidden h-12 w-12 items-center justify-center rounded-full border border-white/20 bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.2)] backdrop-blur-sm lg:flex"
+            aria-hidden
+          >
+            <CampaignIcon className="h-6 w-6 ... text-[#26D7FF]" strokeWidth={1.5} />
+          </div>
+        </div>
+
+        <div className="relative mt-1 flex items-center justify-between gap-2 border-t border-white/15 pt-1">
+          <div className="flex items-center gap-2" aria-label="Selecionar campanha">
+            {COMMERCIAL_CAMPAIGNS.map((campaign, index) => (
+              <button
+                key={campaign.accent}
+                type="button"
+                onClick={() => setCampaignIndex(index)}
+                className={`h-2 rounded-full transition-all ${
+                  index === campaignIndex ? "w-8 bg-[#26D7FF]" : "w-2 bg-white/45 hover:bg-white/70"
+                }`}
+                aria-label={`Mostrar campanha ${index + 1}: ${campaign.title} ${campaign.accent}`}
+                aria-current={index === campaignIndex ? "true" : undefined}
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() =>
+                setCampaignIndex(
+                  (current) => (current - 1 + COMMERCIAL_CAMPAIGNS.length) % COMMERCIAL_CAMPAIGNS.length,
+                )
+              }
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20"
+              aria-label="Campanha anterior"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setCampaignIndex((current) => (current + 1) % COMMERCIAL_CAMPAIGNS.length)}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20"
+              aria-label="Próxima campanha"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* 1. TOPO */}
-      <header className="rounded-xl border border-[rgba(38,215,255,.22)] bg-white px-5 py-5 shadow-sm ring-1 ring-[#0A6CFF]/5 sm:px-6 sm:py-5">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+      <header className="rounded-xl border border-[#D7E0EC] bg-[#F8FBFF] px-5 py-3 shadow-sm sm:px-6 sm:py-3">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0 space-y-2.5">
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#0A6CFF]">Painel Principal DC NET</p>
-            <p className="max-w-2xl text-sm leading-relaxed text-[#475569] sm:text-[0.9375rem]">
-              Visão geral da sua operação em tempo real. O período que escolher abaixo vale para os gráficos e
-              números do meio da tela.
-            </p>
-            <p className="text-sm text-[#475569]">
+            <p className="text-sm text-[#334155]">
               <span className="font-medium text-[#041A3D]">Mês de referência:</span>{" "}
               <span className="rounded-md border border-[rgba(38,215,255,.22)] bg-[#F4F8FF] px-2 py-0.5 font-mono text-sm text-[#0A6CFF] tabular-nums">
                 {debouncedCompetence}
@@ -431,28 +541,12 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      {hasReceivablesPressure ? (
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#FFA500]/25 bg-[#FFF5E6] px-5 py-3.5 text-sm text-[#92400E] shadow-sm ring-1 ring-[#FFA500]/10">
-          <p>
-            <span className="font-semibold">Cobranças em aberto:</span> {openItemsCount} cobranças ·{" "}
-            {brl(openItemsAmount)}
-          </p>
-          <Button type="button" variant="outline" size="sm" className="border-[#FFA500]/30 bg-white text-[#92400E] hover:bg-[#FFF5E6]" asChild>
-            <Link href="/financeiro">Ir para financeiro</Link>
-          </Button>
-        </div>
-      ) : null}
-
       {/* 2. PRIMEIRA FAIXA — faturamento diário + confirmações hoje */}
       <div className="grid gap-5 lg:grid-cols-5 lg:items-stretch">
-        <section className="flex min-h-[19rem] flex-col rounded-xl border border-[rgba(38,215,255,.22)] bg-white p-5 shadow-sm ring-1 ring-[#0A6CFF]/5 md:p-6 lg:col-span-3">
+        <section className="flex min-h-[19rem] flex-col rounded-xl border border-[#D7E0EC] bg-white p-5 shadow-sm md:p-6 lg:col-span-3">
           <h2 className="text-base font-semibold tracking-tight text-[#041A3D] sm:text-[1.05rem]">
             Recebimentos do mês — {competencePretty(debouncedCompetence)}
           </h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-[#475569]">
-            Quanto entrou por dia, só com valores <span className="font-medium text-[#041A3D]">já recebidos</span>, ao longo
-            do mês que escolheu.
-          </p>
           <div className="mt-6 flex flex-1 flex-col justify-end">
             {!/^\d{4}-\d{2}$/.test(debouncedCompetence) ? (
               <p className="text-sm text-[#CA8A04]">Indique um mês válido, por exemplo 2026-04.</p>
@@ -489,11 +583,8 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section className="flex min-h-[19rem] flex-col rounded-xl border border-[rgba(38,215,255,.22)] bg-white p-5 shadow-sm ring-1 ring-[#0A6CFF]/5 md:p-6 lg:col-span-2">
-          <h2 className="text-base font-semibold tracking-tight text-[#041A3D] sm:text-[1.05rem]">Entradas confirmadas hoje</h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-[#475569]">
-            Entradas registadas hoje, no horário do seu computador.
-          </p>
+        <section className="flex min-h-[19rem] flex-col rounded-xl border border-[#D7E0EC] bg-white p-5 shadow-sm md:p-6 lg:col-span-2">
+          <h2 className="text-base font-semibold tracking-tight text-[#041A3D] sm:text-[1.05rem]">Entradas confirmadas hoje</h2>  
           <div className="mt-auto space-y-3 pt-8">
             {bootLoading ? (
               <p className="text-sm text-[#94A3B8]">A carregar…</p>
@@ -519,13 +610,10 @@ export default function DashboardPage() {
 
       {/* 3. SEGUNDA FAIXA — balanço doughnut + contratos */}
       <div className="grid gap-5 lg:grid-cols-5 lg:items-stretch">
-        <section className="flex min-h-[21rem] flex-col rounded-xl border border-[rgba(38,215,255,.22)] bg-white p-5 shadow-sm ring-1 ring-[#0A6CFF]/5 md:p-6 lg:col-span-3">
+        <section className="flex min-h-[21rem] flex-col rounded-xl border border-[#D7E0EC] bg-white p-5 shadow-sm md:p-6 lg:col-span-3">
           <h2 className="text-base font-semibold tracking-tight text-[#041A3D] sm:text-[1.05rem]">
             Resumo do mês — {competencePretty(debouncedCompetence)}
           </h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-[#475569]">
-            Como os recebimentos estão distribuídos entre pagos, em aberto e cancelados neste mês.
-          </p>
           <div className="mt-8 flex flex-1 items-center justify-center">
             {!/^\d{4}-\d{2}$/.test(debouncedCompetence) ? (
               <p className="text-sm text-[#CA8A04]">Período inválido. Use o formato ano-mês, por exemplo 2026-04.</p>
@@ -541,16 +629,8 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section className="flex min-h-[21rem] flex-col rounded-xl border border-[rgba(38,215,255,.22)] bg-white p-5 shadow-sm ring-1 ring-[#0A6CFF]/5 md:p-6 lg:col-span-2">
+        <section className="flex min-h-[21rem] flex-col rounded-xl border border-[#D7E0EC] bg-white p-5 shadow-sm md:p-6 lg:col-span-2">
           <h2 className="text-base font-semibold tracking-tight text-[#041A3D] sm:text-[1.05rem]">Situação dos clientes</h2>
-          <p className="mt-1.5 text-sm leading-relaxed text-[#475569]">
-            Números de <span className="font-medium text-[#041A3D]">{todayLabelPt()}</span>. Contam o estado de cada
-            cliente tal como está registado hoje.
-          </p>
-          <p className="mt-2 rounded-lg border border-[rgba(38,215,255,.22)] bg-[#F4F8FF] px-3 py-2 text-[11px] leading-relaxed text-[#475569]">
-            Suspenso: pausa por decisão interna. Inadimplente: há dívida em atraso. Bloqueado: corte ou bloqueio explícito.
-            Cancelado ou desativado: contrato fora da operação do dia a dia.
-          </p>
           <ul className="mt-6 space-y-0 text-sm">
             <li className="flex items-baseline justify-between border-b border-[#E2E8F0] py-3.5">
               <span className="text-[#475569]">Clientes ativos</span>
@@ -593,26 +673,26 @@ export default function DashboardPage() {
 
       {/* 4. FAIXA INFERIOR — placeholders honestos */}
       <div className="grid gap-4 md:grid-cols-3">
-        <div className="rounded-xl border border-[rgba(38,215,255,.22)] bg-white px-5 py-5 shadow-sm ring-1 ring-[#0A6CFF]/5">
+        <div className="rounded-xl border border-[#D7E0EC] bg-[#F8FBFF] px-5 py-5 shadow-sm">
           <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#0A6CFF]">Aniversariantes</h3>
-          <p className="mt-2.5 text-sm leading-relaxed text-[#475569]">
+          <p className="mt-2.5 text-sm leading-relaxed text-[#64748B]">
             Em breve: aniversários dos clientes, quando o cadastro passar a incluir data de nascimento.
           </p>
         </div>
-        <div className="rounded-xl border border-[rgba(38,215,255,.22)] bg-white px-5 py-5 shadow-sm ring-1 ring-[#0A6CFF]/5">
+        <div className="rounded-xl border border-[#D7E0EC] bg-[#F8FBFF] px-5 py-5 shadow-sm">
           <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#0A6CFF]">
             Ativações — {debouncedCompetence}
           </h3>
-          <p className="mt-2.5 text-sm leading-relaxed text-[#475569]">
+          <p className="mt-2.5 text-sm leading-relaxed text-[#64748B]">
             Em breve: quantas novas ativações houve no mês, assim que o histórico estiver disponível para mostrar com
             segurança.
           </p>
         </div>
-        <div className="rounded-xl border border-[rgba(38,215,255,.22)] bg-white px-5 py-5 shadow-sm ring-1 ring-[#0A6CFF]/5">
+        <div className="rounded-xl border border-[#D7E0EC] bg-[#F8FBFF] px-5 py-5 shadow-sm">
           <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#0A6CFF]">
             Desativações — {debouncedCompetence}
           </h3>
-          <p className="mt-2.5 text-sm leading-relaxed text-[#475569]">
+          <p className="mt-2.5 text-sm leading-relaxed text-[#64748B]">
             Em breve: quantos contratos deixaram de estar ativos no mês, com histórico claro por período.
           </p>
         </div>
@@ -621,14 +701,13 @@ export default function DashboardPage() {
       {/* 5. CARDS FINANCEIROS — faixa horizontal */}
       <section className="space-y-2.5">
         <div className="px-0.5">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#041A3D]">Panorama geral do financeiro</h2>
-          <p className="mt-0.5 text-xs leading-relaxed text-[#94A3B8]">Soma de todo o histórico; não depende do mês escolhido acima.</p>
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#041A3D]">Financeiro</h2>
         </div>
         <div className="grid auto-rows-fr gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="relative flex min-h-[4.65rem] items-center gap-2 overflow-hidden rounded-xl border border-[#93C5FD]/40 bg-[#EFF6FF] px-4 py-2 shadow-sm ring-1 ring-[#0A6CFF]/10">
             <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center gap-1">
               <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#1e40af]">Por receber</span>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#1e40af]">receber</span>
                 <span className="rounded-full bg-[#DBEAFE]/60 px-1 py-0 text-[8px] font-semibold tabular-nums leading-none text-[#1e40af] ring-1 ring-[#93C5FD]/40">
                   {bootLoading || !summaryGlobal ? "—" : pendingCount}
                 </span>
@@ -666,7 +745,7 @@ export default function DashboardPage() {
           <div className="relative flex min-h-[4.65rem] items-center gap-2 overflow-hidden rounded-xl border border-[#A7F3D0]/40 bg-[#F0FDF4] px-4 py-2 shadow-sm ring-1 ring-[#10B981]/10">
             <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center gap-1">
               <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#065F46]">Já recebido</span>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#065F46]">Recebido</span>
                 <span className="rounded-full bg-[#D1FAE5]/60 px-1 py-0 text-[8px] font-semibold tabular-nums leading-none text-[#065F46] ring-1 ring-[#A7F3D0]/40">
                   {bootLoading || !summaryGlobal ? "—" : (summaryGlobal.paid?.count ?? 0)}
                 </span>
@@ -685,7 +764,7 @@ export default function DashboardPage() {
           <div className="relative flex min-h-[4.65rem] items-center gap-2 overflow-hidden rounded-xl border border-[rgba(38,215,255,.25)] bg-[#F0F9FF] px-4 py-2 shadow-sm ring-1 ring-[#0A6CFF]/10">
             <div className="relative z-10 flex min-w-0 flex-1 flex-col justify-center gap-1">
               <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0">
-                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#0A6CFF]">Volume total</span>
+                <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-[#0A6CFF]">Total</span>
                 <span className="rounded-full bg-[#BFDBFE]/60 px-1 py-0 text-[8px] font-semibold tabular-nums leading-none text-[#0A6CFF] ring-1 ring-[rgba(38,215,255,.25)]">
                   {bootLoading || !summaryGlobal ? "—" : (summaryGlobal.totalInvoices ?? 0)}
                 </span>
@@ -704,7 +783,7 @@ export default function DashboardPage() {
       </section>
 
       {/* Sistema + planos — linha compacta */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-[rgba(38,215,255,.22)] bg-white px-5 py-3.5 text-sm text-[#475569] shadow-sm ring-1 ring-[#0A6CFF]/5">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-[#D7E0EC] bg-[#F8FBFF] px-5 py-3.5 text-sm text-[#334155] shadow-sm">
         <span className="flex items-center gap-2 font-medium text-[#041A3D]">
           <Activity className="h-4 w-4 text-[#0A6CFF]" />
           Situação do Painel DC NET
@@ -737,7 +816,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Tabela resumo de clientes */}
-      <div className="overflow-hidden rounded-xl border border-[rgba(38,215,255,.22)] bg-white shadow-sm ring-1 ring-[#0A6CFF]/5">
+      <div className="overflow-hidden rounded-xl border border-[#D7E0EC] bg-white shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] bg-[#F8FAFC] px-5 py-3.5">
           <div>
             <h3 className="text-sm font-semibold tracking-tight text-[#041A3D]">Resumo dos clientes</h3>

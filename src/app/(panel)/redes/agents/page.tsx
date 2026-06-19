@@ -169,7 +169,7 @@ export default function RedesAgentsPage() {
   };
 
   const rotateToken = async (row: NetworkNodeFromApi) => {
-    const ok = window.confirm(`Gerar nova API key para «${row.name}»? O agente actual deixa de autenticar até actualizar o token.`);
+    const ok = window.confirm(`Gerar uma nova chave de acesso para «${row.name}»? A unidade precisará receber a nova chave para voltar a comunicar.`);
     if (!ok) return;
 
     setBusyId(row._id);
@@ -184,7 +184,7 @@ export default function RedesAgentsPage() {
       setTokenModalOpen(true);
       await load();
     } catch (e) {
-      const msg = e instanceof ApiRequestError ? e.message : "Falha ao rodar token.";
+      const msg = e instanceof ApiRequestError ? e.message : "Falha ao gerar a nova chave de acesso.";
       window.alert(msg);
     } finally {
       setBusyId(null);
@@ -196,17 +196,15 @@ export default function RedesAgentsPage() {
       <div className="flex flex-col gap-4 border-b border-slate-200/90 pb-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Redes</p>
-          <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">Agentes remotos</h1>
+          <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">Unidades remotas</h1>
           <p className="mt-2 max-w-2xl text-sm text-slate-600">
-            Pontos de execução <span className="font-mono text-xs">REMOTE_AGENT</span> — saída HTTPS a partir da filial,
-            sem abrir inbound. Autenticação: cabeçalhos{" "}
-            <span className="font-mono text-[11px]">x-xpdcnet-node-id</span> + Bearer.
+            Unidades conectadas à matriz para acompanhar e executar rotinas de rede a partir das filiais, com comunicação segura e acompanhamento centralizado.
           </p>
         </div>
 
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm" className="border-slate-200">
-            <Link href="/redes/servidores">Servidores</Link>
+            <Link href="/redes/servidores">Equipamentos</Link>
           </Button>
 
           <Button
@@ -225,12 +223,9 @@ export default function RedesAgentsPage() {
 
       <Card className="border-slate-200/95 shadow-sm ring-1 ring-slate-900/[0.035]">
         <CardHeader>
-          <CardTitle className="text-base">Compatibilidade de API</CardTitle>
+          <CardTitle className="text-base">Comunicação com as unidades</CardTitle>
           <CardDescription className="text-sm">
-            Endpoints existentes: <span className="font-mono text-xs">POST /agent/v1/heartbeat</span>,{" "}
-            <span className="font-mono text-xs">GET /agent/v1/commands/next</span>,{" "}
-            <span className="font-mono text-xs">POST /agent/v1/commands/:id/complete</span>. Comandos administrativos via{" "}
-            <span className="font-mono text-xs">POST /network-nodes/:id/commands</span>.
+            A comunicação segura mantém a presença de cada unidade atualizada e permite acompanhar as solicitações enviadas pela matriz.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -249,8 +244,8 @@ export default function RedesAgentsPage() {
       ) : rows.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/50 px-6 py-12 text-center text-slate-600">
           <Server className="mx-auto h-10 w-10 text-slate-300" aria-hidden />
-          <p className="mt-3 text-sm font-semibold text-slate-800">Nenhum agente REMOTE_AGENT</p>
-          <p className="mt-1 text-sm">Crie um node do tipo agente via API ou futura UI de nós.</p>
+          <p className="mt-3 text-sm font-semibold text-slate-800">Nenhuma unidade remota cadastrada</p>
+          <p className="mt-1 text-sm">Cadastre uma unidade remota para começar o acompanhamento.</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-slate-200/90 bg-white shadow-sm">
@@ -259,8 +254,8 @@ export default function RedesAgentsPage() {
               <tr className="border-b border-slate-200 bg-slate-50/95 text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">
                 <th className="px-4 py-3">Nome / código</th>
                 <th className="px-4 py-3">Estado</th>
-                <th className="px-4 py-3">Último heartbeat</th>
-                <th className="px-4 py-3">Tenant</th>
+                <th className="px-4 py-3">Último contato</th>
+                <th className="px-4 py-3">Operação</th>
                 <th className="px-4 py-3 text-right">Acções</th>
               </tr>
             </thead>
@@ -343,7 +338,7 @@ export default function RedesAgentsPage() {
                       <div className="flex flex-wrap justify-end gap-2">
                         <Button type="button" size="sm" variant="outline" className="h-8 gap-1 text-xs" disabled={busyId === row._id} onClick={() => void rotateToken(row)}>
                           <KeyRound className="h-3.5 w-3.5" aria-hidden />
-                          Nova API key
+                          Nova chave de acesso
                         </Button>
 
                         <Button type="button" size="sm" variant="outline" className="h-8 gap-1 border-emerald-200 text-emerald-700 text-xs hover:bg-emerald-50" disabled={busyId === row._id} onClick={() => void executeReadResource(row)}>
@@ -405,7 +400,7 @@ export default function RedesAgentsPage() {
         </div>
       )}
 
-      <Modal open={tokenModalOpen} onOpenChange={setTokenModalOpen} title="Nova API key do agente" description="Copie agora. O valor não volta a ser mostrado." className="max-w-lg">
+      <Modal open={tokenModalOpen} onOpenChange={setTokenModalOpen} title="Nova chave de acesso da unidade" description="Copie agora. O valor não volta a ser mostrado." className="max-w-lg">
         <div className="space-y-3">
           <pre className="break-all rounded-lg border border-slate-200 bg-slate-950 p-3 text-left text-xs text-emerald-100">
             {newToken || "—"}

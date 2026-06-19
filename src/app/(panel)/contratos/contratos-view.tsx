@@ -23,15 +23,14 @@ export function ContratosView() {
           <div className="min-w-0">
             <h2 className="text-base font-bold tracking-tight text-neutral-900">Contratos com clientes</h2>
             <p className="mt-1 max-w-3xl text-sm text-neutral-600">
-              Listagem e gestão de contratos quando existir endpoint dedicado (ex.{" "}
-              <span className="font-mono text-xs">GET /contracts</span>). Nesta versão não há chamada à API —
-              a área serve só de estrutura visual.
+              Centralize os vínculos, condições comerciais e documentos firmados com cada cliente.
+              O cadastro de novos contratos estará disponível em uma próxima etapa.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" variant="outline" size="sm" asChild>
               <Link href="/contratos/layouts" className="gap-1">
-                Layouts de contratos <ArrowRight className="h-3.5 w-3.5" />
+                Modelos de contratos <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </Button>
             <Button
@@ -39,7 +38,7 @@ export function ContratosView() {
               size="sm"
               className="gap-2 border-0 bg-emerald-600 font-semibold text-white hover:bg-emerald-700"
               disabled={!CONTRATOS_API_DISPONIVEL}
-              title={CONTRATOS_API_DISPONIVEL ? undefined : "Aguarda API de contratos"}
+              title={CONTRATOS_API_DISPONIVEL ? undefined : "Disponível em breve"}
             >
               <Plus className="h-4 w-4" />
               Novo contrato
@@ -48,8 +47,7 @@ export function ContratosView() {
         </div>
 
         <p className="pt-3 text-xs text-neutral-500">
-          Dados de vínculo formal podem evoluir a partir do cadastro de clientes; até lá, não exibimos linhas
-          inventadas.
+          Os vínculos formais serão apresentados aqui conforme forem cadastrados.
         </p>
       </div>
 
@@ -57,7 +55,7 @@ export function ContratosView() {
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-200 px-4 py-3">
           <div>
             <h3 className="text-sm font-bold text-neutral-900">Registos</h3>
-            <p className="text-xs text-neutral-500">0 contratos nesta consulta · sem fonte de dados ligada</p>
+            <p className="text-xs text-neutral-500">Nenhum contrato cadastrado</p>
           </div>
         </div>
         <Table>
@@ -78,7 +76,7 @@ export function ContratosView() {
             <TableRow>
               <TableCell colSpan={5} className="py-14 text-center text-sm text-neutral-500">
                 <FileText className="mx-auto mb-3 h-10 w-10 text-neutral-300" aria-hidden />
-                Nenhum contrato listado. Quando o backend expuser listagem, as colunas acima recebem dados reais.
+                Nenhum contrato cadastrado até o momento.
               </TableCell>
             </TableRow>
           </TableBody>

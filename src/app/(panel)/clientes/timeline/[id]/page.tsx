@@ -44,8 +44,8 @@ export default function ClienteTimelinePage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-neutral-900">Timeline operacional do cliente</h1>
-          <p className="text-sm text-neutral-600">Sequência de eventos financeiros, fila, worker e estado de execução.</p>
+          <h1 className="text-xl font-bold tracking-tight text-neutral-900">Histórico do cliente</h1>
+          <p className="text-sm text-neutral-600">Acompanhe os principais eventos financeiros e operacionais do cliente.</p>
         </div>
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={() => void load()} disabled={loading}>Atualizar</Button>
@@ -64,10 +64,10 @@ export default function ClienteTimelinePage() {
               <CardTitle className="text-base">{data.client.fullName} ({data.client.status})</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-              <p>Diagnóstico: <span className="font-semibold">{data.snapshot.financeDiagnosis}</span></p>
-              <p>Elegível bloqueio: <span className="font-semibold">{data.snapshot.eligibleForDelinquent ? "Sim" : "Não"}</span></p>
-              <p>Elegível reativação: <span className="font-semibold">{data.snapshot.wouldReactivateWhenClear ? "Sim" : "Não"}</span></p>
-              <p>Sync state: <span className="font-semibold">{data.snapshot.syncState}</span></p>
+              <p>Situação financeira: <span className="font-semibold">{data.snapshot.financeDiagnosis}</span></p>
+              <p>Pode receber restrição: <span className="font-semibold">{data.snapshot.eligibleForDelinquent ? "Sim" : "Não"}</span></p>
+              <p>Pode ser reativado: <span className="font-semibold">{data.snapshot.wouldReactivateWhenClear ? "Sim" : "Não"}</span></p>
+              <p>Situação da atualização: <span className="font-semibold">{data.snapshot.syncState}</span></p>
             </CardContent>
           </Card>
 
@@ -91,7 +91,7 @@ export default function ClienteTimelinePage() {
         </>
       ) : null}
 
-      {!data && loading ? <p className="text-sm text-neutral-500">A carregar timeline...</p> : null}
+      {!data && loading ? <p className="text-sm text-neutral-500">A carregar histórico...</p> : null}
     </div>
   );
 }

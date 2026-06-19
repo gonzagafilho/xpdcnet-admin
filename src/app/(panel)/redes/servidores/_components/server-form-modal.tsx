@@ -103,7 +103,7 @@ export function ServerFormModal({ open, onOpenChange, serverId, onSaved }: Props
       return;
     }
     if (!isEdit && !password.trim()) {
-      setError("Defina uma password API para o novo servidor.");
+      setError("Defina uma senha de acesso para o novo equipamento.");
       return;
     }
     if (executionMode === "agent" && !agentId.trim() && !networkNodeId.trim()) {
@@ -158,7 +158,7 @@ export function ServerFormModal({ open, onOpenChange, serverId, onSaved }: Props
       open={open}
       onOpenChange={onOpenChange}
       title={isEdit ? "Editar servidor MikroTik" : "Novo servidor MikroTik"}
-      description="Credenciais API RouterOS. Modo de execução define se a matriz liga directamente ou enfileira no agente remoto."
+      description="Informe os dados de acesso ao equipamento e defina se a ligação será feita pela matriz ou por uma unidade remota."
       className="max-w-lg"
     >
       {loading ? (
@@ -184,17 +184,17 @@ export function ServerFormModal({ open, onOpenChange, serverId, onSaved }: Props
               <Input value={host} onChange={(e) => setHost(e.target.value)} className="font-mono text-sm" />
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-slate-600">Porta API</label>
+              <label className="text-xs font-semibold text-slate-600">Porta de acesso</label>
               <Input value={port} onChange={(e) => setPort(e.target.value)} inputMode="numeric" />
             </div>
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-slate-600">Utilizador API</label>
+            <label className="text-xs font-semibold text-slate-600">Usuário de acesso</label>
             <Input value={username} onChange={(e) => setUsername(e.target.value)} className="font-mono text-sm" />
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-600">
-              Password API {isEdit ? "(vazio = manter actual)" : ""}
+              Senha de acesso {isEdit ? "(vazio = manter actual)" : ""}
             </label>
             <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" />
           </div>
@@ -216,7 +216,7 @@ export function ServerFormModal({ open, onOpenChange, serverId, onSaved }: Props
             <label className="text-xs font-semibold text-slate-600">Modo de execução</label>
             <Select value={executionMode} onChange={(e) => setExecutionMode(e.target.value as ExecutionMode)}>
               <option value="auto">auto — segue node do cliente/servidor (legado)</option>
-              <option value="direct">direct — sempre API directa a partir da matriz</option>
+              <option value="direct">Direto — ligação realizada pela matriz</option>
               <option value="agent">agent — sempre via agente remoto (LAN na filial)</option>
             </Select>
             <p className="text-[11px] leading-relaxed text-slate-500">
@@ -251,7 +251,7 @@ export function ServerFormModal({ open, onOpenChange, serverId, onSaved }: Props
                 </Select>
               </div>
               <p className="text-[11px] text-slate-600">
-                É obrigatório pelo menos um: agente na primeira lista, ou um node na segunda que seja do tipo agente (o backend
+                Selecione ao menos uma unidade remota disponível para realizar a ligação (o sistema
                 valida).
               </p>
             </div>

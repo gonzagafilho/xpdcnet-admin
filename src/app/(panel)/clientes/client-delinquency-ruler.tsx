@@ -53,7 +53,7 @@ export function ClientDelinquencyRulerPanel({
     >
       {isBlocked ? (
         <div className="mb-2 rounded-md border border-red-300/90 bg-red-50 px-2 py-1.5 text-[0.7rem] font-semibold leading-snug text-red-950">
-          Cliente bloqueado — apenas cadastro; sem corte técnico nem MikroTik nesta fase.
+          Cliente bloqueado no cadastro, sem interrupção automática do acesso à rede.
         </div>
       ) : null}
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -65,7 +65,7 @@ export function ClientDelinquencyRulerPanel({
 
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs tabular-nums text-amber-950">
         <span>
-          <span className="font-semibold">{rollup.count}</span> fatura(s) overdue
+          <span className="font-semibold">{rollup.count}</span> cobrança(s) vencida(s)
         </span>
         <span>
           Total: <span className="font-semibold">{formatBRL(rollup.totalAmount)}</span>
@@ -153,20 +153,20 @@ export function ClientDelinquencyRulerPanel({
 
       {compact ? (
         <p className="mt-2 border-t border-dashed border-amber-200/80 pt-2 text-[0.55rem] text-neutral-600">
-          Bloqueio manual disponível quando inadimplente. Em breve: liberação e MikroTik.
+          Bloqueio manual disponível quando inadimplente. Em breve: liberação e atualização de rede.
         </p>
       ) : (
         <div className="mt-3 border-t border-dashed border-amber-300/70 pt-2">
-          <p className="text-[0.6rem] font-semibold uppercase tracking-wide text-neutral-600">Futuro (sem ação)</p>
+          <p className="text-[0.6rem] font-semibold uppercase tracking-wide text-neutral-600">Próximas opções</p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             <Button type="button" variant="outline" size="sm" disabled className="h-7 cursor-not-allowed text-[0.6rem] text-neutral-500">
               Liberar cliente
             </Button>
             <Button type="button" variant="outline" size="sm" disabled className="h-7 cursor-not-allowed text-[0.6rem] text-neutral-500">
-              Sincronizar com MikroTik
+              Atualizar acesso na rede
             </Button>
           </div>
-          <p className="mt-1 text-[0.55rem] text-neutral-500">Liberação e rede: fases futuras — sem integração nesta versão.</p>
+          <p className="mt-1 text-[0.55rem] text-neutral-500">Liberação e atualização de rede estarão disponíveis em breve.</p>
         </div>
       )}
     </div>

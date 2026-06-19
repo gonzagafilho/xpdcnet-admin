@@ -81,8 +81,8 @@ function buildExecutiveSummary(d: MikrotikServerMonitoringDetailFromApi): string
     `Clientes (cadastro): ${d.totalClients}`,
     `PPP secrets: ${d.pppSecretCount != null ? d.pppSecretCount : "—"}`,
     `PPP activas: ${d.activePppSessionsTotal ?? 0}${d.activePppSessionsTruncated ? " (lista truncada)" : ""}`,
-    `Última consulta API: ${d.lastPolledAt ?? "—"}`,
-    `Último job sync: ${d.lastSyncAt ?? "—"} (${d.lastJobStatus ?? "—"})`,
+    `Última verificação: ${d.lastPolledAt ?? "—"}`,
+    `Última atualização de rede: ${d.lastSyncAt ?? "—"} (${d.lastJobStatus ?? "—"})`,
     `Alertas: ${(d.alerts ?? []).length}`,
   ];
   if (d.lastError) lines.push(`Erro: ${d.lastError}`);
@@ -389,7 +389,7 @@ export default function ServidorDetalhePage() {
                     </div>
 
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">RouterOS</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Sistema do equipamento</p>
                       <p className="mt-2 text-sm font-semibold text-slate-900">{data.version ?? "—"}</p>
                       <p className="mt-1 text-xs text-slate-500">Identidade: {data.identityName ?? "—"}</p>
                     </div>
@@ -472,7 +472,7 @@ export default function ServidorDetalhePage() {
               <MetricMini
                 label="Uptime"
                 value={data.online && data.uptime ? data.uptime : "—"}
-                sub={data.version ? `RouterOS ${data.version}` : undefined}
+                sub={data.version ? `Versão ${data.version}` : undefined}
                 icon={Network}
               />
             </div>
@@ -502,15 +502,15 @@ export default function ServidorDetalhePage() {
               </Card>
               <Card className="border-slate-200/95 shadow-sm ring-1 ring-slate-900/[0.035]">
                 <CardHeader className="pb-2 pt-4">
-                  <CardTitle className="text-sm font-medium text-slate-600">Sincronização</CardTitle>
+                  <CardTitle className="text-sm font-medium text-slate-600">Atualização da rede</CardTitle>
                   <CardDescription className="space-y-1 text-sm font-normal text-slate-800">
                     <p>
-                      Último job: <span className="font-semibold">{formatPtDate(data.lastSyncAt)}</span>
+                      Última solicitação: <span className="font-semibold">{formatPtDate(data.lastSyncAt)}</span>
                     </p>
                     {data.lastJobStatus ? (
                       <p className="font-mono text-xs text-slate-600">Estado: {data.lastJobStatus}</p>
                     ) : null}
-                    <p className="text-xs text-slate-500">Última consulta API: {formatPtDate(data.lastPolledAt)}</p>
+                    <p className="text-xs text-slate-500">Última verificação: {formatPtDate(data.lastPolledAt)}</p>
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -522,7 +522,7 @@ export default function ServidorDetalhePage() {
             <Card className="border-slate-200/95 bg-gradient-to-br from-slate-50/90 to-white shadow-sm ring-1 ring-slate-900/[0.035]">
               <CardContent className="space-y-3 p-5 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-slate-500">Ligação RouterOS:</span>
+                  <span className="text-slate-500">Ligação com o equipamento:</span>
                   {data.online ? (
                     <Badge variant="success" className="font-semibold">
                       Disponível
@@ -655,11 +655,11 @@ export default function ServidorDetalhePage() {
                   </Button>
                   <Button type="button" size="sm" variant="outline" onClick={copyDiagnostic}>
                     <ClipboardCopy className="h-3.5 w-3.5" aria-hidden />
-                    Copiar JSON
+                    Copiar diagnóstico
                   </Button>
                   <Button type="button" size="sm" variant="outline" onClick={() => setJsonOpen(true)}>
                     <FileJson className="h-3.5 w-3.5" aria-hidden />
-                    Ver JSON
+                    Ver diagnóstico
                   </Button>
                   {isAdminUser ? (
                     <Button type="button" size="sm" variant="outline" onClick={() => setScriptOpen(true)}>
@@ -667,9 +667,9 @@ export default function ServidorDetalhePage() {
                     </Button>
                   ) : null}
                   <Button type="button" size="sm" variant="outline" disabled title="Disponível numa próxima fase">
-                    Sincronizar clientes
+                    Atualizar acessos dos clientes
                   </Button>
-                  <Button type="button" size="sm" variant="outline" disabled title="Sem endpoint seguro de configuração nesta fase">
+                  <Button type="button" size="sm" variant="outline" disabled title="Configuração disponível em breve">
                     Ver configuração
                   </Button>
                 </div>
@@ -686,7 +686,7 @@ export default function ServidorDetalhePage() {
           <Modal
             open={jsonOpen}
             onOpenChange={setJsonOpen}
-            title="Diagnóstico (JSON)"
+            title="Diagnóstico do equipamento"
             description="Dados da última consulta ao servidor. Apenas leitura."
             className="max-w-3xl"
           >

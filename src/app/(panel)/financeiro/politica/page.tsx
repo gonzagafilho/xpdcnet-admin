@@ -86,7 +86,7 @@ export default function FinanceiroPoliticaPage() {
               <p>Timezone: <span className="font-semibold">{data.policy.financeTimezone}</span></p>
               <p>Auto-reativar: <span className="font-semibold">{yesNo(data.policy.financeAutoReactivateWhenClear)}</span></p>
               <p className="sm:col-span-2 lg:col-span-4 text-xs text-neutral-500">
-                Janela de corte ativa agora: <strong>{yesNo(data.evaluation.cutoffWindowActiveNow)}</strong> · Snapshot em{" "}
+                Período de bloqueio ativo agora: <strong>{yesNo(data.evaluation.cutoffWindowActiveNow)}</strong> · Leitura atualizada em{" "}
                 {new Date(data.now).toLocaleString("pt-BR")}
               </p>
             </CardContent>

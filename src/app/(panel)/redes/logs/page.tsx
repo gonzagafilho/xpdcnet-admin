@@ -71,7 +71,7 @@ export default function RedesLogsOperacionaisPage() {
       setTotal(typeof data.total === "number" ? data.total : 0);
       setTenantSlug(data.tenantSlug ?? null);
     } catch (e) {
-      const msg = e instanceof ApiRequestError ? e.message : e instanceof Error ? e.message : "Falha ao carregar logs.";
+      const msg = e instanceof ApiRequestError ? e.message : e instanceof Error ? e.message : "Falha ao carregar o histórico.";
       setError(msg);
       setItems([]);
       setTotal(0);
@@ -126,11 +126,11 @@ export default function RedesLogsOperacionaisPage() {
         <CardContent className="grid gap-3 pt-0 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <div className="space-y-1">
             <label className="text-[11px] font-semibold text-slate-600">Acção</label>
-            <Input value={action} onChange={(e) => setAction(e.target.value)} placeholder="ex.: remote_agent.command.complete" className="font-mono text-xs" />
+            <Input value={action} onChange={(e) => setAction(e.target.value)} placeholder="Ex.: atualização concluída" className="font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <label className="text-[11px] font-semibold text-slate-600">Tipo de alvo</label>
-            <Input value={targetType} onChange={(e) => setTargetType(e.target.value)} placeholder="RemoteAgentCommand" className="font-mono text-xs" />
+            <Input value={targetType} onChange={(e) => setTargetType(e.target.value)} placeholder="Ex.: unidade remota" className="font-mono text-xs" />
           </div>
           <div className="space-y-1">
             <label className="text-[11px] font-semibold text-slate-600">Estado</label>
@@ -268,7 +268,7 @@ export default function RedesLogsOperacionaisPage() {
         onOpenChange={(o) => {
           if (!o) setJsonRow(null);
         }}
-        title="Detalhe do log"
+        title="Detalhes do evento"
         description={jsonRow ? `${jsonRow.action} · ${jsonRow.id}` : ""}
         className="max-w-3xl"
       >
