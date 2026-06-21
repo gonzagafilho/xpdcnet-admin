@@ -344,7 +344,18 @@ export function PlanosView() {
                         <div className="flex min-w-[230px] items-center justify-end gap-2">
                           <Button type="button" variant="outline" size="sm" onClick={() => openEdit(plan)}><Pencil className="h-3.5 w-3.5" /> Editar</Button>
                           <Button type="button" variant="secondary" size="sm" disabled={togglingId === plan._id} onClick={() => void toggleStatus(plan)}>{togglingId === plan._id ? "Aguarde" : plan.isActive === false ? "Ativar" : "Desativar"}</Button>
-                          <Button type="button" variant="ghost" size="icon" title={hasLinks ? "Plano vinculado não pode ser excluído" : "Excluir plano"} disabled={hasLinks} onClick={() => setDeleteTarget(plan)}><Trash2 className="h-4 w-4 text-red-600" /><span className="sr-only">Excluir</span></Button>
+                          <span title={hasLinks ? "Este plano possui clientes vinculados e não pode ser excluído." : "Excluir plano"}>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="text-red-700 hover:bg-red-50"
+                              disabled={hasLinks}
+                              onClick={() => setDeleteTarget(plan)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" /> Excluir
+                            </Button>
+                          </span>
                         </div>
                       </TableCell>
                     </TableRow>
