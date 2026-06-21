@@ -65,6 +65,7 @@ const navGroups: NavGroup[] = [
     children: [
       { label: "Central NOC", href: "/redes/noc" },
       { label: "Equipamentos", href: "/redes/servidores" },
+      { label: "Planos", href: "/redes/planos" },
       { label: "Unidades Remotas", href: "/redes/agents" },
       { label: "Histórico da Rede", href: "/redes/logs" },
     ],
@@ -128,11 +129,10 @@ const navGroups: NavGroup[] = [
     children: [
       /**
        * Hub operacional: nesta fase o menu prioriza o acesso directo a Configurações.
-       * Planos e Fila permanecem acessíveis por URL (/planos, /fila-sync).
+       * A fila permanece acessível por URL (/fila-sync).
        * Quando existirem rotas reais, podem acrescentar-se aqui entradas como
        * Formas de Pagamento, Usuários, Permissões, Chatbot (hiddenFromMenu: false).
        */
-      { label: "Planos (catálogo)", href: "/planos", hiddenFromMenu: true },
       { label: "Atualizações de Rede", href: "/fila-sync", hiddenFromMenu: true },
       { label: "Configurações", href: "/configuracoes" },
       { label: "BolePix", href: "/configuracoes/bolepix" },

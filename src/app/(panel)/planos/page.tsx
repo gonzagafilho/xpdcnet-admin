@@ -1,5 +1,5 @@
-import { PlanosView } from "./planos-view";
+import { redirect } from "next/navigation";
 
 export default function PlanosPage() {
-  return <PlanosView />;
+  redirect("/redes/planos");
 }

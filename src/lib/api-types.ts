@@ -423,15 +423,31 @@ export type ClientNetworkIntentFromApi = {
 export type PlanAuthType = "pppoe" | "hotspot";
 export type PlanBillingCycle = "monthly" | "weekly" | "daily";
 
+export type PlanNetworkRef = { id: string; name: string; code?: string; host?: string };
+
 export type PlanFromApi = {
   _id: string;
   name: string;
   speedMbps: number;
+  downloadMbps?: number;
+  uploadMbps?: number | null;
   price: number;
+  monthlyPrice?: number;
   billingCycle?: PlanBillingCycle | string;
   authType?: PlanAuthType | string;
   isActive?: boolean;
+  status?: "active" | "inactive";
+  networkNodeId?: string | { _id: string };
+  serverId?: string | { _id: string; name?: string; host?: string };
+  concentratorId?: string | { _id: string; name?: string; host?: string };
+  popName?: string;
+  description?: string;
+  routerosProfileName?: string;
   mikrotik?: { profile?: string; rateLimit?: string; priority?: number };
+  networkNode?: PlanNetworkRef | null;
+  linkedNodes?: PlanNetworkRef[];
+  linkedConcentrators?: PlanNetworkRef[];
+  stats?: { clients: number; accesses: number; concentrators: number };
 };
 
 /** Populate em GET /invoices (invoiceService.list). */

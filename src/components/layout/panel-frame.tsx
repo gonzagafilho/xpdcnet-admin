@@ -19,6 +19,7 @@ const titles: Record<string, { title: string; subtitle?: string }> = {
   "/contratos/layouts": { title: "Modelos de contratos", subtitle: "Documentos padronizados" },
   "/autenticacoes": { title: "Acessos", subtitle: "Credenciais dos clientes" },
   "/redes/servidores": { title: "Equipamentos de Rede", subtitle: "Estrutura e disponibilidade da operação" },
+  "/redes/planos": { title: "Planos de Internet", subtitle: "Catálogo operacional da rede DC NET" },
   "/redes/agents": { title: "Unidades remotas", subtitle: "Presença e atendimento nas filiais" },
   "/monitoramento/trafego": { title: "Monitoramento · Tráfego", subtitle: "Consumo e desempenho por equipamento" },
   "/monitoramento/clientes-on-off": {
@@ -51,6 +52,7 @@ function resolvePanelMeta(pathname: string): { title: string; subtitle?: string 
   if (/^\/monitoramento\/clientes-on-off\/.+/.test(pathname)) {
     return { title: "Monitoramento · Cliente", subtitle: "Ficha operacional e diagnóstico" };
   }
+  if (pathname.startsWith("/redes/planos")) return titles["/redes/planos"]!;
   if (pathname.startsWith("/redes/agents")) return titles["/redes/agents"]!;
   if (pathname.startsWith("/redes/servidores")) return titles["/redes/servidores"]!;
   if (pathname.startsWith("/monitoramento/mapa-clientes")) return titles["/monitoramento/mapa-clientes"]!;

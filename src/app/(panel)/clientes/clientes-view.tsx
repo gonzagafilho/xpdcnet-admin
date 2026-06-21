@@ -34,7 +34,6 @@ import {
 import { cn } from "@/lib/cn";
 import {
   AlertTriangle,
-  ArrowRight,
   Ban,
   Pencil,
   Plus,
@@ -244,11 +243,6 @@ export function ClientesView() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" size="sm" className="border-slate-200 bg-white shadow-sm" asChild>
-              <Link href="/planos" className="gap-1.5">
-                Catálogo de planos <ArrowRight className="h-3.5 w-3.5 text-slate-500" />
-              </Link>
-            </Button>
             <Button
               type="button"
               size="sm"

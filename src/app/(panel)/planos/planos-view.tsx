@@ -1,13 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import { userFacingApiError } from "@/lib/user-facing-api-error";
-import type { PlanAuthType, PlanBillingCycle, PlanFromApi } from "@/lib/api-types";
+import type {
+  PlanAuthType,
+  PlanBillingCycle,
+  PlanFromApi,
+} from "@/lib/api-types";
 import { formatBRL } from "@/lib/api-types";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,66 +26,110 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Network, Pencil, Plus, Trash2 } from "lucide-react";
+import {
+  Activity,
+  Gauge,
+  Network,
+  Pencil,
+  Plus,
+  RadioTower,
+  Trash2,
+  Users,
+} from "lucide-react";
 
 type ToastState = { variant: "success" | "error"; message: string } | null;
+type PlanOptions = {
+  nodes: { id: string; name: string; code: string }[];
+  concentrators: { id: string; name: string; host: string; networkNodeId: string | null }[];
+};
 
 type PlanForm = {
   name: string;
-  speedMbps: string;
-  price: string;
+  downloadMbps: string;
+  uploadMbps: string;
+  monthlyPrice: string;
   authType: PlanAuthType;
   billingCycle: PlanBillingCycle;
-  isActive: "true" | "false";
+  networkNodeId: string;
+  serverId: string;
+  popName: string;
+  routerosProfileName: string;
+  description: string;
+  status: "active" | "inactive";
 };
 
 const emptyForm: PlanForm = {
   name: "",
-  speedMbps: "",
-  price: "",
+  downloadMbps: "",
+  uploadMbps: "",
+  monthlyPrice: "",
   authType: "pppoe",
   billingCycle: "monthly",
-  isActive: "true",
+  networkNodeId: "",
+  serverId: "",
+  popName: "",
+  routerosProfileName: "",
+  description: "",
+  status: "active",
 };
 
-function planToForm(p: PlanFromApi): PlanForm {
+function planToForm(plan: PlanFromApi): PlanForm {
+  const serverId = plan.serverId && typeof plan.serverId === "object" ? plan.serverId._id : plan.serverId || "";
+  const nodeId = plan.networkNodeId && typeof plan.networkNodeId === "object"
+    ? plan.networkNodeId._id
+    : plan.networkNodeId || plan.networkNode?.id || "";
   return {
-    name: p.name,
-    speedMbps: String(p.speedMbps),
-    price: String(p.price),
-    authType: (p.authType === "hotspot" ? "hotspot" : "pppoe") as PlanAuthType,
-    billingCycle: (["monthly", "weekly", "daily"].includes(String(p.billingCycle))
-      ? p.billingCycle
-      : "monthly") as PlanBillingCycle,
-    isActive: p.isActive === false ? "false" : "true",
+    name: plan.name,
+    downloadMbps: String(plan.downloadMbps ?? plan.speedMbps),
+    uploadMbps: plan.uploadMbps == null ? "" : String(plan.uploadMbps),
+    monthlyPrice: String(plan.monthlyPrice ?? plan.price),
+    authType: plan.authType === "hotspot" ? "hotspot" : "pppoe",
+    billingCycle: ["monthly", "weekly", "daily"].includes(String(plan.billingCycle))
+      ? (plan.billingCycle as PlanBillingCycle)
+      : "monthly",
+    networkNodeId: nodeId,
+    serverId,
+    popName: plan.popName || "",
+    routerosProfileName: plan.routerosProfileName || plan.mikrotik?.profile || "",
+    description: plan.description || "",
+    status: plan.isActive === false ? "inactive" : "active",
   };
+}
+
+function speedLabel(value: number | null | undefined) {
+  return value == null ? "Não informado" : `${value} Mbps`;
 }
 
 export function PlanosView() {
   const [plans, setPlans] = useState<PlanFromApi[]>([]);
+  const [nodes, setNodes] = useState<PlanOptions["nodes"]>([]);
+  const [servers, setServers] = useState<PlanOptions["concentrators"]>([]);
   const [loading, setLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
-
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editing, setEditing] = useState<PlanFromApi | null>(null);
   const [form, setForm] = useState<PlanForm>(emptyForm);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-
   const [deleteTarget, setDeleteTarget] = useState<PlanFromApi | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4500);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setToast(null), 4500);
+    return () => clearTimeout(timer);
   }, [toast]);
 
   const load = useCallback(async () => {
     setListError(null);
-    const list = await apiFetch<PlanFromApi[]>("/plans");
-    setPlans(Array.isArray(list) ? list : []);
+    const [planRows, options] = await Promise.all([
+      apiFetch<PlanFromApi[]>("/plans"),
+      apiFetch<PlanOptions>("/plans/options"),
+    ]);
+    setPlans(Array.isArray(planRows) ? planRows : []);
+    setNodes(Array.isArray(options.nodes) ? options.nodes : []);
+    setServers(Array.isArray(options.concentrators) ? options.concentrators : []);
   }, []);
 
   useEffect(() => {
@@ -89,8 +138,8 @@ export function PlanosView() {
       setLoading(true);
       try {
         await load();
-      } catch (e) {
-        if (!cancelled) setListError(userFacingApiError(e));
+      } catch (error) {
+        if (!cancelled) setListError(userFacingApiError(error));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -100,6 +149,19 @@ export function PlanosView() {
     };
   }, [load]);
 
+  const summary = useMemo(() => {
+    const concentrators = new Set<string>();
+    for (const plan of plans) {
+      for (const row of plan.linkedConcentrators || []) concentrators.add(row.id);
+    }
+    return {
+      total: plans.length,
+      active: plans.filter((plan) => plan.isActive !== false).length,
+      clients: plans.reduce((sum, plan) => sum + (plan.stats?.clients || 0), 0),
+      concentrators: concentrators.size,
+    };
+  }, [plans]);
+
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
@@ -107,331 +169,221 @@ export function PlanosView() {
     setFormModalOpen(true);
   };
 
-  const openEdit = (p: PlanFromApi) => {
-    setEditing(p);
-    setForm(planToForm(p));
+  const openEdit = (plan: PlanFromApi) => {
+    setEditing(plan);
+    setForm(planToForm(plan));
     setFormError(null);
     setFormModalOpen(true);
   };
 
   const submitForm = async () => {
     setFormError(null);
-    const name = form.name.trim();
-    const speed = Number(form.speedMbps.replace(",", "."));
-    const price = Number(form.price.replace(",", "."));
-
-    if (!name) {
-      setFormError("Nome é obrigatório.");
-      return;
-    }
-    if (Number.isNaN(speed) || speed <= 0) {
-      setFormError("Velocidade inválida (Mbps).");
-      return;
-    }
-    if (Number.isNaN(price) || price < 0) {
-      setFormError("Preço inválido.");
-      return;
-    }
+    const downloadMbps = Number(form.downloadMbps.replace(",", "."));
+    const uploadMbps = form.uploadMbps.trim() ? Number(form.uploadMbps.replace(",", ".")) : null;
+    const monthlyPrice = Number(form.monthlyPrice.replace(",", "."));
+    if (!form.name.trim()) return setFormError("Nome é obrigatório.");
+    if (!Number.isFinite(downloadMbps) || downloadMbps <= 0) return setFormError("Download inválido.");
+    if (uploadMbps !== null && (!Number.isFinite(uploadMbps) || uploadMbps < 0)) return setFormError("Upload inválido.");
+    if (!Number.isFinite(monthlyPrice) || monthlyPrice < 0) return setFormError("Valor mensal inválido.");
 
     const body = {
-      name,
-      speedMbps: speed,
-      price,
-      billingCycle: form.billingCycle,
+      name: form.name.trim(),
+      downloadMbps,
+      uploadMbps,
+      monthlyPrice,
       authType: form.authType,
-      isActive: form.isActive === "true",
+      billingCycle: form.billingCycle,
+      networkNodeId: form.networkNodeId || null,
+      serverId: form.serverId || null,
+      popName: form.popName.trim(),
+      routerosProfileName: form.routerosProfileName.trim(),
+      description: form.description.trim(),
+      status: form.status,
     };
 
     setSaving(true);
     try {
-      if (!editing) {
-        await apiFetch<PlanFromApi>("/plans", { method: "POST", body: JSON.stringify(body) });
-        setToast({ variant: "success", message: "Plano criado com sucesso." });
-      } else {
-        await apiFetch<PlanFromApi>(`/plans/${editing._id}`, {
-          method: "PUT",
-          body: JSON.stringify(body),
-        });
-        setToast({ variant: "success", message: "Plano atualizado." });
-      }
+      await apiFetch<PlanFromApi>(editing ? `/plans/${editing._id}` : "/plans", {
+        method: editing ? "PUT" : "POST",
+        body: JSON.stringify(body),
+      });
+      setToast({ variant: "success", message: editing ? "Plano atualizado." : "Plano criado com sucesso." });
       setFormModalOpen(false);
       await load();
-    } catch (e) {
-      setFormError(userFacingApiError(e));
+    } catch (error) {
+      setFormError(userFacingApiError(error));
     } finally {
       setSaving(false);
     }
   };
 
-  const handleToggleActive = async (p: PlanFromApi) => {
-    const next = p.isActive === false;
-    setTogglingId(p._id);
+  const toggleStatus = async (plan: PlanFromApi) => {
+    const nextStatus = plan.isActive === false ? "active" : "inactive";
+    setTogglingId(plan._id);
     try {
-      await apiFetch<PlanFromApi>(`/plans/${p._id}`, {
-        method: "PUT",
-        body: JSON.stringify({ isActive: next }),
+      const updated = await apiFetch<PlanFromApi>(`/plans/${plan._id}/status`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: nextStatus }),
       });
-      setPlans((prev) =>
-        prev.map((x) => (x._id === p._id ? { ...x, isActive: next } : x)),
-      );
-      setToast({
-        variant: "success",
-        message: next ? "Plano ativado." : "Plano desativado.",
-      });
-    } catch (e) {
-      setToast({ variant: "error", message: userFacingApiError(e) });
+      setPlans((current) => current.map((row) => (row._id === plan._id ? updated : row)));
+      setToast({ variant: "success", message: nextStatus === "active" ? "Plano ativado." : "Plano desativado." });
+    } catch (error) {
+      setToast({ variant: "error", message: userFacingApiError(error) });
     } finally {
       setTogglingId(null);
     }
   };
 
-  const handleDelete = async () => {
+  const deletePlan = async () => {
     if (!deleteTarget) return;
-    const id = deleteTarget._id;
     try {
-      await apiFetch(`/plans/${id}`, { method: "DELETE" });
-      setToast({ variant: "success", message: "Plano eliminado." });
+      await apiFetch(`/plans/${deleteTarget._id}`, { method: "DELETE" });
+      setToast({ variant: "success", message: "Plano excluído." });
       await load();
-    } catch (e) {
-      setToast({ variant: "error", message: userFacingApiError(e) });
-      throw e;
+    } catch (error) {
+      setToast({ variant: "error", message: userFacingApiError(error) });
+      throw error;
     }
   };
 
-  const authLabel = (t: string | undefined) =>
-    t === "hotspot" ? "Hotspot" : "PPPoE";
+  const cards = [
+    { label: "Total de planos", value: summary.total, icon: Gauge, detail: "catálogo cadastrado" },
+    { label: "Planos ativos", value: summary.active, icon: Activity, detail: "disponíveis para operação" },
+    { label: "Clientes vinculados", value: summary.clients, icon: Users, detail: "cadastros com plano" },
+    { label: "Concentradores vinculados", value: summary.concentrators, icon: RadioTower, detail: "equipamentos em uso" },
+  ];
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
+    <div className="mx-auto max-w-[1500px] space-y-5">
       {toast ? (
-        <div
-          className={
-            toast.variant === "success"
-              ? "fixed bottom-4 right-4 z-[100] max-w-sm rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 shadow-lg"
-              : "fixed bottom-4 right-4 z-[100] max-w-sm rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900 shadow-lg"
-          }
-          role="status"
-        >
+        <div className={`fixed bottom-4 right-4 z-[100] max-w-sm rounded-md border px-4 py-3 text-sm shadow-lg ${toast.variant === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-red-200 bg-red-50 text-red-900"}`} role="status">
           {toast.message}
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-lg font-semibold text-zinc-900">Planos</h1>
-          <p className="text-sm text-zinc-500">
-            CRUD sobre a API /plans (tenant resolvido no servidor).
-          </p>
+          <p className="text-[11px] font-semibold uppercase text-emerald-700">Rede DC NET</p>
+          <h1 className="mt-1 text-xl font-semibold text-slate-950 sm:text-2xl">Planos de Internet</h1>
+          <p className="mt-1 text-sm text-slate-600">Catálogo operacional de planos vinculados à rede DC NET</p>
         </div>
-        <Button type="button" onClick={openCreate} className="shrink-0 gap-2" disabled={loading}>
-          <Plus className="h-4 w-4" />
-          Novo plano
+        <Button type="button" onClick={openCreate} className="gap-2" disabled={loading}>
+          <Plus className="h-4 w-4" /> Novo plano
         </Button>
-      </div>
+      </header>
 
-      {listError ? (
-        <div
-          className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-          role="alert"
-        >
-          {listError}
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumo dos planos">
+        {cards.map(({ label, value, icon: Icon, detail }) => (
+          <Card key={label} className="rounded-lg border-slate-200 shadow-sm">
+            <CardContent className="flex items-center justify-between gap-4 p-4">
+              <div>
+                <p className="text-xs font-medium text-slate-500">{label}</p>
+                <p className="mt-1 text-2xl font-semibold text-slate-950">{loading ? "—" : value}</p>
+                <p className="mt-1 text-xs text-slate-500">{detail}</p>
+              </div>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700">
+                <Icon className="h-5 w-5" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
+
+      {listError ? <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800" role="alert">{listError}</div> : null}
+
+      <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Catálogo operacional</h2>
+            <p className="text-xs text-slate-500">Vínculos são calculados a partir dos clientes e acessos existentes.</p>
+          </div>
+          <Network className="h-5 w-5 text-slate-400" />
         </div>
-      ) : null}
+        {loading ? (
+          <p className="py-14 text-center text-sm text-slate-500">Carregando planos...</p>
+        ) : plans.length === 0 ? (
+          <div className="p-6"><EmptyState icon={<Network className="mx-auto h-10 w-10" />} title="Nenhum plano cadastrado" description="Crie o primeiro plano operacional da rede." action={<Button onClick={openCreate}>Novo plano</Button>} /></div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[220px]">Nome do plano</TableHead>
+                  <TableHead>Download</TableHead>
+                  <TableHead>Upload</TableHead>
+                  <TableHead>Valor mensal</TableHead>
+                  <TableHead>Node</TableHead>
+                  <TableHead>POP</TableHead>
+                  <TableHead className="min-w-[180px]">Concentrador</TableHead>
+                  <TableHead>Clientes</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {plans.map((plan) => {
+                  const node = plan.networkNode || plan.linkedNodes?.[0];
+                  const concentrators = plan.linkedConcentrators || [];
+                  const pop = plan.popName || concentrators[0]?.name || "Não informado";
+                  const hasLinks = (plan.stats?.clients || 0) > 0 || (plan.stats?.accesses || 0) > 0;
+                  return (
+                    <TableRow key={plan._id}>
+                      <TableCell>
+                        <p className="font-medium text-slate-950">{plan.name}</p>
+                        {plan.routerosProfileName || plan.mikrotik?.profile ? <p className="mt-0.5 text-xs text-slate-500">Perfil: {plan.routerosProfileName || plan.mikrotik?.profile}</p> : null}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-slate-700">{speedLabel(plan.downloadMbps ?? plan.speedMbps)}</TableCell>
+                      <TableCell className="whitespace-nowrap text-slate-700">{speedLabel(plan.uploadMbps)}</TableCell>
+                      <TableCell className="whitespace-nowrap font-medium text-slate-800">{formatBRL(plan.monthlyPrice ?? plan.price)}</TableCell>
+                      <TableCell>{node ? <><p className="text-sm text-slate-800">{node.name}</p><p className="text-xs text-slate-500">{node.code}</p></> : <span className="text-slate-400">Não vinculado</span>}</TableCell>
+                      <TableCell className="text-slate-700">{pop}</TableCell>
+                      <TableCell>{concentrators.length ? concentrators.map((row) => <div key={row.id} className="mb-1 last:mb-0"><p className="text-sm text-slate-800">{row.name}</p>{row.host ? <p className="text-xs text-slate-500">{row.host}</p> : null}</div>) : <span className="text-slate-400">Não vinculado</span>}</TableCell>
+                      <TableCell><span className="font-semibold text-slate-900">{plan.stats?.clients || 0}</span><p className="text-xs text-slate-500">{plan.stats?.accesses || 0} acessos</p></TableCell>
+                      <TableCell>{plan.isActive === false ? <Badge variant="muted">Inativo</Badge> : <Badge variant="success">Ativo</Badge>}</TableCell>
+                      <TableCell>
+                        <div className="flex min-w-[230px] items-center justify-end gap-2">
+                          <Button type="button" variant="outline" size="sm" onClick={() => openEdit(plan)}><Pencil className="h-3.5 w-3.5" /> Editar</Button>
+                          <Button type="button" variant="secondary" size="sm" disabled={togglingId === plan._id} onClick={() => void toggleStatus(plan)}>{togglingId === plan._id ? "Aguarde" : plan.isActive === false ? "Ativar" : "Desativar"}</Button>
+                          <Button type="button" variant="ghost" size="icon" title={hasLinks ? "Plano vinculado não pode ser excluído" : "Excluir plano"} disabled={hasLinks} onClick={() => setDeleteTarget(plan)}><Trash2 className="h-4 w-4 text-red-600" /><span className="sr-only">Excluir</span></Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </section>
 
-      {loading ? (
-        <p className="py-12 text-center text-sm text-zinc-500">A carregar planos…</p>
-      ) : plans.length === 0 ? (
-        <EmptyState
-          icon={<Network className="mx-auto h-10 w-10" />}
-          title="Nenhum plano"
-          description="Crie o primeiro plano com «Novo plano» ou aguarde dados na API."
-          action={
-            <Button type="button" onClick={openCreate}>
-              Novo plano
-            </Button>
-          }
-        />
-      ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Velocidade</TableHead>
-              <TableHead>Preço</TableHead>
-              <TableHead>Autenticação</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {plans.map((p) => (
-              <TableRow key={p._id}>
-                <TableCell className="font-medium text-zinc-900">{p.name}</TableCell>
-                <TableCell className="text-zinc-600">{p.speedMbps} Mbps</TableCell>
-                <TableCell className="text-zinc-600">{formatBRL(p.price)}</TableCell>
-                <TableCell className="text-zinc-600">{authLabel(p.authType)}</TableCell>
-                <TableCell>
-                  {p.isActive === false ? (
-                    <Badge variant="warning">Inativo</Badge>
-                  ) : (
-                    <Badge variant="success">Ativo</Badge>
-                  )}
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap items-center justify-end gap-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      disabled={togglingId === p._id}
-                      onClick={() => void handleToggleActive(p)}
-                    >
-                      {togglingId === p._id
-                        ? "…"
-                        : p.isActive === false
-                          ? "Ativar"
-                          : "Desativar"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1"
-                      onClick={() => openEdit(p)}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                      Editar
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="gap-1 text-red-700 hover:bg-red-50"
-                      onClick={() => setDeleteTarget(p)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Eliminar
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-
-      <Modal
-        open={formModalOpen}
-        onOpenChange={setFormModalOpen}
-        title={editing ? "Editar plano" : "Novo plano"}
-        description={
-          editing
-            ? "Alterações enviadas com PUT /plans/:id."
-            : "Campos alinhados a POST /plans (name, speedMbps, price obrigatórios)."
-        }
-        className="max-w-xl"
-      >
+      <Modal open={formModalOpen} onOpenChange={setFormModalOpen} title={editing ? "Editar plano" : "Novo plano"} description="Defina as condições comerciais e os vínculos operacionais do plano." className="max-w-3xl">
         <div className="space-y-4">
-          {formError ? (
-            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-              {formError}
-            </div>
-          ) : null}
-
-          <div className="space-y-1.5">
-            <Label htmlFor="pf-name">Nome *</Label>
-            <Input
-              id="pf-name"
-              value={form.name}
-              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="Ex.: 300 Mbps"
-            />
+          {formError ? <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{formError}</div> : null}
+          <div className="space-y-1.5"><Label htmlFor="plan-name">Nome *</Label><Input id="plan-name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Ex.: DC NET 600 MEGA" /></div>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1.5"><Label htmlFor="plan-download">Download (Mbps) *</Label><Input id="plan-download" inputMode="decimal" value={form.downloadMbps} onChange={(event) => setForm((current) => ({ ...current, downloadMbps: event.target.value }))} /></div>
+            <div className="space-y-1.5"><Label htmlFor="plan-upload">Upload (Mbps)</Label><Input id="plan-upload" inputMode="decimal" value={form.uploadMbps} onChange={(event) => setForm((current) => ({ ...current, uploadMbps: event.target.value }))} /></div>
+            <div className="space-y-1.5"><Label htmlFor="plan-price">Valor mensal (R$) *</Label><Input id="plan-price" inputMode="decimal" value={form.monthlyPrice} onChange={(event) => setForm((current) => ({ ...current, monthlyPrice: event.target.value }))} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <Label htmlFor="pf-speed">Velocidade (Mbps) *</Label>
-              <Input
-                id="pf-speed"
-                inputMode="decimal"
-                value={form.speedMbps}
-                onChange={(e) => setForm((f) => ({ ...f, speedMbps: e.target.value }))}
-              />
-            </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="pf-price">Preço (R$) *</Label>
-              <Input
-                id="pf-price"
-                inputMode="decimal"
-                value={form.price}
-                onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
-              />
-            </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5"><Label htmlFor="plan-node">Node</Label><Select id="plan-node" value={form.networkNodeId} onChange={(event) => setForm((current) => ({ ...current, networkNodeId: event.target.value }))}><option value="">Sem vínculo explícito</option>{nodes.map((node) => <option key={node.id} value={node.id}>{node.name} ({node.code})</option>)}</Select></div>
+            <div className="space-y-1.5"><Label htmlFor="plan-server">Concentrador</Label><Select id="plan-server" value={form.serverId} onChange={(event) => setForm((current) => ({ ...current, serverId: event.target.value }))}><option value="">Derivar pelos acessos</option>{servers.map((server) => <option key={server.id} value={server.id}>{server.name} ({server.host})</option>)}</Select></div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="pf-auth">Tipo de autenticação</Label>
-            <Select
-              id="pf-auth"
-              value={form.authType}
-              onChange={(e) => setForm((f) => ({ ...f, authType: e.target.value as PlanAuthType }))}
-            >
-              <option value="pppoe">PPPoE</option>
-              <option value="hotspot">Hotspot</option>
-            </Select>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5"><Label htmlFor="plan-pop">POP</Label><Input id="plan-pop" value={form.popName} onChange={(event) => setForm((current) => ({ ...current, popName: event.target.value }))} placeholder="Ex.: CHACARA STARLINK" /></div>
+            <div className="space-y-1.5"><Label htmlFor="plan-profile">Perfil RouterOS</Label><Input id="plan-profile" value={form.routerosProfileName} onChange={(event) => setForm((current) => ({ ...current, routerosProfileName: event.target.value }))} placeholder="Opcional" /></div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="pf-cycle">Ciclo de faturação</Label>
-            <Select
-              id="pf-cycle"
-              value={form.billingCycle}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, billingCycle: e.target.value as PlanBillingCycle }))
-              }
-            >
-              <option value="monthly">Mensal</option>
-              <option value="weekly">Semanal</option>
-              <option value="daily">Diário</option>
-            </Select>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="space-y-1.5"><Label htmlFor="plan-auth">Autenticação</Label><Select id="plan-auth" value={form.authType} onChange={(event) => setForm((current) => ({ ...current, authType: event.target.value as PlanAuthType }))}><option value="pppoe">PPPoE</option><option value="hotspot">Hotspot</option></Select></div>
+            <div className="space-y-1.5"><Label htmlFor="plan-cycle">Ciclo</Label><Select id="plan-cycle" value={form.billingCycle} onChange={(event) => setForm((current) => ({ ...current, billingCycle: event.target.value as PlanBillingCycle }))}><option value="monthly">Mensal</option><option value="weekly">Semanal</option><option value="daily">Diário</option></Select></div>
+            <div className="space-y-1.5"><Label htmlFor="plan-status">Status</Label><Select id="plan-status" value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as "active" | "inactive" }))}><option value="active">Ativo</option><option value="inactive">Inativo</option></Select></div>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="pf-active">Estado</Label>
-            <Select
-              id="pf-active"
-              value={form.isActive}
-              onChange={(e) => setForm((f) => ({ ...f, isActive: e.target.value as "true" | "false" }))}
-            >
-              <option value="true">Ativo</option>
-              <option value="false">Inativo</option>
-            </Select>
-          </div>
-          <div className="flex flex-wrap gap-2 border-t border-neutral-100 pt-4">
-            <Button type="button" variant="secondary" onClick={() => setFormModalOpen(false)} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button
-              type="button"
-              className="border-0 bg-emerald-600 font-semibold text-white hover:bg-emerald-700"
-              onClick={() => void submitForm()}
-              disabled={saving}
-            >
-              {saving ? "A guardar…" : editing ? "Guardar" : "Criar"}
-            </Button>
-          </div>
+          <div className="space-y-1.5"><Label htmlFor="plan-description">Descrição</Label><textarea id="plan-description" className="min-h-20 w-full rounded-md border border-slate-200 px-3 py-2 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} /></div>
+          <div className="flex justify-end gap-2 border-t border-slate-100 pt-4"><Button type="button" variant="secondary" onClick={() => setFormModalOpen(false)} disabled={saving}>Cancelar</Button><Button type="button" onClick={() => void submitForm()} disabled={saving}>{saving ? "Salvando..." : editing ? "Salvar alterações" : "Criar plano"}</Button></div>
         </div>
       </Modal>
 
-      <ConfirmDialog
-        open={!!deleteTarget}
-        onOpenChange={(o) => !o && setDeleteTarget(null)}
-        title="Eliminar plano"
-        description={
-          deleteTarget
-            ? `Tem a certeza que deseja eliminar «${deleteTarget.name}»? Esta ação não pode ser anulada. Clientes associados podem ficar inconsistentes.`
-            : ""
-        }
-        confirmLabel="Eliminar"
-        variant="destructive"
-        onConfirm={handleDelete}
-      />
+      <ConfirmDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)} title="Excluir plano" description={deleteTarget ? `Excluir ${deleteTarget.name}? A operação só será aceita se não houver clientes, acessos ou faturas vinculados.` : ""} confirmLabel="Excluir" variant="destructive" onConfirm={deletePlan} />
     </div>
   );
 }
