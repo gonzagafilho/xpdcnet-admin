@@ -1,5 +1,68 @@
 /** Alinhado a clientService / planService + modelos Mongoose. */
 
+export type MonitoringConcentratorHealth = "healthy" | "warning" | "degraded" | "critical";
+
+export type MonitoringConcentratorItem = {
+  id: string;
+  name: string;
+  type: string;
+  protocol: string;
+  host: string;
+  port: number | null;
+  enabled: boolean;
+  status: string;
+  lastTestAt: string | null;
+  lastErrorSafe: string;
+  cpuPercent: number;
+  memoryPercent: number;
+  pppOnline: number;
+  pppOffline: number;
+  pppUnknown: number;
+  pppTotal: number;
+  interfaceRunning: number;
+  interfaceTotal: number;
+  version: string;
+  uptime: string;
+  boardName: string;
+  architectureName: string;
+  telemetryAt: string | null;
+  healthScore: number;
+  health: MonitoringConcentratorHealth;
+};
+
+export type MonitoringConcentratorsResponse = {
+  ok: boolean;
+  generatedAt: string;
+  total: number;
+  online: number;
+  offline: number;
+  unknown: number;
+  warning: number;
+  critical: number;
+  pppOnline: number;
+  pppTotal: number;
+  interfaceRunning: number;
+  interfaceTotal: number;
+  items: MonitoringConcentratorItem[];
+};
+
+export type MonitoringConcentratorTelemetrySnapshot = {
+  createdAt: string;
+  cpuPercent: number;
+  memoryPercent: number;
+  pppOnline: number;
+  interfaceRunning: number;
+  interfaceTotal: number;
+  health: MonitoringConcentratorHealth;
+};
+
+export type MonitoringConcentratorDetailResponse = {
+  ok: boolean;
+  generatedAt: string;
+  item: MonitoringConcentratorItem;
+  telemetryHistory: MonitoringConcentratorTelemetrySnapshot[];
+};
+
 /** GET /health — sem autenticação no backend XPDCNET. */
 export type HealthFromApi = {
   status: "ok" | "error";
