@@ -28,6 +28,9 @@ export type MonitoringConcentratorItem = {
   telemetryAt: string | null;
   healthScore: number;
   health: MonitoringConcentratorHealth;
+  openAlerts: number;
+  criticalAlerts: number;
+  warningAlerts: number;
 };
 
 export type MonitoringConcentratorsResponse = {
@@ -43,7 +46,32 @@ export type MonitoringConcentratorsResponse = {
   pppTotal: number;
   interfaceRunning: number;
   interfaceTotal: number;
+  openAlerts: number;
+  criticalAlerts: number;
+  warningAlerts: number;
   items: MonitoringConcentratorItem[];
+};
+
+export type MonitoringConcentratorAlert = {
+  id?: string;
+  _id?: string;
+  concentratorId: string;
+  concentratorName: string;
+  type: "CPU_HIGH" | "RAM_HIGH" | "PPP_DROP" | "OFFLINE" | "TELEMETRY_STALE";
+  severity: "warning" | "critical";
+  status: "open" | "resolved";
+  title: string;
+  description: string;
+  metricValue: number | string | null;
+  thresholdValue: number | string | null;
+  openedAt: string;
+  resolvedAt: string | null;
+};
+
+export type MonitoringConcentratorAlertsResponse = {
+  ok: boolean;
+  total: number;
+  items: MonitoringConcentratorAlert[];
 };
 
 export type MonitoringConcentratorTelemetrySnapshot = {

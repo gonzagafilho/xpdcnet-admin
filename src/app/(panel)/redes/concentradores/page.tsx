@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  BellRing,
   Cable,
   CheckCircle2,
   Clock3,
@@ -12,6 +13,7 @@ import {
   RefreshCw,
   Router,
   Server,
+  ShieldAlert,
   ShieldCheck,
   TriangleAlert,
   Wifi,
@@ -26,6 +28,8 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { ApiRequestError, apiFetch } from "@/lib/api-client";
 import type {
+  MonitoringConcentratorAlert,
+  MonitoringConcentratorAlertsResponse,
   MonitoringConcentratorDetailResponse,
   MonitoringConcentratorHealth,
   MonitoringConcentratorTelemetrySnapshot,
@@ -71,6 +75,9 @@ type NetworkConcentrator = {
   interfaceTotal?: number;
   version?: string;
   uptime?: string;
+  openAlerts?: number;
+  criticalAlerts?: number;
+  warningAlerts?: number;
 };
 
 type FormState = {
@@ -178,6 +185,9 @@ function mergeConcentrator(
     interfaceTotal: monitoring.interfaceTotal,
     version: monitoring.version,
     uptime: monitoring.uptime,
+    openAlerts: monitoring.openAlerts,
+    criticalAlerts: monitoring.criticalAlerts,
+    warningAlerts: monitoring.warningAlerts,
   };
 }
 
@@ -201,6 +211,9 @@ export default function ConcentradoresPage() {
   const [monitoringDetail, setMonitoringDetail] = useState<MonitoringConcentratorDetailResponse | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
+  const [openAlerts, setOpenAlerts] = useState<MonitoringConcentratorAlert[]>([]);
+  const [resolvingAlertId, setResolvingAlertId] = useState<string | null>(null);
+  const [alertsError, setAlertsError] = useState("");
   const [selectedId, setSelectedId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -232,11 +245,20 @@ export default function ConcentradoresPage() {
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
+    setAlertsError("");
     try {
-      const [concentrators, central, nodes] = await Promise.all([
+      const alertsRequest = apiFetch<MonitoringConcentratorAlertsResponse>(
+        "/monitoring/alerts/open",
+        { timeoutMs: 60_000 },
+      ).catch((err) => {
+        setAlertsError(apiError(err));
+        return null;
+      });
+      const [concentrators, central, nodes, alerts] = await Promise.all([
         apiFetch<NetworkConcentrator[]>("/api/admin/network/concentrators", { timeoutMs: 60_000 }),
         apiFetch<MonitoringConcentratorsResponse>("/monitoring/concentrators", { timeoutMs: 60_000 }),
         apiFetch<NetworkNodeFromApi[]>("/network-nodes", { timeoutMs: 60_000 }),
+        alertsRequest,
       ]);
       const monitoringItems = Array.isArray(central?.items) ? central.items : [];
       const operationalById = new Map(monitoringItems.map((item) => [item.id, item]));
@@ -244,6 +266,7 @@ export default function ConcentradoresPage() {
       const nextRows = adminRows.map((admin) => mergeConcentrator(admin, operationalById.get(admin.id)));
       setRows(nextRows);
       setMonitoring(central);
+      if (alerts) setOpenAlerts(Array.isArray(alerts.items) ? alerts.items : []);
       setAgents((Array.isArray(nodes) ? nodes : []).filter((node) => node.type === "REMOTE_AGENT"));
       setSelectedId((current) => (
         current && nextRows.some((row) => row.id === current) ? current : nextRows[0]?.id || ""
@@ -352,6 +375,25 @@ export default function ConcentradoresPage() {
     }
   }
 
+  async function resolveAlert(alert: MonitoringConcentratorAlert) {
+    const alertId = alert.id || alert._id;
+    if (!alertId) {
+      setAlertsError("Alerta sem identificador válido.");
+      return;
+    }
+    setResolvingAlertId(alertId);
+    setAlertsError("");
+    try {
+      await apiFetch(`/monitoring/alerts/${encodeURIComponent(alertId)}/resolve`, { method: "POST" });
+      setNotice("Alerta resolvido com sucesso.");
+      await load();
+    } catch (err) {
+      setAlertsError(apiError(err));
+    } finally {
+      setResolvingAlertId(null);
+    }
+  }
+
   async function testConnection(row: NetworkConcentrator) {
     setTestingId(row.id);
     setError("");
@@ -400,12 +442,64 @@ export default function ConcentradoresPage() {
       {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div> : null}
       {notice ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</div> : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" aria-label="Resumo dos concentradores">
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7" aria-label="Resumo dos concentradores">
         <ExecutiveCard label="Concentradores" value={loading ? "—" : monitoring?.total ?? rows.length} icon={Server} tone="blue" />
         <ExecutiveCard label="Online" value={loading ? "—" : monitoring?.online ?? 0} icon={CheckCircle2} tone="green" />
         <ExecutiveCard label="PPP Online" value={loading ? "—" : monitoring?.pppOnline ?? 0} icon={Wifi} tone="cyan" />
         <ExecutiveCard label="Interfaces UP" value={loading ? "—" : String(monitoring?.interfaceRunning ?? 0) + "/" + String(monitoring?.interfaceTotal ?? 0)} icon={Cable} tone="slate" />
+        <ExecutiveCard label="Alertas abertos" value={loading ? "—" : monitoring?.openAlerts ?? openAlerts.length} icon={BellRing} tone="amber" />
+        <ExecutiveCard label="Críticos" value={loading ? "—" : monitoring?.criticalAlerts ?? openAlerts.filter((alert) => alert.severity === "critical").length} icon={ShieldAlert} tone="red" />
+        <ExecutiveCard label="Avisos" value={loading ? "—" : monitoring?.warningAlerts ?? openAlerts.filter((alert) => alert.severity === "warning").length} icon={TriangleAlert} tone="yellow" />
       </section>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Alertas Inteligentes</CardTitle>
+          <CardDescription>Condições operacionais detectadas automaticamente nos concentradores.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {alertsError ? (
+            <div className="border border-red-200 bg-red-50 p-4 text-sm text-red-800">Não foi possível carregar os alertas: {alertsError}</div>
+          ) : !openAlerts.length ? (
+            <div className="flex items-center gap-3 border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-900">
+              <CheckCircle2 className="h-5 w-5" /> Sem alertas ativos
+            </div>
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {openAlerts.map((alert) => {
+                const alertId = alert.id || alert._id || `${alert.concentratorId}-${alert.type}`;
+                const critical = alert.severity === "critical";
+                return (
+                  <div key={alertId} className={`border p-4 ${critical ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 gap-3">
+                        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white ${critical ? "text-red-600" : "text-amber-600"}`}>
+                          {critical ? <ShieldAlert className="h-5 w-5" /> : <TriangleAlert className="h-5 w-5" />}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-slate-950">{alert.title}</p>
+                          <p className="mt-0.5 text-xs font-medium text-slate-600">{alert.concentratorName}</p>
+                        </div>
+                      </div>
+                      <Badge variant={critical ? "error" : "warning"}>{critical ? "Crítico" : "Aviso"}</Badge>
+                    </div>
+                    <p className="mt-3 text-sm text-slate-700">{alert.description}</p>
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-black/5 pt-3">
+                      <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
+                        <span>{alert.type}</span>
+                        <span>{formatDate(alert.openedAt)}</span>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => void resolveAlert(alert)} disabled={resolvingAlertId === (alert.id || alert._id)}>
+                        {resolvingAlertId === (alert.id || alert._id) ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Resolver
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {loading ? (
         <div className="flex items-center gap-2 py-16 text-sm text-slate-500">
@@ -443,6 +537,9 @@ export default function ConcentradoresPage() {
                     <span>Health {row.healthScore !== undefined ? String(row.healthScore) + "%" : "—"}</span>
                     <span>CPU {row.cpuPercent !== undefined ? String(row.cpuPercent) + "%" : "—"}</span>
                     <span>RAM {row.memoryPercent !== undefined ? String(row.memoryPercent) + "%" : "—"}</span>
+                    <span className="text-red-600">Críticos {row.criticalAlerts ?? 0}</span>
+                    <span className="text-amber-600">Avisos {row.warningAlerts ?? 0}</span>
+                    <span>Alertas {row.openAlerts ?? 0}</span>
                   </div>
                 </button>
               );
@@ -636,12 +733,15 @@ export default function ConcentradoresPage() {
   );
 }
 
-function ExecutiveCard({ label, value, icon: Icon, tone }: { label: string; value: string | number; icon: React.ComponentType<{ className?: string }>; tone: "blue" | "green" | "cyan" | "slate" }) {
+function ExecutiveCard({ label, value, icon: Icon, tone }: { label: string; value: string | number; icon: React.ComponentType<{ className?: string }>; tone: "blue" | "green" | "cyan" | "slate" | "amber" | "yellow" | "red" }) {
   const tones = {
     blue: "border-blue-200 bg-blue-50 text-blue-950",
     green: "border-emerald-200 bg-emerald-50 text-emerald-950",
     cyan: "border-cyan-200 bg-cyan-50 text-cyan-950",
     slate: "border-slate-200 bg-white text-slate-950",
+    amber: "border-amber-200 bg-amber-50 text-amber-950",
+    yellow: "border-yellow-200 bg-yellow-50 text-yellow-950",
+    red: "border-red-200 bg-red-50 text-red-950",
   };
   return <div className={"flex h-20 items-center justify-between rounded-lg border px-4 shadow-sm " + tones[tone]}><div><p className="text-xs font-medium opacity-70">{label}</p><p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p></div><div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 shadow-sm"><Icon className="h-5 w-5" /></div></div>;
 }
