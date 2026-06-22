@@ -26,6 +26,7 @@ import {
   Settings,
   Trash2,
   UserCheck,
+  UserX,
   Users,
   XCircle,
 } from "lucide-react";
@@ -206,26 +207,34 @@ export function ClientesView() {
   };
 
   const cards = [
-    { label: "Todos", value: summary.total, icon: Users, tone: "border-slate-200 bg-white text-slate-900" },
+    { label: "Todos", value: summary.total, icon: Users, tone: "border-blue-200 bg-blue-50 text-blue-950" },
     { label: "Ativos", value: summary.active, icon: UserCheck, tone: "border-emerald-200 bg-emerald-50 text-emerald-950" },
-    { label: "Desativados / Inativos", value: summary.inactive, icon: XCircle, tone: "border-red-200 bg-red-50 text-red-950" },
+    { label: "Desativados / Inativos", value: summary.inactive, icon: UserX, tone: "border-red-200 bg-red-50 text-red-950" },
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[96rem] space-y-5">
+    <div className="mx-auto w-full max-w-[96rem] space-y-3">
       {toast ? <div className={`fixed bottom-4 right-4 z-[120] max-w-sm rounded-md border px-4 py-3 text-sm shadow-lg ${toast.variant === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-900" : "border-red-200 bg-red-50 text-red-900"}`} role="status">{toast.message}</div> : null}
 
-      <header className="flex flex-col gap-2 border-b border-slate-200 pb-5">
-        <p className="text-[11px] font-semibold uppercase text-emerald-700">Operação comercial</p>
-        <h1 className="text-xl font-semibold text-slate-950 sm:text-2xl">Clientes</h1>
-        <p className="text-sm text-slate-600">Carteira, cadastro e relacionamento dos clientes DC NET.</p>
-      </header>
+      <header className="hidden"></header>
 
       <section className="grid gap-3 sm:grid-cols-3" aria-label="Resumo dos clientes">
         {cards.map(({ label, value, icon: Icon, tone }) => (
-          <div key={label} className={`flex min-h-24 items-center justify-between rounded-lg border px-5 py-4 shadow-sm ${tone}`}>
-            <div><p className="text-xs font-medium opacity-70">{label}</p><p className="mt-1 text-3xl font-semibold tabular-nums">{loading ? "—" : value}</p></div>
-            <Icon className="h-6 w-6 opacity-65" />
+          <div
+            key={label}
+            className={`flex h-16 cursor-pointer items-center justify-between rounded-xl border px-4 py-2 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${tone}`}
+          >
+            <div>
+              <p className="text-xs font-medium opacity-70">{label}</p>
+
+              <p className="text-xl font-semibold tabular-nums">
+                {loading ? "—" : value}
+              </p>
+            </div>
+
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 shadow-sm">
+              <Icon className="h-5 w-5 opacity-90" />
+            </div>
           </div>
         ))}
       </section>
