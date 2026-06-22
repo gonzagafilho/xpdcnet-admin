@@ -43,6 +43,15 @@ type OperationalClient = ClientFromApi & {
 type Summary = { total: number; active: number; inactive: number; pending: number; byStatus: Record<string, number> };
 type PlanOptions = { concentrators: Array<{ id: string; name: string; host: string }> };
 type ToastState = { variant: "success" | "error"; message: string } | null;
+type StatusTarget = "active" | "disabled";
+type StatusAction = {
+  clientIds: string[];
+  target: StatusTarget;
+  title: string;
+  description: string;
+  confirmLabel: string;
+  bulk?: boolean;
+};
 
 function shortId(id: string) {
   return `#${id.slice(-6).toUpperCase()}`;
@@ -52,6 +61,31 @@ function statusIcon(status: ClientStatus) {
   if (status === "active") return <CheckCircle2 className="h-4 w-4 text-emerald-600" />;
   if (status === "disabled" || status === "cancelled") return <XCircle className="h-4 w-4 text-red-600" />;
   return <Clock3 className="h-4 w-4 text-amber-600" />;
+}
+
+function quickStatusAction(client: OperationalClient): StatusAction | null {
+  if (client.status === "pending") {
+    return {
+      clientIds: [client._id], target: "active", title: "Ativar cliente",
+      description: `Confirmar a ativação cadastral de ${client.fullName}? Os acessos vinculados serão marcados como ativos, sem comandos de rede.`,
+      confirmLabel: "Ativar",
+    };
+  }
+  if (client.status === "active") {
+    return {
+      clientIds: [client._id], target: "disabled", title: "Desativar cliente",
+      description: `Confirmar a desativação cadastral de ${client.fullName}? Nenhuma sessão PPPoE será desconectada.`,
+      confirmLabel: "Desativar",
+    };
+  }
+  if (client.status === "disabled") {
+    return {
+      clientIds: [client._id], target: "active", title: "Reativar cliente",
+      description: `Confirmar a reativação cadastral de ${client.fullName}? Nenhum comando será enviado ao concentrador.`,
+      confirmLabel: "Reativar",
+    };
+  }
+  return null;
 }
 
 export function ClientesView() {
@@ -74,6 +108,7 @@ export function ClientesView() {
   const [editingClient, setEditingClient] = useState<OperationalClient | null>(null);
   const [detailClient, setDetailClient] = useState<OperationalClient | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<OperationalClient | null>(null);
+  const [statusAction, setStatusAction] = useState<StatusAction | null>(null);
   const [toast, setToast] = useState<ToastState>(null);
 
   useEffect(() => {
@@ -166,6 +201,68 @@ export function ClientesView() {
       setToast({ variant: "error", message: userFacingApiError(error) });
       throw error;
     }
+  };
+
+  const applyStatusLocally = (clientIds: string[], target: StatusTarget) => {
+    const idSet = new Set(clientIds);
+    const affected = clients.filter((client) => idSet.has(client._id));
+
+    setClients((current) => {
+      const updated = current.map((client) => idSet.has(client._id) ? { ...client, status: target } : client);
+      return statusFilter && statusFilter !== target ? updated.filter((client) => !idSet.has(client._id)) : updated;
+    });
+    setSummary((current) => {
+      const byStatus = { ...current.byStatus };
+      for (const client of affected) byStatus[client.status] = Math.max(0, (byStatus[client.status] || 0) - 1);
+      byStatus[target] = (byStatus[target] || 0) + affected.length;
+      return {
+        ...current,
+        active: byStatus.active || 0,
+        inactive: (byStatus.disabled || 0) + (byStatus.cancelled || 0),
+        pending: byStatus.pending || 0,
+        byStatus,
+      };
+    });
+    setSelectedIds((current) => {
+      const next = new Set(current);
+      for (const id of clientIds) next.delete(id);
+      return next;
+    });
+    setDetailClient((current) => current && idSet.has(current._id) ? { ...current, status: target } : current);
+  };
+
+  const handleStatusChange = async () => {
+    if (!statusAction) return;
+    const isBulk = Boolean(statusAction.bulk);
+    try {
+      await apiFetch(isBulk ? "/clients/status/bulk" : `/clients/${statusAction.clientIds[0]}/status`, {
+        method: "PATCH",
+        body: JSON.stringify(isBulk
+          ? { clientIds: statusAction.clientIds, status: statusAction.target }
+          : { status: statusAction.target }),
+      });
+      applyStatusLocally(statusAction.clientIds, statusAction.target);
+      setToast({
+        variant: "success",
+        message: isBulk
+          ? `${statusAction.clientIds.length} clientes atualizados com sucesso.`
+          : statusAction.target === "active" ? "Cliente ativado com sucesso." : "Cliente desativado com sucesso.",
+      });
+    } catch (error) {
+      setToast({ variant: "error", message: userFacingApiError(error) });
+      throw error;
+    }
+  };
+
+  const prepareBulkStatus = (target: StatusTarget) => {
+    const clientIds = [...selectedIds];
+    const actionLabel = target === "active" ? "Ativar" : "Desativar";
+    setStatusAction({
+      clientIds, target, title: `${actionLabel} clientes selecionados`,
+      description: `${actionLabel} ${clientIds.length} cliente(s) apenas no cadastro e nos acessos vinculados? Nenhum comando de rede será executado.`,
+      confirmLabel: actionLabel,
+      bulk: true,
+    });
   };
 
   const togglePage = () => {
@@ -269,6 +366,16 @@ export function ClientesView() {
           </div>
         ) : null}
 
+        {selectedIds.size > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-100 bg-blue-50 px-4 py-2.5">
+            <p className="text-sm font-medium text-blue-950">{selectedIds.size} cliente(s) selecionado(s)</p>
+            <div className="flex items-center gap-2">
+              <Button type="button" size="sm" onClick={() => prepareBulkStatus("active")}><UserCheck className="h-4 w-4" /> Ativar selecionados</Button>
+              <Button type="button" variant="outline" size="sm" className="border-red-200 text-red-700 hover:bg-red-50" onClick={() => prepareBulkStatus("disabled")}><UserX className="h-4 w-4" /> Desativar selecionados</Button>
+            </div>
+          </div>
+        ) : null}
+
         {listError ? <div className="m-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">{listError}</div> : null}
         {loading ? <p className="py-16 text-center text-sm text-slate-500">Carregando clientes...</p> : clients.length === 0 ? <div className="p-8"><EmptyState icon={<Users className="mx-auto h-10 w-10" />} title="Nenhum cliente encontrado" description="Revise os filtros ou cadastre um novo cliente." /></div> : (
           <div className="overflow-x-auto">
@@ -284,12 +391,20 @@ export function ClientesView() {
               </TableRow></TableHeader>
               <TableBody>{paginatedClients.map((client) => {
                 const protectedDelete = Boolean(client.deletionProtected);
+                const quickAction = quickStatusAction(client);
                 return <TableRow key={client._id}>
                   <TableCell><input type="checkbox" aria-label={`Selecionar ${client.fullName}`} checked={selectedIds.has(client._id)} onChange={() => setSelectedIds((current) => { const next = new Set(current); if (next.has(client._id)) next.delete(client._id); else next.add(client._id); return next; })} className="h-4 w-4 accent-emerald-600" /></TableCell>
                   <TableCell><div className="flex items-center gap-1">
                     <Button type="button" variant="ghost" size="icon" title="Visualizar detalhes" onClick={() => setDetailClient(client)}><Eye className="h-4 w-4 text-slate-600" /><span className="sr-only">Visualizar</span></Button>
                     <Button type="button" variant="ghost" size="icon" title="Editar cliente" onClick={() => openEdit(client)}><Pencil className="h-4 w-4 text-blue-600" /><span className="sr-only">Editar</span></Button>
-                    <span className="flex h-9 w-9 items-center justify-center" title={`Status: ${clientStatusLabelPt(client.status)}`}>{statusIcon(client.status)}</span>
+                    <Button
+                      type="button" variant="ghost" size="icon" disabled={!quickAction}
+                      title={quickAction ? `${quickAction.confirmLabel}: status atual ${clientStatusLabelPt(client.status)}` : `Status ${clientStatusLabelPt(client.status)} exige tratamento individual`}
+                      onClick={() => quickAction && setStatusAction(quickAction)}
+                    >
+                      {statusIcon(client.status)}
+                      <span className="sr-only">Alterar status de {client.fullName}</span>
+                    </Button>
                     <span title={protectedDelete ? "Cliente possui vínculos operacionais e não pode ser excluído diretamente." : "Excluir cliente"}><Button type="button" variant="ghost" size="icon" disabled={protectedDelete} onClick={() => setDeleteTarget(client)}><Trash2 className="h-4 w-4 text-red-600" /><span className="sr-only">Excluir</span></Button></span>
                   </div></TableCell>
                   <TableCell className="font-mono text-xs text-slate-500">{shortId(client._id)}</TableCell>
@@ -308,6 +423,7 @@ export function ClientesView() {
 
       <ClienteFormModal open={clientModalOpen} onOpenChange={setClientModalOpen} mode={clientModalMode} client={clientModalMode === "edit" ? editingClient : null} plans={plans} onSuccess={async (kind) => { setToast({ variant: "success", message: kind === "create" ? "Cliente criado com sucesso." : "Cliente atualizado." }); await refresh(); }} onInform={(message, variant = "error") => setToast({ message, variant })} />
       <ClientDetailsModal open={Boolean(detailClient)} onOpenChange={(open) => !open && setDetailClient(null)} clientId={detailClient?._id || null} onEdit={() => { if (detailClient) openEdit(detailClient); setDetailClient(null); }} />
+      <ConfirmDialog open={Boolean(statusAction)} onOpenChange={(open) => !open && setStatusAction(null)} title={statusAction?.title || "Alterar status"} description={statusAction?.description || ""} confirmLabel={statusAction?.confirmLabel || "Confirmar"} variant={statusAction?.target === "disabled" ? "destructive" : "default"} onConfirm={handleStatusChange} />
       <ConfirmDialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(null)} title="Excluir cliente" description={deleteTarget ? `Excluir ${deleteTarget.fullName}? Esta ação só será permitida se não houver acessos, contratos ou cobranças vinculadas.` : ""} confirmLabel="Excluir" variant="destructive" onConfirm={handleDelete} />
     </div>
   );
