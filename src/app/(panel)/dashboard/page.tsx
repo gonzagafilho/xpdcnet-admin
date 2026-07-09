@@ -523,6 +523,9 @@ export default function DashboardPage() {
                 <Link href="/dashboard/executivo">Executivo</Link>
               </Button>
               <Button type="button" variant="outline" size="sm" asChild>
+                <Link href="/dashboard/comercial">Comercial</Link>
+              </Button>
+              <Button type="button" variant="outline" size="sm" asChild>
                 <Link href="/configuracoes">
                   <Settings className="h-3.5 w-3.5" />
                 </Link>

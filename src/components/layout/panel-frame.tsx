@@ -69,6 +69,9 @@ function resolvePanelMeta(pathname: string): { title: string; subtitle?: string 
   if (pathname.startsWith("/dashboard/executivo")) {
     return { title: "Painel executivo", subtitle: "Resumo" };
   }
+  if (pathname.startsWith("/dashboard/comercial")) {
+    return { title: "Comercial executivo", subtitle: "Resumo" };
+  }
   if (pathname.startsWith("/clientes/360")) {
     return { title: "Cliente 360", subtitle: "Resumo" };
   }

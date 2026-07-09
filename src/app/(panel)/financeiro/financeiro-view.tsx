@@ -18,6 +18,8 @@ import {
   invoicePlanName,
 } from "@/lib/api-types";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatCard } from "@/components/ui/stat-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -34,7 +36,18 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/cn";
-import { AlertTriangle, CalendarDays, Pencil, Plus, Trash2, Wallet } from "lucide-react";
+import {
+  AlertTriangle,
+  CalendarDays,
+  CheckCircle2,
+  CircleDollarSign,
+  Pencil,
+  Plus,
+  Search,
+  TimerReset,
+  Trash2,
+  Wallet,
+} from "lucide-react";
 
 const PAGE_SIZE = 15;
 
@@ -146,6 +159,8 @@ export function FinanceiroView() {
   const [clientFilter, setClientFilter] = useState("");
   const [competenceFilter, setCompetenceFilter] = useState("");
   const [debouncedCompetence, setDebouncedCompetence] = useState("");
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
   const [formModalOpen, setFormModalOpen] = useState(false);
   const [editing, setEditing] = useState<InvoiceFromApi | null>(null);
@@ -178,6 +193,11 @@ export function FinanceiroView() {
     const timer = setTimeout(() => setDebouncedCompetence(competenceFilter.trim()), 350);
     return () => clearTimeout(timer);
   }, [competenceFilter]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search.trim().toLowerCase()), 280);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   const invoiceQueryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -434,26 +454,42 @@ export function FinanceiroView() {
     [plans],
   );
 
-  const totalPages = Math.max(1, Math.ceil(invoices.length / PAGE_SIZE));
+  const invoicesFilteredBySearch = useMemo(() => {
+    if (!debouncedSearch) return invoices;
+    return invoices.filter((inv) => {
+      const row = [
+        invoiceClientName(inv.clientId),
+        invoicePlanName(inv.planId),
+        inv.competence,
+        statusLabelPt(inv.status),
+        inv.description || "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return row.includes(debouncedSearch);
+    });
+  }, [invoices, debouncedSearch]);
+
+  const totalPages = Math.max(1, Math.ceil(invoicesFilteredBySearch.length / PAGE_SIZE));
 
   useEffect(() => {
     setPage((p) => Math.min(p, totalPages));
   }, [totalPages]);
 
   const clampedPage = Math.min(page, totalPages);
-  const rangeStart = invoices.length === 0 ? 0 : (clampedPage - 1) * PAGE_SIZE + 1;
-  const rangeEnd = Math.min(clampedPage * PAGE_SIZE, invoices.length);
+  const rangeStart = invoicesFilteredBySearch.length === 0 ? 0 : (clampedPage - 1) * PAGE_SIZE + 1;
+  const rangeEnd = Math.min(clampedPage * PAGE_SIZE, invoicesFilteredBySearch.length);
 
   const paginatedInvoices = useMemo(() => {
     const start = (clampedPage - 1) * PAGE_SIZE;
-    return invoices.slice(start, start + PAGE_SIZE);
-  }, [invoices, clampedPage]);
+    return invoicesFilteredBySearch.slice(start, start + PAGE_SIZE);
+  }, [invoicesFilteredBySearch, clampedPage]);
 
   const recentMovements = useMemo(() => {
-    if (invoices.length === 0) {
+    if (invoicesFilteredBySearch.length === 0) {
       return { kind: "empty" as const, items: [] as InvoiceFromApi[] };
     }
-    const withKeys = invoices.map((inv) => ({ inv, t: recentSortKey(inv) }));
+    const withKeys = invoicesFilteredBySearch.map((inv) => ({ inv, t: recentSortKey(inv) }));
     const any = withKeys.some((x) => x.t !== null);
     if (!any) {
       return { kind: "no_timestamps" as const, items: [] as InvoiceFromApi[] };
@@ -464,7 +500,52 @@ export function FinanceiroView() {
       .slice(0, 8)
       .map((x) => x.inv);
     return { kind: "list" as const, items: sorted };
-  }, [invoices]);
+  }, [invoicesFilteredBySearch]);
+
+  const todayKey = useMemo(() => {
+    const now = new Date();
+    const m = String(now.getMonth() + 1).padStart(2, "0");
+    const d = String(now.getDate()).padStart(2, "0");
+    return `${now.getFullYear()}-${m}-${d}`;
+  }, []);
+
+  const recebidosHoje = useMemo(
+    () =>
+      invoices
+        .filter((inv) => inv.status === "paid" && inv.paidAt)
+        .filter((inv) => {
+          const dt = new Date(inv.paidAt || "");
+          if (Number.isNaN(dt.getTime())) return false;
+          const m = String(dt.getMonth() + 1).padStart(2, "0");
+          const d = String(dt.getDate()).padStart(2, "0");
+          return `${dt.getFullYear()}-${m}-${d}` === todayKey;
+        })
+        .reduce((sum, inv) => sum + Number(inv.amount || 0), 0),
+    [invoices, todayKey],
+  );
+
+  const pixRecebidos = summary?.paid?.count ?? 0;
+  const pixPendentes = summary?.pending?.count ?? 0;
+  const faturamentoMes = summary?.totalAmount ?? 0;
+  const emAtraso = summary?.overdue?.amount ?? 0;
+  const emAberto = summary?.pending?.amount ?? 0;
+  const totalAnalise = emAtraso + emAberto + (summary?.paid?.amount ?? 0);
+  const inadimplencia = totalAnalise > 0 ? (emAtraso / totalAnalise) * 100 : 0;
+
+  const acoesPosPagamento = useMemo(
+    () =>
+      invoices.filter((inv) => {
+        if (inv.status !== "paid") return false;
+        const base = inv.updatedAt || inv.paidAt || inv.createdAt;
+        if (!base) return false;
+        const dt = new Date(base);
+        if (Number.isNaN(dt.getTime())) return false;
+        if (!debouncedCompetence || !/^\d{4}-\d{2}$/.test(debouncedCompetence)) return true;
+        const [y, m] = debouncedCompetence.split("-").map(Number);
+        return dt.getFullYear() === y && dt.getMonth() + 1 === m;
+      }).length,
+    [invoices, debouncedCompetence],
+  );
 
   const activeFilterDescription = useMemo(() => {
     const parts: string[] = [];
@@ -474,8 +555,16 @@ export function FinanceiroView() {
       parts.push(`cliente = ${c?.fullName ?? "—"}`);
     }
     if (debouncedCompetence) parts.push(`competência = ${debouncedCompetence}`);
+    if (debouncedSearch) parts.push(`busca = ${debouncedSearch}`);
     return parts.join(" · ");
-  }, [statusFilter, clientFilter, debouncedCompetence, clients]);
+  }, [statusFilter, clientFilter, debouncedCompetence, clients, debouncedSearch]);
+
+  const setQuickCompetence = (kind: "current" | "previous") => {
+    const base = new Date();
+    if (kind === "previous") base.setMonth(base.getMonth() - 1);
+    const m = String(base.getMonth() + 1).padStart(2, "0");
+    setCompetenceFilter(`${base.getFullYear()}-${m}`);
+  };
 
   return (
     <div className="mx-auto w-full max-w-[90rem] space-y-5 pb-2">
@@ -528,7 +617,48 @@ export function FinanceiroView() {
           </div>
         </div>
 
+        <section className="grid gap-3 border-b border-neutral-100 py-4 sm:grid-cols-2 xl:grid-cols-4">
+          {loading && !summary ? (
+            Array.from({ length: 8 }).map((_, idx) => (
+              <div key={idx} className="xp-card-surface h-20 p-4">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="mt-3 h-6 w-20" />
+              </div>
+            ))
+          ) : (
+            <>
+              <StatCard label="Recebido hoje" value={formatBRL(recebidosHoje)} icon={CircleDollarSign} tone="success" compact />
+              <StatCard label="A receber" value={formatBRL(summary?.pending?.amount ?? 0)} icon={Wallet} tone="info" compact />
+              <StatCard label="Vencidos" value={formatBRL(summary?.overdue?.amount ?? 0)} icon={AlertTriangle} tone="warning" compact />
+              <StatCard label="PIX recebidos" value={pixRecebidos} icon={CheckCircle2} tone="success" compact />
+              <StatCard label="PIX pendentes" value={pixPendentes} icon={TimerReset} tone="info" compact />
+              <StatCard label="Faturamento do mês" value={formatBRL(faturamentoMes)} icon={CalendarDays} tone="primary" compact />
+              <StatCard label="Inadimplência" value={`${inadimplencia.toFixed(1)}%`} icon={AlertTriangle} tone="error" compact />
+              <StatCard label="Ações pós-pagamento" value={acoesPosPagamento} icon={Pencil} tone="primary" compact />
+            </>
+          )}
+        </section>
+
         <div className="grid gap-3 border-b border-neutral-100 py-4 sm:grid-cols-2 lg:grid-cols-3 lg:items-end">
+          <div className="space-y-1.5 sm:col-span-2 lg:col-span-3">
+            <Label
+              htmlFor="inv-search"
+              className="text-xs font-semibold uppercase tracking-wide text-neutral-500"
+            >
+              Busca rápida
+            </Label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+              <Input
+                id="inv-search"
+                placeholder="Buscar cliente, plano ou competência"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                disabled={loading}
+                className="border-neutral-200 bg-white pl-9"
+              />
+            </div>
+          </div>
           <div className="space-y-1.5">
             <Label
               htmlFor="inv-status-filter"
@@ -583,6 +713,17 @@ export function FinanceiroView() {
               disabled={loading}
               className="border-neutral-200 bg-white font-mono"
             />
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button type="button" size="sm" variant="outline" onClick={() => setQuickCompetence("current")}>
+                Mês atual
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => setQuickCompetence("previous")}>
+                Mês anterior
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => setCompetenceFilter("")}>
+                Limpar mês
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -695,18 +836,18 @@ export function FinanceiroView() {
               <p className="text-sm font-medium text-neutral-600">A carregar cobranças…</p>
               <p className="mt-1 text-xs text-neutral-500">A aguardar /invoices e resumo</p>
             </div>
-          ) : invoices.length === 0 ? (
+          ) : invoicesFilteredBySearch.length === 0 ? (
             <div className="border border-neutral-200 bg-white px-4 py-6">
               <EmptyState
                 icon={<Wallet className="mx-auto h-10 w-10 text-neutral-400" />}
                 title="Nenhuma cobrança"
                 description={
-                  statusFilter || clientFilter || debouncedCompetence
+                  statusFilter || clientFilter || debouncedCompetence || debouncedSearch
                     ? "Nenhum resultado com os filtros atuais."
                     : "Crie a primeira cobrança com «Nova cobrança» ou use «Gerar cobranças do mês»."
                 }
                 action={
-                  !statusFilter && !clientFilter && !debouncedCompetence ? (
+                  !statusFilter && !clientFilter && !debouncedCompetence && !debouncedSearch ? (
                     <Button
                       type="button"
                       className="border-0 bg-emerald-600 font-semibold text-white hover:bg-emerald-700"
@@ -724,7 +865,7 @@ export function FinanceiroView() {
                 <div>
                   <h3 className="text-sm font-bold text-neutral-900">Cobranças</h3>
                   <p className="text-xs text-neutral-500">
-                    {invoices.length} na consulta atual
+                    {invoicesFilteredBySearch.length} na consulta atual
                     {totalPages > 1 ? ` · página ${clampedPage} de ${totalPages}` : null}
                     <span className="hidden sm:inline">
                       {" "}
@@ -834,7 +975,7 @@ export function FinanceiroView() {
                   <span className="text-xs text-neutral-500">
                     Mostrando <span className="font-semibold text-neutral-800">{rangeStart}</span>–
                     <span className="font-semibold text-neutral-800">{rangeEnd}</span> de{" "}
-                    <span className="font-semibold text-neutral-800">{invoices.length}</span>
+                    <span className="font-semibold text-neutral-800">{invoicesFilteredBySearch.length}</span>
                   </span>
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
