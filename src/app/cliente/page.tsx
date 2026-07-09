@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import {
   Activity,
   AlertTriangle,
@@ -26,7 +27,6 @@ import {
   QrCode,
   Router,
   ShieldCheck,
-  Smartphone,
   TimerReset,
   Upload,
   UserRound,
@@ -338,7 +338,7 @@ function statusLabel(status?: string) {
 
 function Badge({ children, tone = "slate" }: { children: React.ReactNode; tone?: "green" | "red" | "amber" | "slate" }) {
   const cls = {
-    green: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    green: "border-cyan-200 bg-cyan-50 text-cyan-600",
     red: "border-red-200 bg-red-50 text-red-700",
     amber: "border-amber-200 bg-amber-50 text-amber-700",
     slate: "border-slate-200 bg-slate-50 text-slate-700",
@@ -473,13 +473,13 @@ function networkMapIcon(type?: string) {
 }
 
 function networkLineClass(status?: string) {
-  if (status === "online") return "bg-emerald-500";
+  if (status === "online") return "bg-cyan-500";
   if (status === "offline") return "bg-red-500";
   return "bg-slate-300";
 }
 
 function networkNodeClass(status?: string) {
-  if (status === "online") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (status === "online") return "border-cyan-200 bg-cyan-50 text-cyan-600";
   if (status === "offline") return "border-red-200 bg-red-50 text-red-700";
   return "border-slate-200 bg-slate-50 text-slate-600";
 }
@@ -622,7 +622,7 @@ function notificationTypeLabel(type?: string) {
 
 function notificationTypeClass(type?: string) {
   const map: Record<string, string> = {
-    billing: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    billing: "border-cyan-200 bg-cyan-50 text-cyan-600",
     support: "border-blue-200 bg-blue-50 text-blue-700",
     network: "border-amber-200 bg-amber-50 text-amber-700",
     system: "border-slate-200 bg-slate-50 text-slate-700",
@@ -1040,39 +1040,50 @@ export default function ClientePage() {
   }
 
   if (!tokenReady) {
-    return <div className="min-h-screen bg-white" />;
+    return <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#e8f1ff_0,#f1f6fd_38%,#ffffff_78%)]" />;
   }
 
   if (!loggedIn) {
     return (
-      <main className="min-h-screen bg-white text-slate-950">
+      <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#e8f1ff_0,#f1f6fd_38%,#ffffff_78%)] text-slate-950">
         <section className="mx-auto flex min-h-screen w-full max-w-6xl flex-col justify-center px-4 py-8 sm:px-6 lg:px-8">
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
             <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-sm font-medium text-emerald-700">
-                <Smartphone className="h-4 w-4" /> Portal do Cliente DC NET
+              <div className="inline-flex items-center gap-3 rounded-2xl border border-cyan-200/70 bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
+                <Image
+                  src="/brand/dcnet-logo.png"
+                  alt="DC NET / Nexora"
+                  width={42}
+                  height={42}
+                  className="rounded-xl object-contain"
+                  priority
+                />
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-500">XPDCNET Cliente</p>
+                  <p className="text-sm font-semibold text-[#071f36]">Portal oficial DC NET</p>
+                </div>
               </div>
               <div className="space-y-4">
                 <h1 className="max-w-2xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl">
-                  Sua internet, faturas e suporte em um só lugar.
+                  Portal do Cliente DC NET com a inteligência XPDCNET.
                 </h1>
                 <p className="max-w-xl text-base leading-7 text-slate-600">
-                  Acesse com CPF/CNPJ e WhatsApp cadastrados para consultar plano, conexão, segunda via e protocolos.
+                  Consulte sua internet, PIX, segunda via, suporte e cadastro em uma experiência simples, rápida e segura.
                 </p>
               </div>
               <div className="grid max-w-xl grid-cols-3 gap-3 text-sm">
                 <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-                  <Wifi className="mb-2 h-5 w-5 text-emerald-600" /> Conexão
+                  <Wifi className="mb-2 h-5 w-5 text-cyan-500" /> Conexão
                 </div>
                 <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-                  <Banknote className="mb-2 h-5 w-5 text-emerald-600" /> Faturas
+                  <Banknote className="mb-2 h-5 w-5 text-cyan-500" /> Faturas
                 </div>
                 <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-                  <Headphones className="mb-2 h-5 w-5 text-emerald-600" /> Suporte
+                  <Headphones className="mb-2 h-5 w-5 text-cyan-500" /> Suporte
                 </div>
               </div>
             </div>
-            <Card className="mx-auto w-full max-w-md border-slate-200 shadow-xl">
+            <Card className="mx-auto w-full max-w-md rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-xl shadow-blue-950/10 backdrop-blur">
               <CardHeader>
                 <CardTitle>Entrar no portal</CardTitle>
                 <CardDescription>Use os dados cadastrados no atendimento DC NET.</CardDescription>
@@ -1101,10 +1112,10 @@ export default function ClientePage() {
                           required
                         />
                       </div>
-                      <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-medium text-slate-800">
+                      <label className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm font-medium text-[#071f36]">
                         <input
                           type="checkbox"
-                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-cyan-500 focus:ring-emerald-500"
                           checked={rememberDevice}
                           onChange={(e) => setRememberDevice(e.target.checked)}
                         />
@@ -1112,10 +1123,14 @@ export default function ClientePage() {
                       </label>
                     </div>
                   ) : null}
-                  {loginMessage ? <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{loginMessage}</p> : null}
+                  {loginMessage ? <p className="rounded-lg border border-cyan-200 bg-cyan-50 p-3 text-sm text-emerald-800">{loginMessage}</p> : null}
                   {otpDevCode ? <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Código de teste: {otpDevCode}</p> : null}
                   {loginError ? <p className="text-sm text-red-600">{loginError}</p> : null}
-                  <Button type="submit" className="h-11 w-full bg-emerald-600 hover:bg-emerald-700" disabled={loadingLogin || (otpRequested && otpCode.length !== 6)}>
+                  <Button
+                    type="submit"
+                    className="h-12 w-full rounded-2xl bg-gradient-to-r from-[#071f36] to-[#1477e8] font-bold text-white shadow-lg shadow-emerald-900/15 hover:from-[#06192d] hover:to-[#0f67cc]"
+                    disabled={loadingLogin || (otpRequested && otpCode.length !== 6)}
+                  >
                     {loadingLogin ? "Aguarde..." : otpRequested ? "Entrar" : trustedDeviceAvailable ? "Entrar" : "Receber código"}
                   </Button>
                   {otpRequested ? (
@@ -1137,7 +1152,7 @@ export default function ClientePage() {
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-5 sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:px-8">
           <div>
-            <p className="text-sm font-semibold tracking-wide text-emerald-600">DC NET</p>
+            <p className="text-sm font-semibold tracking-wide text-cyan-500">DC NET</p>
             <h1 className="text-2xl font-semibold tracking-tight">{greetingText}</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -1174,7 +1189,7 @@ export default function ClientePage() {
                       }`}
                     >
                       <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl transition ${
-                        active ? "bg-white/15 text-emerald-100" : "bg-emerald-50 text-emerald-700 group-hover:bg-emerald-100"
+                        active ? "bg-white/15 text-emerald-100" : "bg-cyan-50 text-cyan-600 group-hover:bg-emerald-100"
                       }`}>
                         <Icon className="h-4 w-4" />
                       </span>
@@ -1256,7 +1271,7 @@ function MetricCard({ title, value, hint, icon: Icon }: { title: string; value: 
           <p className="mt-2 text-2xl font-semibold tracking-tight">{value}</p>
           <p className="mt-1 text-xs text-slate-500">{hint}</p>
         </div>
-        <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Icon className="h-5 w-5" /></div>
+        <div className="rounded-lg bg-cyan-50 p-2 text-cyan-600"><Icon className="h-5 w-5" /></div>
       </CardContent>
     </Card>
   );
@@ -1324,13 +1339,13 @@ function PremiumStatusCard({
   onClick?: () => void;
 }) {
   const toneClass = {
-    green: "border-emerald-200/80 bg-white shadow-emerald-950/5",
+    green: "border-cyan-200/80 bg-white shadow-blue-950/10",
     red: "border-red-200/80 bg-white shadow-red-950/5",
     amber: "border-amber-200/80 bg-white shadow-amber-950/5",
     slate: "border-slate-200 bg-white shadow-slate-950/5",
   }[tone];
   const iconClass = {
-    green: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+    green: "bg-cyan-50 text-cyan-600 ring-emerald-100",
     red: "bg-red-50 text-red-700 ring-red-100",
     amber: "bg-amber-50 text-amber-700 ring-amber-100",
     slate: "bg-slate-950 text-white ring-slate-200",
@@ -1351,7 +1366,7 @@ function PremiumStatusCard({
             <Icon className="h-4 w-4" />
           </span>
         </div>
-        <p className="whitespace-normal break-words text-xs font-medium leading-4 text-slate-800">{hint}</p>
+        <p className="whitespace-normal break-words text-xs font-medium leading-4 text-[#071f36]">{hint}</p>
       </div>
     </button>
   );
@@ -1488,7 +1503,7 @@ function WhatsappView() {
       <Card className="overflow-hidden border-slate-200 bg-slate-950 text-white">
         <CardContent className="grid gap-6 p-5 sm:p-6 md:grid-cols-[1fr_auto] md:items-center">
           <div>
-            <div className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300">
+            <div className="inline-flex h-11 w-11 items-center justify-center rounded-lg bg-cyan-500/15 text-emerald-300">
               <PhoneCall className="h-5 w-5" />
             </div>
             <h2 className="mt-4 text-2xl font-semibold tracking-tight">WhatsApp Oficial DC NET</h2>
@@ -1649,7 +1664,7 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
               <div className="mt-2"><Badge tone={connectionTone(connection)}>{statusLabel(connection.status)}</Badge></div>
               <p className="mt-3 text-sm text-slate-600">{connectionMessage(connection.status)}</p>
             </div>
-            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Wifi className="h-5 w-5" /></div>
+            <div className="rounded-lg bg-cyan-50 p-2 text-cyan-600"><Wifi className="h-5 w-5" /></div>
           </CardContent>
         </Card>
         <Card>
@@ -1659,7 +1674,7 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
               <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{plan?.name || "Carregando informações"}</p>
               <p className="mt-1 text-sm text-slate-500">{speed}</p>
             </div>
-            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><ShieldCheck className="h-5 w-5" /></div>
+            <div className="rounded-lg bg-cyan-50 p-2 text-cyan-600"><ShieldCheck className="h-5 w-5" /></div>
           </CardContent>
         </Card>
         <Card>
@@ -1669,7 +1684,7 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
               <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{connection.access?.usernameMasked || "Carregando informações"}</p>
               <p className="mt-1 text-sm text-slate-500">{"Acesso do cliente"}</p>
             </div>
-            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><UserRound className="h-5 w-5" /></div>
+            <div className="rounded-lg bg-cyan-50 p-2 text-cyan-600"><UserRound className="h-5 w-5" /></div>
           </CardContent>
         </Card>
         <Card>
@@ -1679,7 +1694,7 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
               <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{equipment}</p>
               <p className="mt-1 text-sm text-slate-500">{connection.networkNode?.healthLevel ? healthLabel(connection.networkNode.healthLevel) : "Tudo funcionando normalmente"}</p>
             </div>
-            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Router className="h-5 w-5" /></div>
+            <div className="rounded-lg bg-cyan-50 p-2 text-cyan-600"><Router className="h-5 w-5" /></div>
           </CardContent>
         </Card>
         <Card>
@@ -1689,7 +1704,7 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
               <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{dateTime(lastUpdate)}</p>
               <p className="mt-1 text-sm text-slate-500">{connection.lastSignal ? "Tudo funcionando normalmente" : "Carregando informações"}</p>
             </div>
-            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Clock className="h-5 w-5" /></div>
+            <div className="rounded-lg bg-cyan-50 p-2 text-cyan-600"><Clock className="h-5 w-5" /></div>
           </CardContent>
         </Card>
         <Card>
@@ -1699,7 +1714,7 @@ function ConnectionView({ connection }: { connection: ConnectionInfo | null }) {
               <p className="mt-2 text-xl font-semibold tracking-tight text-slate-950">{metricValue(connection.lastSession?.activePppTotal ?? connection.lastSignal?.pppOnline)}</p>
               <p className="mt-1 text-sm text-slate-500">Conexão ativa · {traffic}</p>
             </div>
-            <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700"><Activity className="h-5 w-5" /></div>
+            <div className="rounded-lg bg-cyan-50 p-2 text-cyan-600"><Activity className="h-5 w-5" /></div>
           </CardContent>
         </Card>
       </div>
@@ -1982,7 +1997,7 @@ function SpeedTestMetricCard({
           )}
           <p className="mt-2 text-xs text-slate-500">{loading ? "Medindo..." : hint}</p>
         </div>
-        <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700">
+        <div className="rounded-lg bg-cyan-50 p-2 text-cyan-600">
           <Icon className={`h-5 w-5 ${loading ? "animate-pulse" : ""}`} />
         </div>
       </CardContent>
@@ -2046,7 +2061,7 @@ function SpeedTestView() {
       </Card>
 
       {running ? (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-800">
+        <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-3 text-sm font-medium text-emerald-800">
           {progressText[step]}...
         </div>
       ) : null}
@@ -2118,7 +2133,7 @@ function InvoicesView({ invoices, onPayment }: { invoices: InvoiceItem[]; onPaym
                   <Badge tone={toneForStatus(invoice.status)}>{statusLabel(invoice.status)}</Badge>
                 </div>
                 <p className="mt-1 text-sm text-slate-500">Vencimento {date(invoice.dueDate)} · {money(invoice.amount)}</p>
-                <p className={`mt-1 text-xs ${available ? "text-emerald-700" : "text-slate-500"}`}>
+                <p className={`mt-1 text-xs ${available ? "text-cyan-600" : "text-slate-500"}`}>
                   {invoicePaymentMessage(invoice)}
                 </p>
               </div>
@@ -2178,14 +2193,14 @@ function PaymentView({
               key={invoice._id}
               onClick={() => setSelectedInvoiceId(invoice._id)}
               className={`w-full rounded-lg border p-3 text-left transition ${
-                selectedInvoiceId === invoice._id ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white hover:bg-slate-50"
+                selectedInvoiceId === invoice._id ? "border-emerald-300 bg-cyan-50" : "border-slate-200 bg-white hover:bg-slate-50"
               }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-medium">{invoice.competence || invoice.description || "Fatura"}</p>
                   <p className="mt-1 text-sm text-slate-500">{money(invoice.amount)} · vence em {date(invoice.dueDate)}</p>
-                  <p className={`mt-1 text-xs ${invoice.hasBillingInvoice ? "text-emerald-700" : "text-slate-500"}`}>
+                  <p className={`mt-1 text-xs ${invoice.hasBillingInvoice ? "text-cyan-600" : "text-slate-500"}`}>
                     {invoice.hasBillingInvoice ? "Pagamento disponível" : "Segunda via ainda não gerada"}
                   </p>
                 </div>
@@ -2252,7 +2267,7 @@ function PaymentView({
               <div>
                 <div className="mb-2 flex items-center justify-between gap-2">
                   <p className="text-sm font-medium text-slate-900">Código PIX copia e cola</p>
-                  {copyStatus ? <span className="text-xs font-medium text-emerald-700">{copyStatus}</span> : null}
+                  {copyStatus ? <span className="text-xs font-medium text-cyan-600">{copyStatus}</span> : null}
                 </div>
                 <div className="max-h-36 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm break-words text-slate-700">
                   {copyText || "PIX não disponível para esta cobrança."}
@@ -2337,7 +2352,7 @@ function SupportView({
               <p className="text-xs text-slate-500">{message.length}/4000 caracteres</p>
             </div>
             {status ? (
-              <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+              <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-3 text-sm text-emerald-800">
                 <p className="font-medium">{status}</p>
                 {lastProtocol ? <p className="mt-1">Protocolo: {lastProtocol}</p> : null}
               </div>
@@ -2355,7 +2370,7 @@ function SupportView({
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-slate-600">
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-            <PhoneCall className="mb-2 h-5 w-5 text-emerald-600" />
+            <PhoneCall className="mb-2 h-5 w-5 text-cyan-500" />
             Informe um assunto curto e uma mensagem clara para agilizar o atendimento.
           </div>
           <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -2403,7 +2418,7 @@ function TicketsView({
               type="button"
               onClick={() => setSelectedTicketId(ticket._id)}
               className={`w-full rounded-lg border p-3 text-left transition ${
-                selectedTicketId === ticket._id ? "border-emerald-300 bg-emerald-50" : "border-slate-200 bg-white hover:bg-slate-50"
+                selectedTicketId === ticket._id ? "border-emerald-300 bg-cyan-50" : "border-slate-200 bg-white hover:bg-slate-50"
               }`}
             >
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -2509,7 +2524,7 @@ function NotificationsView({
             key={notification._id}
             type="button"
             onClick={() => void onRead(notification)}
-            className={`w-full rounded-lg border p-4 text-left transition ${notification.isRead ? "border-slate-200 bg-white hover:bg-slate-50" : "border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50"}`}
+            className={`w-full rounded-lg border p-4 text-left transition ${notification.isRead ? "border-slate-200 bg-white hover:bg-slate-50" : "border-cyan-200 bg-cyan-50/50 hover:bg-cyan-50"}`}
           >
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -2517,7 +2532,7 @@ function NotificationsView({
                   <span className={`inline-flex h-7 items-center rounded-full border px-2.5 text-xs font-medium ${notificationTypeClass(notification.type)}`}>
                     {notificationTypeLabel(notification.type)}
                   </span>
-                  {!notification.isRead ? <span className="text-xs font-medium text-emerald-700">Não lida</span> : null}
+                  {!notification.isRead ? <span className="text-xs font-medium text-cyan-600">Não lida</span> : null}
                 </div>
                 <p className="mt-3 font-semibold text-slate-950">{notification.title}</p>
                 <p className="mt-1 text-sm text-slate-600">{notification.message}</p>

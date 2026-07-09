@@ -1,13 +1,13 @@
 {
-  "name": "DC NET Cliente",
+  "name": "DC NET",
   "short_name": "DC NET",
-  "description": "Portal do cliente DC NET para acompanhar internet, faturas, PIX, suporte e notificações.",
+  "description": "Portal do cliente DC NET para internet, faturas, PIX e suporte.",
   "start_url": "/cliente",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "theme_color": "#10b981",
-  "background_color": "#050505",
+  "theme_color": "#071f36",
+  "background_color": "#071f36",
   "categories": [
     "business",
     "utilities"
