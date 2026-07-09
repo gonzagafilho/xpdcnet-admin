@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch, getSessionToken } from "@/lib/api-client";
 import { userFacingApiError } from "@/lib/user-facing-api-error";
@@ -19,6 +20,7 @@ import {
   Download,
   Eye,
   Filter,
+  LayoutGrid,
   MoreHorizontal,
   Pencil,
   Plus,
@@ -395,6 +397,12 @@ export function ClientesView() {
                 return <TableRow key={client._id}>
                   <TableCell><input type="checkbox" aria-label={`Selecionar ${client.fullName}`} checked={selectedIds.has(client._id)} onChange={() => setSelectedIds((current) => { const next = new Set(current); if (next.has(client._id)) next.delete(client._id); else next.add(client._id); return next; })} className="h-4 w-4 accent-emerald-600" /></TableCell>
                   <TableCell><div className="flex items-center gap-1">
+                    <Button type="button" variant="ghost" size="icon" title="Abrir Cliente 360°" asChild>
+                      <Link href={`/clientes/360/${client._id}`}>
+                        <LayoutGrid className="h-4 w-4 text-emerald-700" />
+                        <span className="sr-only">Cliente 360°</span>
+                      </Link>
+                    </Button>
                     <Button type="button" variant="ghost" size="icon" title="Visualizar detalhes" onClick={() => setDetailClient(client)}><Eye className="h-4 w-4 text-slate-600" /><span className="sr-only">Visualizar</span></Button>
                     <Button type="button" variant="ghost" size="icon" title="Editar cliente" onClick={() => openEdit(client)}><Pencil className="h-4 w-4 text-blue-600" /><span className="sr-only">Editar</span></Button>
                     <Button
