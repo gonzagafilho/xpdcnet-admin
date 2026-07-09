@@ -14,7 +14,7 @@ type AppShellProps = {
 
 const systemMode = process.env.NEXT_PUBLIC_SYSTEM_MODE?.trim().toLowerCase();
 
-function AppShellInner({ title, subtitle, children }: AppShellProps) {
+function AppShellInner({ children }: AppShellProps) {
   const maintenance = systemMode === "maintenance";
   const { mobileNavOpen, setMobileNavOpen } = useShell();
 
@@ -46,7 +46,7 @@ function AppShellInner({ title, subtitle, children }: AppShellProps) {
           </div>
         ) : null}
 
-        <Topbar title={title} subtitle={subtitle} />
+        <Topbar />
         <main className="px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
           <div className="mx-auto w-full max-w-[min(100%,80rem)]">{children}</div>
         </main>

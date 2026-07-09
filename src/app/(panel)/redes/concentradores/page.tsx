@@ -376,7 +376,7 @@ export default function ConcentradoresPage() {
   }
 
   async function resolveAlert(alert: MonitoringConcentratorAlert) {
-    const alertId = alert.id || alert._id;
+    const alertId = String(alert.id || alert._id || '');
     if (!alertId) {
       setAlertsError("Alerta sem identificador válido.");
       return;
@@ -384,7 +384,8 @@ export default function ConcentradoresPage() {
     setResolvingAlertId(alertId);
     setAlertsError("");
     try {
-      await apiFetch(`/monitoring/alerts/${encodeURIComponent(alertId)}/resolve`, { method: "POST" });
+      if (!alertId) return;
+    await apiFetch(`/monitoring/alerts/${encodeURIComponent(alertId)}/resolve`, { method: "POST" });
       setNotice("Alerta resolvido com sucesso.");
       await load();
     } catch (err) {

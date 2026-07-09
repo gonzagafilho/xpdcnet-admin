@@ -11,7 +11,7 @@ const titles: Record<string, { title: string; subtitle?: string }> = {
     title: "Bem-vindo ao painel operacional",
     subtitle: "Resumo comercial e operacional",
   },
-  "/clientes": { title: "Clientes", subtitle: "Carteira, relacionamento e acesso" },
+  "/clientes": { title: "Clientes", subtitle: "" },
   "/chamados": { title: "Chamados", subtitle: "Atendimento e ocorrências" },
   "/planos": { title: "Planos", subtitle: "Ofertas e condições comerciais" },
   "/financeiro": { title: "Financeiro", subtitle: "Cobranças e faturação" },
@@ -19,6 +19,7 @@ const titles: Record<string, { title: string; subtitle?: string }> = {
   "/contratos/layouts": { title: "Modelos de contratos", subtitle: "Documentos padronizados" },
   "/autenticacoes": { title: "Acessos", subtitle: "Credenciais dos clientes" },
   "/redes/servidores": { title: "Equipamentos de Rede", subtitle: "Estrutura e disponibilidade da operação" },
+  "/redes/concentradores": { title: "Concentradores", subtitle: "Matriz, Chácara e concentradores individuais" },
   "/redes/planos": { title: "Planos de Internet", subtitle: "Catálogo operacional da rede DC NET" },
   "/redes/agents": { title: "Unidades remotas", subtitle: "Presença e atendimento nas filiais" },
   "/monitoramento/trafego": { title: "Monitoramento · Tráfego", subtitle: "Consumo e desempenho por equipamento" },
@@ -52,6 +53,7 @@ function resolvePanelMeta(pathname: string): { title: string; subtitle?: string 
   if (/^\/monitoramento\/clientes-on-off\/.+/.test(pathname)) {
     return { title: "Monitoramento · Cliente", subtitle: "Ficha operacional e diagnóstico" };
   }
+  if (pathname.startsWith("/redes/concentradores")) return titles["/redes/concentradores"]!;
   if (pathname.startsWith("/redes/planos")) return titles["/redes/planos"]!;
   if (pathname.startsWith("/redes/agents")) return titles["/redes/agents"]!;
   if (pathname.startsWith("/redes/servidores")) return titles["/redes/servidores"]!;

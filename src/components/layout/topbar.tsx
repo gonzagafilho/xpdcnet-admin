@@ -8,12 +8,7 @@ import { clearSessionToken } from "@/lib/api-client";
 import { cn } from "@/lib/cn";
 import { useShell } from "./shell-context";
 
-type TopbarProps = {
-  title: string;
-  subtitle?: string;
-};
-
-export function Topbar({ title, subtitle }: TopbarProps) {
+export function Topbar() {
   const router = useRouter();
   const { toggleMobileNav } = useShell();
 
@@ -41,10 +36,7 @@ export function Topbar({ title, subtitle }: TopbarProps) {
         >
           <Menu className="h-5 w-5 text-slate-700" />
         </Button>
-        <div className="min-w-0 pr-2">
-          <h1 className="truncate text-lg font-semibold tracking-tight text-slate-900">{title}</h1>
-          {subtitle ? <p className="mt-0.5 truncate text-xs text-slate-500">{subtitle}</p> : null}
-        </div>
+        <div className="hidden"></div>
       </div>
 
       <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-2 sm:w-auto sm:gap-3">

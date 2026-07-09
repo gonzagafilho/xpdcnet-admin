@@ -65,6 +65,7 @@ const navGroups: NavGroup[] = [
     children: [
       { label: "Central NOC", href: "/redes/noc" },
       { label: "Equipamentos", href: "/redes/servidores" },
+      { label: "Concentradores", href: "/redes/concentradores" },
       { label: "Planos", href: "/redes/planos" },
       { label: "Unidades Remotas", href: "/redes/agents" },
       { label: "Histórico da Rede", href: "/redes/logs" },

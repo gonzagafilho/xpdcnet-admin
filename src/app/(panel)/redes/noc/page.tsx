@@ -67,6 +67,19 @@ type QueueHealthResponse = {
     lastTelemetryAt?: string | null;
     serverId?: string | null;
     serverName?: string | null;
+    cpuPercent?: number | null;
+    memoryPercent?: number | null;
+    memoryFreeBytes?: number | null;
+    memoryTotalBytes?: number | null;
+    temperature?: number | null;
+    voltage?: number | null;
+    interfaceCount?: number | null;
+    interfaceRunning?: number | null;
+    version?: string | null;
+    uptime?: string | null;
+    boardName?: string | null;
+    cpuCount?: number | null;
+    architectureName?: string | null;
   };
     commercial?: {
     expectedRevenue?: number;
@@ -199,13 +212,14 @@ export default function RedesNocPage() {
 
   const [telemetry, setTelemetry] = useState<{
     routerName?: string;
-    cpuLoad?: number | null;
-    freeMemory?: number | null;
-    totalMemory?: number | null;
+    cpuPercent?: number | null;
+    memoryPercent?: number | null;
+    memoryTotalBytes?: number | null;
     pppOnline?: number | null;
     rxMbps?: number | null;
     txMbps?: number | null;
     interfaceCount?: number | null;
+    interfaceRunning?: number | null;
     version?: string | null;
     uptime?: string | null;
     updatedAt?: string | null;
@@ -316,9 +330,10 @@ export default function RedesNocPage() {
           if (payload?.mikrotik) {
             setTelemetry({
               routerName: payload.mikrotik.serverName || undefined,
-              cpuLoad: payload.mikrotik.cpuPercent ?? null,
-              freeMemory: payload.mikrotik.memoryPercent ?? null,
-              totalMemory: 100,
+              cpuPercent: payload.mikrotik.cpuPercent ?? null,
+              memoryPercent: payload.mikrotik.memoryPercent ?? null,
+              memoryTotalBytes: null,
+              interfaceRunning: payload.mikrotik.interfaceRunning ?? null,
               pppOnline: payload.mikrotik.pppOnline ?? null,
               rxMbps: null,
               txMbps: null,
@@ -423,22 +438,23 @@ export default function RedesNocPage() {
     socket.on("telemetry.metric", (event: {
       message?: string;
       routerName?: string;
-      cpuLoad?: number | null;
-      freeMemory?: number | null;
-      totalMemory?: number | null;
+      cpuPercent?: number | null;
+      memoryPercent?: number | null;
+      memoryTotalBytes?: number | null;
       pppOnline?: number | null;
       rxMbps?: number | null;
       txMbps?: number | null;
       interfaceCount?: number | null;
+      interfaceRunning?: number | null;
       version?: string | null;
       uptime?: string | null;
     }) => {
 
       setTelemetry({
         routerName: event?.routerName || "RouterOS",
-        cpuLoad: event?.cpuLoad ?? null,
-        freeMemory: event?.freeMemory ?? null,
-        totalMemory: event?.totalMemory ?? null,
+        cpuPercent: event?.cpuPercent ?? null,
+        memoryPercent: event?.memoryPercent ?? null,
+        memoryTotalBytes: event?.memoryTotalBytes ?? null,
         pppOnline: event?.pppOnline ?? null,
         rxMbps: event?.rxMbps ?? null,
         txMbps: event?.txMbps ?? null,
@@ -598,16 +614,16 @@ export default function RedesNocPage() {
 
           <Card
             title="CPU RouterOS"
-            value={telemetry?.cpuLoad != null ? `${telemetry.cpuLoad}%` : "—"}
+            value={data?.mikrotik?.cpuPercent != null ? `${data.mikrotik.cpuPercent}%` : "—"}
             icon={<Activity className="h-6 w-6" />}
           />
 
           <Card
             title="RAM Usada"
              value={
-               telemetry?.freeMemory != null && telemetry?.totalMemory != null && Number(telemetry.totalMemory) > 0
-                 ? `${Math.max(0, Math.min(100, 100 - ((Number(telemetry.freeMemory) / Number(telemetry.totalMemory)) * 100))).toFixed(2)}%`
-                 : "—"
+              data?.mikrotik?.memoryPercent != null
+                ? `${Number(data.mikrotik.memoryPercent).toFixed(0)}%`
+                : "—"
             } 
             icon={<ServerCrash className="h-6 w-6" />}
           />
@@ -637,7 +653,11 @@ export default function RedesNocPage() {
 
           <Card
             title="Interfaces"
-            value={telemetry?.interfaceCount ?? "—"}
+            value={
+              data?.mikrotik?.interfaceRunning != null && data?.mikrotik?.interfaceCount != null
+                ? `${data.mikrotik.interfaceRunning}/${data.mikrotik.interfaceCount}`
+                : "—"
+            }
             icon={<Activity className="h-6 w-6" />}
           />
         </div>
