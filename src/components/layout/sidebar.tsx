@@ -56,19 +56,19 @@ const navGroups: NavGroup[] = [
     id: "autenticacoes",
     label: "Acessos",
     icon: KeyRound,
-    children: [{ label: "Gestão de acessos", href: "/autenticacoes" }],
+    children: [{ label: "Acessos", href: "/autenticacoes" }],
   },
   {
     id: "redes",
-    label: "Rede DC NET",
+    label: "Rede",
     icon: Network,
     children: [
-      { label: "Central NOC", href: "/redes/noc" },
+      { label: "Painel da rede", href: "/redes/noc" },
       { label: "Equipamentos", href: "/redes/servidores" },
       { label: "Concentradores", href: "/redes/concentradores" },
       { label: "Planos", href: "/redes/planos" },
-      { label: "Unidades Remotas", href: "/redes/agents" },
-      { label: "Histórico da Rede", href: "/redes/logs" },
+      { label: "Unidades", href: "/redes/agents" },
+      { label: "Histórico", href: "/redes/logs" },
     ],
   },
   {
@@ -77,8 +77,8 @@ const navGroups: NavGroup[] = [
     icon: Activity,
     children: [
       { label: "Consumo da Rede", href: "/monitoramento/trafego" },
-      { label: "Clientes Online", href: "/monitoramento/clientes-on-off" },
-      { label: "Mapa de Atendimento", href: "/monitoramento/mapa-clientes" },
+      { label: "Clientes Conectados", href: "/monitoramento/clientes-on-off" },
+      { label: "Mapa", href: "/monitoramento/mapa-clientes" },
     ],
   },
   {
@@ -114,11 +114,11 @@ const navGroups: NavGroup[] = [
   },
   {
     id: "migracao",
-    label: "Migração de Dados",
+    label: "Importação",
     icon: DatabaseZap,
     children: [
       { label: "Importar Clientes", href: "/migracao/importar-clientes" },
-      { label: "Importar PPPoE", href: null, hint: "Disponível em breve" },
+      { label: "Importar Internet", href: null, hint: "Disponível em breve" },
       { label: "Exportar Modelo", href: "/migracao/importar-clientes?tab=modelo" },
       { label: "Histórico de Importações", href: "/migracao/importar-clientes?tab=historico" },
     ],
@@ -129,7 +129,7 @@ const navGroups: NavGroup[] = [
     icon: ListOrdered,
     children: [
       /**
-       * Hub operacional: nesta fase o menu prioriza o acesso directo a Configurações.
+       * Hub comercial: nesta fase o menu prioriza o acesso directo a Configurações.
        * A fila permanece acessível por URL (/fila-sync).
        * Quando existirem rotas reais, podem acrescentar-se aqui entradas como
        * Formas de Pagamento, Usuários, Permissões, Chatbot (hiddenFromMenu: false).
@@ -236,7 +236,7 @@ function SidebarInner() {
   const renderSubLink = (item: SubItem, inGroup: string) => {
     const active = item.href ? linkActive(pathname, searchParams, item.href) : false;
     const bar = active
-      ? "border-l-[3px] border-[#CFE4FF] bg-[rgba(234,243,255,0.12)]"
+      ? "border-l-[3px] border-dcnet-primary-soft bg-white/10"
       : "border-l-[3px] border-transparent";
 
     if (item.href) {
@@ -246,8 +246,8 @@ function SidebarInner() {
           href={item.href}
           className={cn(
             "block rounded-r-md py-2.5 pl-4 pr-3 text-[13px] font-medium leading-snug transition-colors",
-            "hover:bg-[rgba(234,243,255,0.08)] hover:text-[#EAF3FF]",
-            active ? "font-semibold text-[#EAF3FF]" : "text-slate-300",
+            "hover:bg-white/10 hover:text-dcnet-nav-text",
+            active ? "font-semibold text-dcnet-nav-text" : "text-slate-300",
             bar,
           )}
         >
@@ -273,7 +273,7 @@ function SidebarInner() {
   };
 
   const asideClass = cn(
-    "fixed z-50 flex w-[17.5rem] flex-col border-r border-[rgba(207,228,255,0.28)] bg-dcnet-nav shadow-xp-nav transition-transform duration-200 ease-out",
+    "fixed z-50 flex w-[17.5rem] flex-col border-r border-dcnet-nav-border/40 bg-dcnet-nav shadow-xp-nav transition-transform duration-200 ease-out",
     "top-8 h-[calc(100vh-2rem)]",
     "lg:translate-x-0",
     mobileNavOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0",
@@ -297,11 +297,11 @@ function SidebarInner() {
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold tracking-tight transition-colors",
                 dashboardActive
-                  ? "border-l-[3px] border-[#CFE4FF] bg-[rgba(234,243,255,0.12)] text-[#EAF3FF]"
-                  : "border-l-[3px] border-transparent text-[#EAF3FF] hover:bg-[rgba(234,243,255,0.08)] hover:text-[#EAF3FF]",
+                  ? "border-l-[3px] border-dcnet-primary-soft bg-white/10 text-dcnet-nav-text"
+                  : "border-l-[3px] border-transparent text-dcnet-nav-text hover:bg-white/10 hover:text-dcnet-nav-text",
               )}
             >
-              <LayoutDashboard className="h-4 w-4 shrink-0 text-[#CFE4FF]" aria-hidden />
+              <LayoutDashboard className="h-4 w-4 shrink-0 text-dcnet-primary-soft" aria-hidden />
               Painel Principal
             </Link>
           </div>
@@ -322,17 +322,17 @@ function SidebarInner() {
                   onClick={() => toggleGroup(group.id)}
                   className={cn(
                     "flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.08em] transition-colors",
-                    "text-[#EAF3FF] hover:bg-[rgba(234,243,255,0.08)] hover:text-[#EAF3FF]",
-                    groupHasActive && "text-[#EAF3FF]",
+                    "text-dcnet-nav-text hover:bg-white/10 hover:text-dcnet-nav-text",
+                    groupHasActive && "text-dcnet-nav-text",
                   )}
                   aria-expanded={expanded}
                 >
                   <span className="flex min-w-0 items-center gap-2.5">
-                    <Icon className="h-4 w-4 shrink-0 text-[#CFE4FF]" aria-hidden />
+                    <Icon className="h-4 w-4 shrink-0 text-dcnet-primary-soft" aria-hidden />
                     <span className="truncate">{group.label}</span>
                   </span>
                   <ChevronDown
-                    className={cn("h-4 w-4 shrink-0 text-[#CFE4FF] transition-transform", expanded && "rotate-180")}
+                    className={cn("h-4 w-4 shrink-0 text-dcnet-primary-soft transition-transform", expanded && "rotate-180")}
                     aria-hidden
                   />
                 </button>

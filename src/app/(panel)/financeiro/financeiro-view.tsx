@@ -502,7 +502,7 @@ export function FinanceiroView() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button type="button" variant="outline" size="sm" asChild>
-              <Link href="/financeiro/politica">Visão operacional da política</Link>
+              <Link href="/financeiro/politica">Visão geral da política</Link>
             </Button>
             <Button
               type="button"
@@ -619,7 +619,7 @@ export function FinanceiroView() {
             className="border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
             role="alert"
           >
-            <span className="font-medium">Resumo indisponível.</span> {summaryError}
+            <span className="font-medium">Resumo não disponível agora.</span> {summaryError}
           </div>
         ) : null}
         <div
@@ -1032,7 +1032,7 @@ export function FinanceiroView() {
           if (!o) setGenerateError(null);
         }}
         title="Gerar cobranças do mês"
-        description="Cria cobranças pendentes para todos os clientes ativos. Valor e vencimento seguem o cadastro; clientes que já possuem cobrança no mês não serão duplicados."
+        description="Gera cobranças do mês para clientes ativos."
         className="max-w-md"
       >
         <div className="space-y-4">

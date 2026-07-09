@@ -27,7 +27,7 @@ export default function RelatorioAnualComparativoPage() {
           <h3 className="text-sm font-bold uppercase tracking-wide text-neutral-500">Receita por ano</h3>
           <div className="mt-8 flex flex-col items-center justify-center gap-2 text-center">
             <BarChart3 className="h-10 w-10 text-neutral-200" aria-hidden />
-            <p className="text-sm text-neutral-500">Sem endpoint de agregação anual · nada a desenhar.</p>
+            <p className="text-sm text-neutral-500">Serviço indisponível no momento.</p>
           </div>
         </section>
         <section className="min-h-[14rem] border border-neutral-200 bg-white p-6">

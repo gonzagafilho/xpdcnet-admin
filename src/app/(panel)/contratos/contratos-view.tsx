@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { ArrowRight, FileText, Plus } from "lucide-react";
 
-/** Sem rota de contratos no contrato atual da API XPDCNET — apenas UI preparada. */
+/** Cadastros de contratos em ativação nesta etapa. */
 const CONTRATOS_API_DISPONIVEL = false;
 
 export function ContratosView() {

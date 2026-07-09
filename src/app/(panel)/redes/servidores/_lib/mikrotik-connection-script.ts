@@ -1,12 +1,12 @@
 /**
- * Geração client-side de scripts RouterOS para o operador colar manualmente.
+ * Geração client-side de scripts Equipamento para o operador colar manualmente.
  * Não executa nada no equipamento.
  */
 
 const GROUP_NAME = "xpdcnet-lab-grp";
 const ADDRESS_LIST_NAME = "xpdcnet-lab-allowed";
 
-/** Aspas e barras para uso em :local VAR "..." no RouterOS. */
+/** Aspas e barras para uso em :local VAR "..." no Equipamento. */
 export function escapeRouterOsDoubleQuotedString(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }

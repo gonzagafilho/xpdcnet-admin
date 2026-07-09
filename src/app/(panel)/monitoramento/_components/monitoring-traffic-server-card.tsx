@@ -83,11 +83,11 @@ export function MonitoringTrafficServerCard({
           <div className="flex flex-wrap items-center gap-2">
             {srv.online ? (
               <Badge variant="success" className="font-semibold">
-                Online
+                Conectados
               </Badge>
             ) : (
               <Badge variant="error" className="font-semibold">
-                Offline
+                Sem conexão
               </Badge>
             )}
             {srv.monitoringChannel ? (

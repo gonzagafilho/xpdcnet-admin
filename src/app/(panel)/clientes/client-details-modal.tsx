@@ -50,7 +50,7 @@ const tabs: Array<{ id: Tab; label: string }> = [
   { id: "tickets", label: "Chamados" },
   { id: "logs", label: "Logs de conexão" },
   { id: "attachments", label: "Anexos" },
-  { id: "accesses", label: "Acessos PPPoE" },
+  { id: "accesses", label: "Acessos de internet" },
 ];
 
 function dateLabel(value?: string | null) {
@@ -108,7 +108,7 @@ export function ClientDetailsModal({
       open={open}
       onOpenChange={onOpenChange}
       title={data?.client.fullName || "Detalhes do cliente"}
-      description="Visão operacional consolidada, sem credenciais sensíveis."
+      description="Visão geral consolidada, sem credenciais sensíveis."
       className="max-w-5xl"
     >
       {loading ? <p className="py-16 text-center text-sm text-slate-500">Carregando dados do cliente...</p> : null}
@@ -163,7 +163,7 @@ export function ClientDetailsModal({
 
           {tab === "accesses" ? (
             <div className="space-y-3">
-              {data.accesses.length === 0 ? <p className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">Nenhum acesso PPPoE vinculado.</p> : data.accesses.map((access) => (
+              {data.accesses.length === 0 ? <p className="rounded-lg border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">Nenhum acesso Internet vinculado.</p> : data.accesses.map((access) => (
                 <div key={access.id} className="grid gap-3 rounded-lg border border-slate-200 p-4 sm:grid-cols-[1.3fr_1fr_1fr_auto] sm:items-center">
                   <div className="flex items-center gap-3"><Router className="h-4 w-4 text-emerald-700" /><div><p className="font-mono text-sm font-semibold text-slate-900">{access.username}</p><p className="text-xs text-slate-500">{access.source}</p></div></div>
                   <Field label="Plano" value={access.plan.name} />
@@ -177,7 +177,7 @@ export function ClientDetailsModal({
           {tab === "contracts" ? <InfoList empty="Nenhum contrato detalhado disponível nesta fase." items={Object.entries(data.client.contract || {}).filter(([, value]) => value != null && String(value).trim()).map(([key, value]) => `${key}: ${String(value)}`)} /> : null}
           {tab === "billing" ? <InfoList empty="Nenhuma cobrança encontrada." items={data.invoices.map((invoice) => `${invoice.competence} · ${formatBRL(invoice.amount)} · ${invoice.status} · venc. ${dateLabel(invoice.dueDate)}`)} /> : null}
           {tab === "tickets" ? <InfoList empty="Nenhum chamado encontrado." items={data.tickets.map((ticket) => `${ticket.protocol} · ${ticket.subject} · ${ticket.status}`)} /> : null}
-          {tab === "logs" ? <InfoList empty="Nenhum log operacional encontrado." items={data.logs.map((log) => `${dateLabel(log.createdAt)} · ${log.action} · ${log.status}`)} /> : null}
+          {tab === "logs" ? <InfoList empty="Nenhum log comercial encontrado." items={data.logs.map((log) => `${dateLabel(log.createdAt)} · ${log.action} · ${log.status}`)} /> : null}
           {tab === "attachments" ? <InfoList empty="Nenhum anexo disponível nesta fase." items={[]} /> : null}
         </div>
       ) : null}

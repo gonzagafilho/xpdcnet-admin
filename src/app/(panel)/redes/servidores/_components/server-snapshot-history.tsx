@@ -60,11 +60,11 @@ export function ServerSnapshotHistory({ rows }: Props) {
               <td className="px-3 py-2">
                 {r.online ? (
                   <Badge variant="success" className="text-[10px] font-semibold">
-                    Online
+                    Conectados
                   </Badge>
                 ) : (
                   <Badge variant="error" className="text-[10px] font-semibold">
-                    Offline
+                    Sem conexão
                   </Badge>
                 )}
               </td>

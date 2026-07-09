@@ -171,8 +171,8 @@ function NetworkExecutiveSummary({
   if (!summary) return null;
   const items = [
     { label: "Equipamentos", value: summary.totalServers, sub: "cadastrados" },
-    { label: "Online", value: summary.onlineServers, sub: "Disponibilidade atual" },
-    { label: "Offline", value: summary.offlineServers, sub: "indisponíveis" },
+    { label: "Conectados", value: summary.onlineServers, sub: "Disponibilidade atual" },
+    { label: "Sem conexão", value: summary.offlineServers, sub: "indisponíveis" },
     { label: "Clientes vinculados", value: summary.totalClients, sub: "na rede" },
     { label: "Conexões ativas", value: summary.totalPppSessions, sub: "neste momento" },
     { label: "Alertas críticos", value: summary.criticalAlerts, sub: "soma por equipamento" },
@@ -237,11 +237,11 @@ function ServerGroupSection({
             <dd className="inline font-semibold text-slate-800">{group.items.length}</dd>
           </div>
           <div>
-            <dt className="inline font-medium text-emerald-700">Online: </dt>
+            <dt className="inline font-medium text-emerald-700">Conectados: </dt>
             <dd className="inline font-semibold tabular-nums">{online}</dd>
           </div>
           <div>
-            <dt className="inline font-medium text-rose-700">Offline: </dt>
+            <dt className="inline font-medium text-rose-700">Sem conexão: </dt>
             <dd className="inline font-semibold tabular-nums">{offline}</dd>
           </div>
           <div>
@@ -318,14 +318,14 @@ function ServerCard({
             {s.online ? (
               <Badge variant="success" className="shrink-0 gap-1 font-semibold">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" aria-hidden />
-                Online
+                Conectados
               </Badge>
             ) : (
               <Badge
                 variant="error"
                 className="shrink-0 border-rose-200/80 bg-rose-50 font-semibold text-rose-800"
               >
-                Offline
+                Sem conexão
               </Badge>
             )}
             {critical ? (
@@ -376,12 +376,12 @@ function ServerCard({
           </div>
           {s.pppCount != null ? (
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">PPPoE (secrets)</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">Internet (secrets)</p>
               <p className="mt-0.5 font-semibold tabular-nums text-slate-900">{s.pppCount.toLocaleString("pt-BR")}</p>
             </div>
           ) : (
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">PPPoE (secrets)</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.08em] text-slate-500">Internet (secrets)</p>
               <p className="mt-0.5 text-slate-500">—</p>
             </div>
           )}
@@ -500,7 +500,7 @@ function ServerCard({
             </div>
           ) : (
             <p className="mt-2 text-xs text-slate-500">
-              {s.online ? "Sem dados nesta versão" : "Equipamento offline — sem leitura de interfaces."}
+              {s.online ? "Sem dados nesta versão" : "Equipamento sem conexão — sem leitura de interfaces."}
             </p>
           )}
         </div>
@@ -652,7 +652,7 @@ export default function RedesServidoresPage() {
             Servidores de Rede
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-600">
-            Gerencie concentradores PPPoE, MikroTik e autenticação da operação.
+            Gerencie concentradores Internet, MikroTik e autenticação da operação.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -689,7 +689,7 @@ export default function RedesServidoresPage() {
             </div>
             <CardTitle className="text-base">Visão centralizada</CardTitle>
             <CardDescription className="text-sm leading-relaxed text-slate-600">
-              Este módulo concentra o inventário e o estado operacional dos equipamentos que sustentam a sua rede de
+              Este módulo concentra o inventário e o estado comercial dos equipamentos que sustentam a sua rede de
               acesso.
             </CardDescription>
           </CardHeader>
@@ -705,7 +705,7 @@ export default function RedesServidoresPage() {
               </li>
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
-                <span>Checagem de conexão e diagnóstico alinhados à operação comercial.</span>
+                <span>Checagem de conexão e visão rápida alinhados à operação comercial.</span>
               </li>
               <li className="flex gap-2">
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" aria-hidden />
@@ -724,7 +724,7 @@ export default function RedesServidoresPage() {
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Server className="h-4 w-4 text-slate-400" aria-hidden />
-              <h2 className="text-sm font-semibold tracking-tight text-slate-900">Inventário operacional</h2>
+              <h2 className="text-sm font-semibold tracking-tight text-slate-900">Inventário comercial</h2>
             </div>
             {generatedAt && !loading ? (
               <p className="text-[11px] text-slate-500">

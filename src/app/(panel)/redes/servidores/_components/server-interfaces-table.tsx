@@ -21,7 +21,7 @@ export function ServerInterfacesTable({ interfaces, online, topInterfaceNames }:
   if (!online) {
     return (
       <p className="text-sm text-slate-500">
-        Equipamento offline — sem leitura de interfaces nesta consulta.
+        Equipamento sem conexão nesta consulta.
       </p>
     );
   }

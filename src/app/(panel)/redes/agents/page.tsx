@@ -46,7 +46,7 @@ type RemoteCommand = {
   resultData?: unknown[];
 };
 
-const AGENT_ONLINE_MS = 120_000;
+const AGENT_CONECTADO_MS = 120_000;
 
 function formatPtDate(iso: string | null | undefined): string {
   if (!iso) return "—";
@@ -63,7 +63,7 @@ function formatPtDate(iso: string | null | undefined): string {
 function isAgentOnline(row: NetworkNodeFromApi): boolean {
   if (!row.agentLastSeenAt) return false;
   const t = new Date(row.agentLastSeenAt).getTime();
-  return Number.isFinite(t) && Date.now() - t < AGENT_ONLINE_MS;
+  return Number.isFinite(t) && Date.now() - t < AGENT_CONECTADO_MS;
 }
 
 export default function RedesAgentsPage() {
@@ -320,7 +320,7 @@ export default function RedesAgentsPage() {
                         {online ? (
                           <Badge variant="success" className="gap-1 font-semibold">
                             <Activity className="h-3 w-3" aria-hidden />
-                            Online
+                            Conectados
                           </Badge>
                         ) : (
                           <Badge variant="error" className="font-semibold">Sem heartbeat</Badge>
@@ -358,7 +358,7 @@ export default function RedesAgentsPage() {
 
                         {history.length > 0 ? (
                           <div className="w-full space-y-2 rounded-md border border-slate-200 bg-slate-50 p-2 text-left">
-                            <p className="text-[11px] font-semibold text-slate-700">Histórico operacional</p>
+                            <p className="text-[11px] font-semibold text-slate-700">Histórico comercial</p>
 
                             {history.map((cmd, idx) => {
                               const data = Array.isArray(cmd.resultData) ? cmd.resultData[0] : null;
@@ -400,7 +400,7 @@ export default function RedesAgentsPage() {
         </div>
       )}
 
-      <Modal open={tokenModalOpen} onOpenChange={setTokenModalOpen} title="Nova chave de acesso da unidade" description="Copie agora. O valor não volta a ser mostrado." className="max-w-lg">
+      <Modal open={tokenModalOpen} onOpenChange={setTokenModalOpen} title="Nova chave de acesso da unidade" description="Copie agora. O valor não reaparece." className="max-w-lg">
         <div className="space-y-3">
           <pre className="break-all rounded-lg border border-slate-200 bg-slate-950 p-3 text-left text-xs text-emerald-100">
             {newToken || "—"}

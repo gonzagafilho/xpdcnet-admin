@@ -144,13 +144,13 @@ export function ServerConnectionScriptModal({ open, onOpenChange, seed }: Props)
       open={open}
       onOpenChange={onOpenChange}
       title="Roteiro de conexão"
-      description="Este roteiro cria um acesso seguro para o XPDCNET acompanhar o equipamento, sem alterar clientes ou a configuração operacional do provedor."
+      description="Roteiro seguro para acompanhar o equipamento."
       className="max-w-2xl"
     >
       <div className="mt-4 space-y-4">
         <p className="rounded-lg border border-slate-100 bg-slate-50/90 px-3 py-2 text-sm leading-relaxed text-slate-700">
           Este roteiro cria um acesso seguro para o XPDCNET ler informações do MikroTik. Ele não altera clientes, não mexe
-          no PPPoE, não muda internet, não mexe em bridge, VLAN ou rotas. Ele cria apenas: um utilizador dedicado, um
+          no Internet, não muda internet, não mexe em bridge, VLAN ou rotas. Ele cria apenas: um utilizador dedicado, um
           grupo dedicado, uma liberação controlada de acesso e uma regra de segurança específica.
         </p>
 
@@ -337,7 +337,7 @@ export function ServerConnectionScriptModal({ open, onOpenChange, seed }: Props)
           </ul>
           <p className="mt-2 font-semibold text-slate-800">O que não será alterado</p>
           <ul className="mt-1 list-inside list-disc">
-            <li>Clientes, PPPoE, secrets, pools</li>
+            <li>Clientes, Internet, secrets, pools</li>
             <li>Rotas, bridge, VLAN, DNS</li>
             <li>Internet ou tráfego não relacionado ao monitoramento</li>
           </ul>

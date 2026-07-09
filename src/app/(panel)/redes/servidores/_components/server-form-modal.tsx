@@ -158,7 +158,7 @@ export function ServerFormModal({ open, onOpenChange, serverId, onSaved }: Props
       open={open}
       onOpenChange={onOpenChange}
       title={isEdit ? "Editar servidor MikroTik" : "Novo servidor MikroTik"}
-      description="Informe os dados de acesso ao equipamento e defina se a ligação será feita pela matriz ou por uma unidade remota."
+      description="Informe dados e origem da ligação."
       className="max-w-lg"
     >
       {loading ? (

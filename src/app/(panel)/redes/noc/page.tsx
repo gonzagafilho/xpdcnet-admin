@@ -281,7 +281,7 @@ export default function RedesNocPage() {
           ? e.message
           : e instanceof Error
             ? e.message
-            : "Falha ao carregar NOC.";
+            : "Não foi possível carregar agora.";
 
       setError(msg);
     } finally {
@@ -353,7 +353,7 @@ export default function RedesNocPage() {
                   : "success") as "warning" | "success",
               message:
                 (payload?.queue?.failed ?? 0) > 0
-                  ? "Failed jobs detectados"
+                  ? "Falhas jobs detectados"
                   : "Queue saudável",
             },
             ...prev,
@@ -422,7 +422,7 @@ export default function RedesNocPage() {
 
     socket.on("noc.event", (event: { severity?: string; message?: string; title?: string }) => {
       const severity = event?.severity === "warning" ? "warning" : event?.severity === "success" ? "success" : "info";
-      const message = event?.message || event?.title || "Evento operacional recebido";
+      const message = event?.message || event?.title || "Evento comercial recebido";
 
       pushEvent(severity, message);
     });
@@ -451,7 +451,7 @@ export default function RedesNocPage() {
     }) => {
 
       setTelemetry({
-        routerName: event?.routerName || "RouterOS",
+        routerName: event?.routerName || "Equipamento",
         cpuPercent: event?.cpuPercent ?? null,
         memoryPercent: event?.memoryPercent ?? null,
         memoryTotalBytes: event?.memoryTotalBytes ?? null,
@@ -484,12 +484,12 @@ export default function RedesNocPage() {
 
       pushEvent(
         "info",
-        event?.message || "Telemetria RouterOS recebida"
+        event?.message || "Atualização recebida"
       );
     });
 
     socket.on("telemetry.alert", (event: { message?: string }) => {
-      pushEvent("warning", event?.message || "Alerta de telemetria RouterOS");
+      pushEvent("warning", event?.message || "Alerta de rede");
     });
 
     return () => {
@@ -517,15 +517,15 @@ export default function RedesNocPage() {
 
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-            Redes / NOC
+            Redes / Painel
           </p>
 
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
-            NOC Realtime
+            Painel da rede
           </h1>
 
           <p className="mt-2 text-sm text-slate-600">
-            Observabilidade operacional da fila distribuída XPDCNET.
+            Status da rede em tempo real.
           </p>
         </div>
 
@@ -544,11 +544,11 @@ export default function RedesNocPage() {
 
           <div>
             <p className="font-semibold">
-              Sistema em estado degradado
+              Atenção na rede
             </p>
 
             <p className="text-sm opacity-80">
-              Detectada pressão operacional na fila distribuída.
+              Há aumento de pendências na rede.
             </p>
           </div>
         </div>
@@ -562,7 +562,7 @@ export default function RedesNocPage() {
             </p>
 
             <p className="text-sm opacity-80">
-              Nenhum estado degradado detectado.
+              Tudo está estável.
             </p>
           </div>
         </div>
@@ -577,7 +577,7 @@ export default function RedesNocPage() {
       {loading && !data ? (
         <div className="flex items-center gap-3 text-slate-600">
           <Loader2 className="h-5 w-5 animate-spin" />
-          Carregando NOC realtime...
+          Carregando painel da rede...
         </div>
       ) : null}
 
@@ -613,7 +613,7 @@ export default function RedesNocPage() {
 
 
           <Card
-            title="CPU RouterOS"
+            title="Uso do equipamento"
             value={data?.mikrotik?.cpuPercent != null ? `${data.mikrotik.cpuPercent}%` : "—"}
             icon={<Activity className="h-6 w-6" />}
           />
@@ -629,18 +629,18 @@ export default function RedesNocPage() {
           />
 
           <Card
-            title="Clientes Online"
+            title="Clientes Conectados"
             value={data?.mikrotik?.pppActiveTotal ?? telemetry?.pppOnline ?? data?.mikrotik?.pppOnline ?? "—"}
             icon={<Wifi className="h-6 w-6" />}
           />
 
           <Card
-            title="Clientes Cadastrados"
+            title="Clientes cadastrados"
             value={data?.mikrotik?.pppSecretCount ?? "—"}
             icon={<Activity className="h-6 w-6" />}
           />
           <Card
-            title="Clientes Offline"
+            title="Sem conexão"
             value={data?.mikrotik?.offlineClients ?? 0}
             icon={<WifiOff className="h-6 w-6" />}
           />
@@ -764,19 +764,19 @@ export default function RedesNocPage() {
                   <div className="grid gap-4 md:grid-cols-3">
 
             <Card
-              title="Health Score"
+              title="Saúde geral"
               value={`${data?.network?.avgHealthScore ?? 100}%`}
               icon={<CheckCircle2 className="h-6 w-6" />}
             />
 
             <Card
-              title="Nível Topologia"
+              title="Nível da rede"
               value={String(data?.network?.topologyHealthLevel || "healthy").toUpperCase()}
               icon={<Activity className="h-6 w-6" />}
             />
 
             <Card
-              title="Total Links"
+              title="Total de links"
               value={data?.network?.totalLinks ?? 0}
               icon={<Wifi className="h-6 w-6" />}
             />
@@ -786,7 +786,7 @@ export default function RedesNocPage() {
           <div className="grid gap-4 md:grid-cols-3">
 
             <Card
-              title="Links Online"
+              title="Links ativos"
               value={data?.network?.onlineLinks ?? 0}
               icon={<CheckCircle2 className="h-6 w-6" />}
             />
@@ -798,7 +798,7 @@ export default function RedesNocPage() {
             />
 
             <Card
-              title="Links Offline"
+              title="Links sem conexão"
               value={data?.network?.offlineLinks ?? 0}
               icon={<WifiOff className="h-6 w-6" />}
             />
@@ -819,7 +819,7 @@ export default function RedesNocPage() {
             />
 
             <Card
-              title="Link Mais Utilizado"
+              title="Link mais usado"
               value={
                 data?.network?.mostUtilizedLink?.utilizationPct != null
                   ? `${data.network.mostUtilizedLink.utilizationPct}%`
@@ -906,7 +906,7 @@ export default function RedesNocPage() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="font-semibold text-slate-900">
-                {telemetry?.routerName || "RouterOS"}
+                {telemetry?.routerName || "Equipamento"}
               </p>
               <p>
                 Versão: {telemetry?.version || "—"} · Uptime: {telemetry?.uptime || "—"}
@@ -914,20 +914,20 @@ export default function RedesNocPage() {
             </div>
 
             <div className="text-xs font-semibold text-slate-500">
-              Última telemetria: {telemetry?.updatedAt || "aguardando"}
+              Última atualização: {telemetry?.updatedAt || "aguardando"}
             </div>
           </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card
-          title="Pending"
+          title="Pendentes"
           value={data?.queue?.pending ?? 0}
           icon={<Clock3 className="h-6 w-6" />}
         />
 
         <Card
-          title="Processing"
+          title="Em andamento"
           value={data?.queue?.processing ?? 0}
           icon={<Activity className="h-6 w-6" />}
         />
@@ -936,7 +936,7 @@ export default function RedesNocPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Failed
+                Falhas
               </p>
 
               <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
@@ -955,7 +955,7 @@ export default function RedesNocPage() {
         </div>
 
         <Card
-          title="Stale"
+          title="Parados"
           value={data?.queue?.stale ?? 0}
           icon={<AlertTriangle className="h-6 w-6" />}
         />
@@ -965,25 +965,25 @@ export default function RedesNocPage() {
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 
         <Card
-          title="Agents Online"
+          title="Unidades ativas"
           value={data?.agents?.online ?? 0}
           icon={<Wifi className="h-6 w-6" />}
         />
 
         <Card
-          title="Agents Offline"
+          title="Unidades sem conexão"
           value={data?.agents?.offline ?? 0}
           icon={<WifiOff className="h-6 w-6" />}
         />
 
         <Card
-          title="Recovery Events"
+          title="Recuperações"
           value={data?.recovery?.recentRecoveriesLastHour ?? 0}
           icon={<RefreshCw className="h-6 w-6" />}
         />
 
         <Card
-          title="Throughput / min"
+          title="Fluxo / min"
           value={data?.queue ? ((data.queue.pending ?? 0) + (data.queue.processing ?? 0)) : 0}
           icon={<Activity className="h-6 w-6" />}
         />
@@ -994,32 +994,32 @@ export default function RedesNocPage() {
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Workers
+            Atualizações
           </h3>
 
           <div className="mt-4 space-y-3 text-sm">
 
             <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
-              <span>Sync Worker</span>
+              <span>Fila da rede</span>
 
               <span className={data?.workers?.sync ? "text-emerald-600" : "text-rose-600"}>
-                {data?.workers?.sync ? "ONLINE" : "OFFLINE"}
+                {data?.workers?.sync ? "CONECTADO" : "SEM CONEXÃO"}
               </span>
             </div>
 
             <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
-              <span>Finance Worker</span>
+              <span>Fila financeira</span>
 
               <span className={data?.workers?.finance ? "text-emerald-600" : "text-rose-600"}>
-                {data?.workers?.finance ? "ONLINE" : "OFFLINE"}
+                {data?.workers?.finance ? "CONECTADO" : "SEM CONEXÃO"}
               </span>
             </div>
 
             <div className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
-              <span>Trust Worker</span>
+              <span>Fila de confiança</span>
 
               <span className={data?.workers?.trust ? "text-emerald-600" : "text-rose-600"}>
-                {data?.workers?.trust ? "ONLINE" : "OFFLINE"}
+                {data?.workers?.trust ? "CONECTADO" : "SEM CONEXÃO"}
               </span>
             </div>
 
@@ -1028,14 +1028,14 @@ export default function RedesNocPage() {
 
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            Queue Pressure
+            Carga da fila
           </h3>
 
           <div className="mt-6 space-y-4">
 
             <div>
               <div className="mb-2 flex items-center justify-between text-sm">
-                <span>Oldest job</span>
+                <span>Item mais antigo</span>
                 <span>{0}s</span>
               </div>
 
@@ -1063,15 +1063,15 @@ export default function RedesNocPage() {
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                  Live Event Stream
+                  Eventos ao vivo
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  Eventos operacionais realtime do core distribuído.
+                  Eventos da rede em tempo real.
                 </p>
               </div>
               <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-                STREAM
+                AO VIVO
               </div>
             </div>
 
@@ -1107,16 +1107,16 @@ export default function RedesNocPage() {
             <div className="mb-6 flex items-center justify-between">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                  Throughput RouterOS
+                  Tráfego da rede
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  RX/TX realtime recebido da telemetria do agente.
+                  Velocidade de envio e recebimento atualizada automaticamente.
                 </p>
               </div>
 
               <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600">
                 <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-                LIVE
+                AO VIVO
               </div>
             </div>
 
@@ -1137,16 +1137,16 @@ export default function RedesNocPage() {
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Queue Timeline
+                Linha do tempo
               </h3>
               <p className="mt-1 text-sm text-slate-500">
-                Histórico real persistido no Mongo + atualização realtime.
+                Histórico salvo com atualização em tempo real.
               </p>
             </div>
 
             <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600">
               <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-              LIVE
+              AO VIVO
             </div>
           </div>
 

@@ -179,7 +179,7 @@ export default function FinanceiroDivergenciasPage() {
         <div>
           <h1 className="text-xl font-bold tracking-tight text-neutral-900">Divergencia policy x MikroTik</h1>
           <p className="text-sm text-neutral-600">
-            Leitura operacional da decisao da policy versus estado real de rede, sem reconciliacao automatica.
+            Leitura comercial da decisao da policy versus estado real de rede, sem reconciliacao automatica.
           </p>
         </div>
         <div className="flex flex-wrap items-end gap-2">
@@ -331,7 +331,7 @@ export default function FinanceiroDivergenciasPage() {
         </>
       ) : null}
 
-      {!data && loading ? <p className="text-sm text-neutral-500">A carregar diagnostico de divergencia...</p> : null}
+      {!data && loading ? <p className="text-sm text-neutral-500">A carregar visão rápida de divergencia...</p> : null}
     </div>
   );
 }

@@ -265,7 +265,7 @@ export function PlanosView() {
         <div>
           <p className="text-[11px] font-semibold uppercase text-emerald-700">Rede DC NET</p>
           <h1 className="mt-1 text-xl font-semibold text-slate-950 sm:text-2xl">Planos de Internet</h1>
-          <p className="mt-1 text-sm text-slate-600">Catálogo operacional de planos vinculados à rede DC NET</p>
+          <p className="mt-1 text-sm text-slate-600">Catálogo comercial de planos vinculados à rede DC NET</p>
         </div>
         <Button type="button" onClick={openCreate} className="gap-2" disabled={loading}>
           <Plus className="h-4 w-4" /> Novo plano
@@ -294,7 +294,7 @@ export function PlanosView() {
       <section className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
         <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3">
           <div>
-            <h2 className="text-sm font-semibold text-slate-900">Catálogo operacional</h2>
+            <h2 className="text-sm font-semibold text-slate-900">Catálogo comercial</h2>
             <p className="text-xs text-slate-500">Vínculos são calculados a partir dos clientes e acessos existentes.</p>
           </div>
           <Network className="h-5 w-5 text-slate-400" />
@@ -302,7 +302,7 @@ export function PlanosView() {
         {loading ? (
           <p className="py-14 text-center text-sm text-slate-500">Carregando planos...</p>
         ) : plans.length === 0 ? (
-          <div className="p-6"><EmptyState icon={<Network className="mx-auto h-10 w-10" />} title="Nenhum plano cadastrado" description="Crie o primeiro plano operacional da rede." action={<Button onClick={openCreate}>Novo plano</Button>} /></div>
+          <div className="p-6"><EmptyState icon={<Network className="mx-auto h-10 w-10" />} title="Nenhum plano cadastrado" description="Crie o primeiro plano comercial da rede." action={<Button onClick={openCreate}>Novo plano</Button>} /></div>
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -367,7 +367,7 @@ export function PlanosView() {
         )}
       </section>
 
-      <Modal open={formModalOpen} onOpenChange={setFormModalOpen} title={editing ? "Editar plano" : "Novo plano"} description="Defina as condições comerciais e os vínculos operacionais do plano." className="max-w-3xl">
+      <Modal open={formModalOpen} onOpenChange={setFormModalOpen} title={editing ? "Editar plano" : "Novo plano"} description="Defina condições comerciais do plano." className="max-w-3xl">
         <div className="space-y-4">
           {formError ? <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{formError}</div> : null}
           <div className="space-y-1.5"><Label htmlFor="plan-name">Nome *</Label><Input id="plan-name" value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="Ex.: DC NET 600 MEGA" /></div>
@@ -382,10 +382,10 @@ export function PlanosView() {
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5"><Label htmlFor="plan-pop">POP</Label><Input id="plan-pop" value={form.popName} onChange={(event) => setForm((current) => ({ ...current, popName: event.target.value }))} placeholder="Ex.: CHACARA STARLINK" /></div>
-            <div className="space-y-1.5"><Label htmlFor="plan-profile">Perfil RouterOS</Label><Input id="plan-profile" value={form.routerosProfileName} onChange={(event) => setForm((current) => ({ ...current, routerosProfileName: event.target.value }))} placeholder="Opcional" /></div>
+            <div className="space-y-1.5"><Label htmlFor="plan-profile">Perfil Equipamento</Label><Input id="plan-profile" value={form.routerosProfileName} onChange={(event) => setForm((current) => ({ ...current, routerosProfileName: event.target.value }))} placeholder="Opcional" /></div>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-1.5"><Label htmlFor="plan-auth">Autenticação</Label><Select id="plan-auth" value={form.authType} onChange={(event) => setForm((current) => ({ ...current, authType: event.target.value as PlanAuthType }))}><option value="pppoe">PPPoE</option><option value="hotspot">Hotspot</option></Select></div>
+            <div className="space-y-1.5"><Label htmlFor="plan-auth">Autenticação</Label><Select id="plan-auth" value={form.authType} onChange={(event) => setForm((current) => ({ ...current, authType: event.target.value as PlanAuthType }))}><option value="pppoe">Internet</option><option value="hotspot">Hotspot</option></Select></div>
             <div className="space-y-1.5"><Label htmlFor="plan-cycle">Ciclo</Label><Select id="plan-cycle" value={form.billingCycle} onChange={(event) => setForm((current) => ({ ...current, billingCycle: event.target.value as PlanBillingCycle }))}><option value="monthly">Mensal</option><option value="weekly">Semanal</option><option value="daily">Diário</option></Select></div>
             <div className="space-y-1.5"><Label htmlFor="plan-status">Status</Label><Select id="plan-status" value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as "active" | "inactive" }))}><option value="active">Ativo</option><option value="inactive">Inativo</option></Select></div>
           </div>

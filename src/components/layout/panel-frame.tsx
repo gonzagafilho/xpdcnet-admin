@@ -8,37 +8,37 @@ import { AppShell } from "./app-shell";
 
 const titles: Record<string, { title: string; subtitle?: string }> = {
   "/dashboard": {
-    title: "Bem-vindo ao painel operacional",
-    subtitle: "Resumo comercial e operacional",
+    title: "Painel",
+    subtitle: "Resumo geral",
   },
   "/clientes": { title: "Clientes", subtitle: "" },
-  "/chamados": { title: "Chamados", subtitle: "Atendimento e ocorrências" },
-  "/planos": { title: "Planos", subtitle: "Ofertas e condições comerciais" },
-  "/financeiro": { title: "Financeiro", subtitle: "Cobranças e faturação" },
-  "/contratos": { title: "Contratos", subtitle: "Vínculos e documentação com clientes" },
-  "/contratos/layouts": { title: "Modelos de contratos", subtitle: "Documentos padronizados" },
-  "/autenticacoes": { title: "Acessos", subtitle: "Credenciais dos clientes" },
-  "/redes/servidores": { title: "Equipamentos de Rede", subtitle: "Estrutura e disponibilidade da operação" },
-  "/redes/concentradores": { title: "Concentradores", subtitle: "Matriz, Chácara e concentradores individuais" },
-  "/redes/planos": { title: "Planos de Internet", subtitle: "Catálogo operacional da rede DC NET" },
-  "/redes/agents": { title: "Unidades remotas", subtitle: "Presença e atendimento nas filiais" },
-  "/monitoramento/trafego": { title: "Monitoramento · Tráfego", subtitle: "Consumo e desempenho por equipamento" },
+  "/chamados": { title: "Chamados", subtitle: "Atendimento rápido" },
+  "/planos": { title: "Planos", subtitle: "Ofertas" },
+  "/financeiro": { title: "Financeiro", subtitle: "Recebimentos" },
+  "/contratos": { title: "Contratos", subtitle: "Documentos" },
+  "/contratos/layouts": { title: "Modelos", subtitle: "Padrões" },
+  "/autenticacoes": { title: "Acessos", subtitle: "Entradas" },
+  "/redes/servidores": { title: "Equipamentos", subtitle: "Disponibilidade" },
+  "/redes/concentradores": { title: "Concentradores", subtitle: "Qualidade" },
+  "/redes/planos": { title: "Planos de Internet", subtitle: "Velocidade" },
+  "/redes/agents": { title: "Unidades", subtitle: "Cobertura" },
+  "/monitoramento/trafego": { title: "Tráfego", subtitle: "Uso atual" },
   "/monitoramento/clientes-on-off": {
-    title: "Monitoramento · Clientes On/Off",
-    subtitle: "Conexões ativas e clientes vinculados por equipamento",
+    title: "Clientes conectados",
+    subtitle: "Conexão atual",
   },
   "/monitoramento/mapa-clientes": {
-    title: "Monitoramento · Mapa de clientes",
-    subtitle: "Localização cadastral e situação da conexão",
+    title: "Mapa de clientes",
+    subtitle: "Localização",
   },
-  "/relatorios": { title: "Relatórios", subtitle: "Indicadores e exportações" },
-  "/migracao/importar-clientes": { title: "Migração de Dados", subtitle: "Importação segura e independente de plataforma" },
+  "/relatorios": { title: "Relatórios", subtitle: "Indicadores" },
+  "/migracao/importar-clientes": { title: "Importação", subtitle: "Clientes" },
   "/relatorios/anual-comparativo": {
-    title: "Relatório anual comparativo",
-    subtitle: "Indicadores ano a ano",
+    title: "Relatório anual",
+    subtitle: "Comparativo",
   },
-  "/configuracoes": { title: "Configurações", subtitle: "Preferências do painel" },
-  "/fila-sync": { title: "Atualizações de Rede", subtitle: "Acompanhamento das alterações solicitadas" },
+  "/configuracoes": { title: "Configurações", subtitle: "Preferências" },
+  "/fila-sync": { title: "Atualizações", subtitle: "Fila" },
 };
 
 function resolvePanelMeta(pathname: string): { title: string; subtitle?: string } {
@@ -48,10 +48,10 @@ function resolvePanelMeta(pathname: string): { title: string; subtitle?: string 
   if (pathname.startsWith("/contratos")) return titles["/contratos"]!;
   if (pathname.startsWith("/autenticacoes")) return titles["/autenticacoes"]!;
   if (/^\/redes\/servidores\/.+/.test(pathname)) {
-    return { title: "Equipamento — Central NOC", subtitle: "Monitoramento e disponibilidade operacional" };
+    return { title: "Equipamento", subtitle: "Disponibilidade" };
   }
   if (/^\/monitoramento\/clientes-on-off\/.+/.test(pathname)) {
-    return { title: "Monitoramento · Cliente", subtitle: "Ficha operacional e diagnóstico" };
+    return { title: "Cliente", subtitle: "Resumo" };
   }
   if (pathname.startsWith("/redes/concentradores")) return titles["/redes/concentradores"]!;
   if (pathname.startsWith("/redes/planos")) return titles["/redes/planos"]!;
@@ -64,16 +64,16 @@ function resolvePanelMeta(pathname: string): { title: string; subtitle?: string 
   if (pathname.startsWith("/relatorios/anual-comparativo")) return titles["/relatorios/anual-comparativo"]!;
   if (pathname.startsWith("/relatorios")) return titles["/relatorios"]!;
   if (pathname.startsWith("/financeiro/politica")) {
-    return { title: "Política financeira", subtitle: "Regras de cobrança e relacionamento" };
+    return { title: "Política financeira", subtitle: "Regras" };
   }
   if (pathname.startsWith("/dashboard/executivo")) {
-    return { title: "Dashboard executivo", subtitle: "Visão operacional avançada" };
+    return { title: "Painel executivo", subtitle: "Resumo" };
   }
   if (pathname.startsWith("/clientes/timeline")) {
-    return { title: "Histórico do cliente", subtitle: "Eventos financeiros e operacionais" };
+    return { title: "Histórico", subtitle: "Cliente" };
   }
   if (pathname.startsWith("/fila-sync")) return titles["/fila-sync"]!;
-  return { title: "DCNET Operacional" };
+  return { title: "XPDCNET" };
 }
 
 export function PanelFrame({ children }: { children: ReactNode }) {
@@ -89,7 +89,7 @@ export function PanelFrame({ children }: { children: ReactNode }) {
         const data = (await res.json()) as { token?: string };
         if (data.token) setSessionToken(data.token);
       } catch {
-        /* silencioso: chamadas API falharão e 401 redireciona se necessário */
+        /* silencioso: falhas de sessão seguem para redirecionamento */
       }
     })();
     return () => {

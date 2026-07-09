@@ -202,7 +202,7 @@ function parseGeo(w: ClienteFormState): { lat: number; lng: number } | null {
 const NOTES_AUX_MARKER = "__XPDCNET_AUX_V1__";
 
 /** Rodapé fixo de `buildAuxiliaryNotes` — usado para despistar blocos legados sem marcador. */
-const NOTES_AUX_FOOTER = "(Campos sem campo dedicado na API permanecem nestas notas até evolução do modelo.)";
+const NOTES_AUX_FOOTER = "(Use este campo para observações rápidas.)";
 
 function escapeRegExp(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -288,7 +288,7 @@ function validateForm(
   if (mode === "create") {
     if (!hasAuthRegistration) return "Cadastre a autenticação de rede antes de guardar.";
     if (!w.accessUsername.trim()) return "Indique o login de autenticação.";
-    if (!w.accessPassword.trim()) return "Indique a senha de autenticação (PPPoE / acesso).";
+    if (!w.accessPassword.trim()) return "Indique a senha de autenticação (Internet / acesso).";
   } else {
     if (!w.accessUsername.trim()) return "Indique o login de autenticação.";
   }
@@ -1482,7 +1482,7 @@ export function ClienteFormModal({
               <div className="space-y-4 border-t border-neutral-200 pt-6">
                 {mode === "edit" ? (
                   <div className="space-y-2">
-                    {sectionTitle("Acessos PPPoE vinculados")}
+                    {sectionTitle("Acessos de internet vinculados")}
                     {clientAccessesLoading ? (
                       <p className="text-xs text-neutral-500">Carregando acessos...</p>
                     ) : clientAccesses.length === 0 ? (

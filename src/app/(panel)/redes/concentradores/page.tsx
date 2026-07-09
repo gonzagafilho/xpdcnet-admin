@@ -22,10 +22,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertBanner } from "@/components/ui/alert-banner";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatCard } from "@/components/ui/stat-card";
 import { ApiRequestError, apiFetch } from "@/lib/api-client";
 import type {
   MonitoringConcentratorAlert,
@@ -135,8 +139,8 @@ function formatTime(value?: string | null) {
 
 function statusLabel(status?: string) {
   const labels: Record<string, string> = {
-    online: "Online",
-    offline: "Offline",
+    online: "Conectados",
+    offline: "Sem conexão",
     auth_error: "Falha de autenticação",
     timeout: "Tempo esgotado",
     unsupported: "Não suportado",
@@ -419,7 +423,7 @@ export default function ConcentradoresPage() {
           <p className="text-[11px] font-semibold uppercase text-slate-500">Rede DC NET</p>
           <h1 className="mt-1 text-2xl font-semibold text-slate-950">Concentradores</h1>
           <p className="mt-2 max-w-3xl text-sm text-slate-600">
-            Cadastre e acompanhe cada concentrador RouterOS de forma individual, com vínculo ao agente responsável.
+            Acompanhe cada central com clareza.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -430,39 +434,37 @@ export default function ConcentradoresPage() {
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Atualizar
           </Button>
           <Button onClick={() => openCreate(false)} disabled={!agents.length} className="bg-emerald-600 hover:bg-emerald-700">
-            <Plus className="h-4 w-4" /> Novo concentrador
+            <Plus className="h-4 w-4" /> Nova central
           </Button>
         </div>
       </div>
 
       {!agents.length && !loading ? (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          Cadastre ou ative uma Unidade Remota antes de criar concentradores.
-        </div>
+        <AlertBanner tone="warning">Ative uma unidade antes de cadastrar.</AlertBanner>
       ) : null}
-      {error ? <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div> : null}
-      {notice ? <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</div> : null}
+      {error ? <AlertBanner tone="error">{error}</AlertBanner> : null}
+      {notice ? <AlertBanner tone="success">{notice}</AlertBanner> : null}
 
-      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7" aria-label="Resumo dos concentradores">
-        <ExecutiveCard label="Concentradores" value={loading ? "—" : monitoring?.total ?? rows.length} icon={Server} tone="blue" />
-        <ExecutiveCard label="Online" value={loading ? "—" : monitoring?.online ?? 0} icon={CheckCircle2} tone="green" />
-        <ExecutiveCard label="PPP Online" value={loading ? "—" : monitoring?.pppOnline ?? 0} icon={Wifi} tone="cyan" />
-        <ExecutiveCard label="Interfaces UP" value={loading ? "—" : String(monitoring?.interfaceRunning ?? 0) + "/" + String(monitoring?.interfaceTotal ?? 0)} icon={Cable} tone="slate" />
-        <ExecutiveCard label="Alertas abertos" value={loading ? "—" : monitoring?.openAlerts ?? openAlerts.length} icon={BellRing} tone="amber" />
-        <ExecutiveCard label="Críticos" value={loading ? "—" : monitoring?.criticalAlerts ?? openAlerts.filter((alert) => alert.severity === "critical").length} icon={ShieldAlert} tone="red" />
-        <ExecutiveCard label="Avisos" value={loading ? "—" : monitoring?.warningAlerts ?? openAlerts.filter((alert) => alert.severity === "warning").length} icon={TriangleAlert} tone="yellow" />
+      <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-7" aria-label="Resumo">
+        <StatCard label="Concentradores" value={loading ? "—" : monitoring?.total ?? rows.length} icon={Server} tone="primary" compact />
+        <StatCard label="Conectados" value={loading ? "—" : monitoring?.online ?? 0} icon={CheckCircle2} tone="success" compact />
+        <StatCard label="Clientes" value={loading ? "—" : monitoring?.pppOnline ?? 0} icon={Wifi} tone="info" compact />
+        <StatCard label="Interfaces UP" value={loading ? "—" : String(monitoring?.interfaceRunning ?? 0) + "/" + String(monitoring?.interfaceTotal ?? 0)} icon={Cable} tone="info" compact />
+        <StatCard label="Alertas" value={loading ? "—" : monitoring?.openAlerts ?? openAlerts.length} icon={BellRing} tone="warning" compact />
+        <StatCard label="Críticos" value={loading ? "—" : monitoring?.criticalAlerts ?? openAlerts.filter((alert) => alert.severity === "critical").length} icon={ShieldAlert} tone="error" compact />
+        <StatCard label="Avisos" value={loading ? "—" : monitoring?.warningAlerts ?? openAlerts.filter((alert) => alert.severity === "warning").length} icon={TriangleAlert} tone="warning" compact />
       </section>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Alertas Inteligentes</CardTitle>
-          <CardDescription>Condições operacionais detectadas automaticamente nos concentradores.</CardDescription>
+          <CardTitle className="text-base">Alertas da rede</CardTitle>
+          <CardDescription>Alertas da rede em tempo real.</CardDescription>
         </CardHeader>
         <CardContent>
           {alertsError ? (
-            <div className="border border-red-200 bg-red-50 p-4 text-sm text-red-800">Não foi possível carregar os alertas: {alertsError}</div>
+            <AlertBanner tone="error">Não foi possível carregar os alertas: {alertsError}</AlertBanner>
           ) : !openAlerts.length ? (
-            <div className="flex items-center gap-3 border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-900">
+            <div className="flex items-center gap-3 rounded-xl border border-dcnet-success/25 bg-dcnet-success-soft p-4 text-sm font-medium text-dcnet-success">
               <CheckCircle2 className="h-5 w-5" /> Sem alertas ativos
             </div>
           ) : (
@@ -503,15 +505,38 @@ export default function ConcentradoresPage() {
       </Card>
 
       {loading ? (
-        <div className="flex items-center gap-2 py-16 text-sm text-slate-500">
-          <Loader2 className="h-5 w-5 animate-spin" /> Carregando concentradores...
+        <div className="space-y-4 py-5">
+          <div className="grid gap-3 xl:grid-cols-[0.9fr_1.1fr]">
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="xp-card-surface p-4">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="mt-3 h-3 w-28" />
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-full" />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="xp-card-surface p-5">
+              <Skeleton className="h-5 w-52" />
+              <Skeleton className="mt-4 h-3 w-full" />
+              <Skeleton className="mt-2 h-3 w-5/6" />
+              <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                {Array.from({ length: 6 }).map((_, index) => <Skeleton key={index} className="h-14 w-full" />)}
+              </div>
+            </div>
+          </div>
         </div>
       ) : !rows.length ? (
-        <div className="border border-slate-200 bg-white p-10 text-center">
-          <Router className="mx-auto h-9 w-9 text-slate-300" />
-          <p className="mt-3 font-medium text-slate-800">Nenhum concentrador cadastrado</p>
-          <p className="mt-1 text-sm text-slate-500">Use “Novo concentrador” para preparar Matriz ou Chácara.</p>
-        </div>
+        <EmptyState
+          icon={<Router className="h-9 w-9" />}
+          title="Nenhuma central cadastrada"
+          description="Use “Nova central”."
+          className="p-10"
+        />
       ) : (
         <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
           <div className="space-y-3">
@@ -554,7 +579,7 @@ export default function ConcentradoresPage() {
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <CardTitle>{selected.name}</CardTitle>
-                      <CardDescription>{metadataText(selected.metadata, "notes") || "Concentrador individual da rede DC NET."}</CardDescription>
+                      <CardDescription>{metadataText(selected.metadata, "notes") || "Central ativa da rede."}</CardDescription>
                     </div>
                     <div className="flex flex-wrap gap-2">
                       {selectedMonitoring ? <Badge variant={healthVariant(selectedMonitoring.health)}>{selectedMonitoring.health}</Badge> : null}
@@ -573,7 +598,7 @@ export default function ConcentradoresPage() {
                   </div>
 
                   {selected.lastErrorSafe ? (
-                    <div className="flex gap-3 border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <div className="flex gap-3 rounded-xl border border-dcnet-warning/25 bg-dcnet-warning-soft p-3 text-sm text-dcnet-warning">
                       <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
                       <div><p className="font-medium">Último erro seguro</p><p className="mt-1 break-words">{selected.lastErrorSafe}</p></div>
                     </div>
@@ -595,8 +620,8 @@ export default function ConcentradoresPage() {
                   <CardHeader>
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <CardTitle className="text-base">Saúde operacional</CardTitle>
-                        <CardDescription>Última telemetria consolidada pela Central de Concentradores.</CardDescription>
+                        <CardTitle className="text-base">Saúde da rede</CardTitle>
+                        <CardDescription>Última atualização.</CardDescription>
                       </div>
                       <Badge variant={healthVariant(selectedMonitoring.health)}>{selectedMonitoring.health}</Badge>
                     </div>
@@ -605,33 +630,33 @@ export default function ConcentradoresPage() {
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                       <Metric label="CPU" value={String(selectedMonitoring.cpuPercent) + "%"} tone="slate" />
                       <Metric label="RAM" value={String(selectedMonitoring.memoryPercent) + "%"} tone="slate" />
-                      <Metric label="PPP Online" value={String(selectedMonitoring.pppOnline)} tone="green" />
-                      <Metric label="PPP Offline" value={String(selectedMonitoring.pppOffline)} tone="slate" />
+                      <Metric label="Clientes" value={String(selectedMonitoring.pppOnline)} tone="green" />
+                      <Metric label="Sem conexão" value={String(selectedMonitoring.pppOffline)} tone="slate" />
                       <Metric label="Interfaces" value={String(selectedMonitoring.interfaceRunning) + "/" + String(selectedMonitoring.interfaceTotal)} tone="slate" />
-                      <Metric label="RouterOS" value={selectedMonitoring.version || "—"} tone="slate" />
+                      <Metric label="Equipamento" value={selectedMonitoring.version || "—"} tone="slate" />
                       <Metric label="Uptime" value={selectedMonitoring.uptime || "—"} tone="slate" />
-                      <Metric label="Health Score" value={String(selectedMonitoring.healthScore) + "%"} tone={healthTone(selectedMonitoring.healthScore)} />
+                      <Metric label="Saúde geral" value={String(selectedMonitoring.healthScore) + "%"} tone={healthTone(selectedMonitoring.healthScore)} />
                     </div>
-                    <p className="mt-3 text-xs text-slate-500">Última telemetria: {formatDate(selectedMonitoring.telemetryAt)}</p>
+                    <p className="mt-3 text-xs text-slate-500">Última atualização: {formatDate(selectedMonitoring.telemetryAt)}</p>
                   </CardContent>
                 </Card>
               ) : null}
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">PPPoE do concentrador</CardTitle>
-                  <CardDescription>Resumo das leituras já persistidas para este concentrador.</CardDescription>
+                  <CardTitle className="text-base">Clientes conectados</CardTitle>
+                  <CardDescription>Resumo atual de clientes conectados.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {selected.snapshotSummary ? (
                     <div className="grid gap-3 sm:grid-cols-3">
-                      <Metric label="Online" value={String(selected.snapshotSummary.online)} tone="green" />
-                      <Metric label="Offline" value={String(selected.snapshotSummary.offline)} tone="slate" />
-                      <Metric label="Última sincronização" value={formatDate(selected.snapshotSummary.lastSyncAt)} tone="slate" />
+                      <Metric label="Conectados" value={String(selected.snapshotSummary.online)} tone="green" />
+                      <Metric label="Sem conexão" value={String(selected.snapshotSummary.offline)} tone="slate" />
+                      <Metric label="Última atualização" value={formatDate(selected.snapshotSummary.lastSyncAt)} tone="slate" />
                     </div>
                   ) : (
-                    <div className="border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                      Leitura PPPoE será exibida após ativação do worker multi-concentrador.
+                    <div className="rounded-xl border border-dcnet-border bg-dcnet-surface-muted p-4 text-sm text-dcnet-muted">
+                      Em breve.
                     </div>
                   )}
                 </CardContent>
@@ -639,8 +664,8 @@ export default function ConcentradoresPage() {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base">Histórico 24 snapshots</CardTitle>
-                  <CardDescription>Evolução recente da telemetria do concentrador selecionado.</CardDescription>
+                  <CardTitle className="text-base">Histórico da rede</CardTitle>
+                  <CardDescription>Evolução recente da rede.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {detailLoading ? (
@@ -648,25 +673,25 @@ export default function ConcentradoresPage() {
                       <Loader2 className="h-5 w-5 animate-spin" /> Carregando histórico...
                     </div>
                   ) : detailError ? (
-                    <div className="border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-                      Não foi possível carregar o histórico: {detailError}
-                    </div>
+                    <AlertBanner tone="error" className="rounded-xl">
+                      Não foi possível carregar agora: {detailError}
+                    </AlertBanner>
                   ) : !monitoringDetail?.telemetryHistory?.length ? (
-                    <div className="border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                      Nenhum snapshot de telemetria disponível para este concentrador.
+                    <div className="rounded-xl border border-dcnet-border bg-dcnet-surface-muted p-4 text-sm text-dcnet-muted">
+                      Sem atualização recente para este equipamento.
                     </div>
                   ) : (
                     <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_18rem]">
                       <div className="grid gap-3 lg:grid-cols-3">
                         <MiniLineChart title="CPU" data={monitoringDetail.telemetryHistory} valueKey="cpuPercent" suffix="%" emptyLabel="Sem dados de CPU" />
                         <MiniLineChart title="RAM" data={monitoringDetail.telemetryHistory} valueKey="memoryPercent" suffix="%" emptyLabel="Sem dados de RAM" />
-                        <MiniLineChart title="PPP Online" data={monitoringDetail.telemetryHistory} valueKey="pppOnline" suffix="" emptyLabel="Sem dados PPP" />
+                        <MiniLineChart title="Clientes" data={monitoringDetail.telemetryHistory} valueKey="pppOnline" suffix="" emptyLabel="Sem dados" />
                       </div>
-                      <div className="border border-slate-200 bg-slate-50 p-4">
-                        <p className="text-sm font-semibold text-slate-900">Últimos registros</p>
+                      <div className="rounded-xl border border-dcnet-border bg-dcnet-surface-muted p-4">
+                        <p className="text-sm font-semibold text-dcnet-text">Últimos registros</p>
                         <div className="mt-3 space-y-2">
                           {monitoringDetail.telemetryHistory.slice(0, 8).map((snapshot, index) => (
-                            <div key={`${snapshot.createdAt}-${index}`} className="border-l-2 border-emerald-400 bg-white px-3 py-2 shadow-sm">
+                            <div key={`${snapshot.createdAt}-${index}`} className="rounded-lg border-l-2 border-dcnet-success bg-white px-3 py-2 shadow-xp-xs">
                               <div className="flex items-center justify-between gap-3">
                                 <span className="text-xs font-semibold text-slate-700">{formatTime(snapshot.createdAt)}</span>
                                 <span className="text-[11px] text-slate-500">Interfaces {snapshot.interfaceRunning}/{snapshot.interfaceTotal}</span>
@@ -688,8 +713,8 @@ export default function ConcentradoresPage() {
       <Modal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        title={editingId ? "Editar concentrador" : "Novo concentrador"}
-        description="A senha é enviada apenas ao backend e nunca volta na listagem."
+        title={editingId ? "editar central" : "Nova central"}
+        description="A senha fica protegida."
         className="sm:max-w-3xl"
       >
         <form onSubmit={save} className="space-y-5">
@@ -706,27 +731,27 @@ export default function ConcentradoresPage() {
                 <option value="mikrotik">MikroTik</option><option value="huawei_olt">Huawei OLT</option><option value="fiberhome_olt">FiberHome OLT</option><option value="zte_olt">ZTE OLT</option><option value="intelbras">Intelbras</option><option value="other">Outro</option>
               </Select>
             </Field>
-            <Field label="Protocolo" htmlFor="concentrator-protocol">
+            <Field label="Conexão" htmlFor="concentrator-protocol">
               <Select id="concentrator-protocol" value={form.protocol} onChange={(e) => setForm((v) => ({ ...v, protocol: e.target.value }))}>
-                <option value="routeros">RouterOS</option><option value="snmp">SNMP</option><option value="http">HTTP</option><option value="ssh">SSH</option><option value="other">Outro</option>
+                <option value="routeros">Padrão</option><option value="snmp">SNMP</option><option value="http">HTTP</option><option value="ssh">SSH</option><option value="other">Outro</option>
               </Select>
             </Field>
             <Field label="Host/IP" htmlFor="concentrator-host"><Input id="concentrator-host" value={form.host} onChange={(e) => setForm((v) => ({ ...v, host: e.target.value }))} required /></Field>
             <Field label="Porta" htmlFor="concentrator-port"><Input id="concentrator-port" type="number" min={1} max={65535} value={form.port} onChange={(e) => setForm((v) => ({ ...v, port: e.target.value }))} required /></Field>
             <Field label="Usuário" htmlFor="concentrator-user"><Input id="concentrator-user" autoComplete="off" value={form.username} onChange={(e) => setForm((v) => ({ ...v, username: e.target.value }))} required /></Field>
             <Field label={editingId ? "Nova senha (opcional)" : "Senha"} htmlFor="concentrator-password"><Input id="concentrator-password" type="password" autoComplete="new-password" value={form.password} onChange={(e) => setForm((v) => ({ ...v, password: e.target.value }))} required={!editingId} /></Field>
-            <Field label="Via" htmlFor="concentrator-via"><Input id="concentrator-via" value={form.via} onChange={(e) => setForm((v) => ({ ...v, via: e.target.value }))} placeholder="Ex.: WireGuard" /></Field>
+            <Field label="Canal" htmlFor="concentrator-via"><Input id="concentrator-via" value={form.via} onChange={(e) => setForm((v) => ({ ...v, via: e.target.value }))} placeholder="Ex.: Link dedicado" /></Field>
             <div className="flex items-end gap-5 pb-2">
               <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={form.tls} onChange={(e) => setForm((v) => ({ ...v, tls: e.target.checked }))} /> TLS</label>
               <label className="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" checked={form.enabled} onChange={(e) => setForm((v) => ({ ...v, enabled: e.target.checked }))} /> Ativo</label>
             </div>
           </div>
-          <Field label="Observações/metadados" htmlFor="concentrator-notes">
-            <textarea id="concentrator-notes" value={form.notes} onChange={(e) => setForm((v) => ({ ...v, notes: e.target.value }))} className="min-h-24 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-400" maxLength={500} />
+          <Field label="Observações" htmlFor="concentrator-notes">
+            <textarea id="concentrator-notes" value={form.notes} onChange={(e) => setForm((v) => ({ ...v, notes: e.target.value }))} className="min-h-24 w-full rounded-xl border border-dcnet-border px-3 py-2 text-sm text-dcnet-text outline-none focus:ring-2 focus:ring-dcnet-primary/45" maxLength={500} />
           </Field>
           <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
             <Button type="button" variant="outline" onClick={() => setModalOpen(false)} disabled={saving}>Cancelar</Button>
-            <Button type="submit" disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{editingId ? "Salvar alterações" : "Criar concentrador"}</Button>
+            <Button type="submit" disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}{editingId ? "Salvar alterações" : "Criar central"}</Button>
           </div>
         </form>
       </Modal>
@@ -734,25 +759,12 @@ export default function ConcentradoresPage() {
   );
 }
 
-function ExecutiveCard({ label, value, icon: Icon, tone }: { label: string; value: string | number; icon: React.ComponentType<{ className?: string }>; tone: "blue" | "green" | "cyan" | "slate" | "amber" | "yellow" | "red" }) {
-  const tones = {
-    blue: "border-blue-200 bg-blue-50 text-blue-950",
-    green: "border-emerald-200 bg-emerald-50 text-emerald-950",
-    cyan: "border-cyan-200 bg-cyan-50 text-cyan-950",
-    slate: "border-slate-200 bg-white text-slate-950",
-    amber: "border-amber-200 bg-amber-50 text-amber-950",
-    yellow: "border-yellow-200 bg-yellow-50 text-yellow-950",
-    red: "border-red-200 bg-red-50 text-red-950",
-  };
-  return <div className={"flex h-20 items-center justify-between rounded-lg border px-4 shadow-sm " + tones[tone]}><div><p className="text-xs font-medium opacity-70">{label}</p><p className="mt-1 text-2xl font-semibold tabular-nums">{value}</p></div><div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/80 shadow-sm"><Icon className="h-5 w-5" /></div></div>;
-}
-
 function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
   return <div className="space-y-2"><Label htmlFor={htmlFor}>{label}</Label>{children}</div>;
 }
 
 function Info({ label, value, icon: Icon }: { label: string; value: string; icon: React.ComponentType<{ className?: string }> }) {
-  return <div className="border border-slate-200 p-3"><div className="flex items-center gap-2 text-xs text-slate-500"><Icon className="h-4 w-4" />{label}</div><p className="mt-2 break-words text-sm font-medium text-slate-900">{value}</p></div>;
+  return <div className="rounded-xl border border-dcnet-border bg-dcnet-surface-muted p-3"><div className="flex items-center gap-2 text-xs text-dcnet-muted"><Icon className="h-4 w-4" />{label}</div><p className="mt-2 break-words text-sm font-medium text-dcnet-text">{value}</p></div>;
 }
 
 
@@ -766,7 +778,7 @@ function MiniLineChart({ title, data, valueKey, suffix, emptyLabel }: {
   const ordered = [...data].reverse();
   const values = ordered.map((snapshot) => Number(snapshot[valueKey])).filter((value) => Number.isFinite(value));
   if (!values.length) {
-    return <div className="flex min-h-48 items-center justify-center border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">{emptyLabel}</div>;
+    return <div className="flex min-h-48 items-center justify-center rounded-xl border border-dcnet-border bg-dcnet-surface-muted p-4 text-sm text-dcnet-muted">{emptyLabel}</div>;
   }
   const min = Math.min(...values);
   const max = Math.max(...values);
@@ -783,28 +795,28 @@ function MiniLineChart({ title, data, valueKey, suffix, emptyLabel }: {
   }).join(" ");
   const lastValue = values[values.length - 1];
   return (
-    <div className="min-w-0 border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="min-w-0 rounded-xl border border-dcnet-border bg-white p-4 shadow-xp-xs">
       <div className="flex items-start justify-between gap-3">
-        <div><p className="text-xs font-medium text-slate-500">{title}</p><p className="mt-1 text-xl font-semibold tabular-nums text-slate-950">{lastValue}{suffix}</p></div>
-        <p className="text-right text-[11px] text-slate-500">mín. {min}{suffix}<br />máx. {max}{suffix}</p>
+        <div><p className="text-xs font-medium text-dcnet-muted">{title}</p><p className="mt-1 text-xl font-semibold tabular-nums text-dcnet-text">{lastValue}{suffix}</p></div>
+        <p className="text-right text-[11px] text-dcnet-muted">mín. {min}{suffix}<br />máx. {max}{suffix}</p>
       </div>
       <svg className="mt-3 h-24 w-full" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`Histórico de ${title}`} preserveAspectRatio="none">
-        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#e2e8f0" strokeWidth="1" />
-        <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="#f1f5f9" strokeWidth="1" />
-        <polyline points={points} fill="none" stroke="#059669" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#d3e4ff" strokeWidth="1" />
+        <line x1={padding} y1={padding} x2={width - padding} y2={padding} stroke="#f1f5ff" strokeWidth="1" />
+        <polyline points={points} fill="none" stroke="#0a66cc" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      <div className="mt-2 flex justify-between text-[11px] text-slate-500"><span>{formatTime(ordered[0]?.createdAt)}</span><span>{formatTime(ordered[ordered.length - 1]?.createdAt)}</span></div>
+      <div className="mt-2 flex justify-between text-[11px] text-dcnet-muted"><span>{formatTime(ordered[0]?.createdAt)}</span><span>{formatTime(ordered[ordered.length - 1]?.createdAt)}</span></div>
     </div>
   );
 }
 
 function Metric({ label, value, tone }: { label: string; value: string; tone: "green" | "slate" | "yellow" | "orange" | "red" }) {
   const tones = {
-    green: "border-emerald-200 bg-emerald-50",
-    slate: "border-slate-200 bg-slate-50",
-    yellow: "border-amber-200 bg-amber-50",
-    orange: "border-orange-200 bg-orange-50",
-    red: "border-red-200 bg-red-50",
+    green: "border-dcnet-success/20 bg-dcnet-success-soft",
+    slate: "border-dcnet-border bg-dcnet-surface-muted",
+    yellow: "border-dcnet-warning/20 bg-dcnet-warning-soft",
+    orange: "border-dcnet-warning/30 bg-dcnet-warning-soft",
+    red: "border-dcnet-error/20 bg-dcnet-error-soft",
   };
-  return <div className={"border p-3 " + tones[tone]}><p className="text-xs text-slate-500">{label}</p><p className="mt-1 break-words text-lg font-semibold text-slate-950">{value}</p></div>;
+  return <div className={"rounded-xl border p-3 " + tones[tone]}><p className="text-xs text-dcnet-muted">{label}</p><p className="mt-1 break-words text-lg font-semibold text-dcnet-text">{value}</p></div>;
 }

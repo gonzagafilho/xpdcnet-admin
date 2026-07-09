@@ -50,7 +50,7 @@ export function MonitoringMapSidebar({
           </div>
           <div className="flex items-center gap-2">
             <span className="inline-block h-3 w-3 rounded-full border-2 border-white bg-rose-600 shadow ring-1 ring-slate-200" />
-            <span className="text-slate-700">Sem conexão / indisponível</span>
+            <span className="text-slate-700">Sem conexão no momento</span>
           </div>
         </CardContent>
       </Card>
@@ -90,11 +90,11 @@ export function MonitoringMapSidebar({
                   <CardTitle className="text-sm font-semibold text-slate-900">{b.server.name}</CardTitle>
                   <CardDescription className="text-xs">
                     {b.server.online ? (
-                      <span className="text-emerald-700">Equipamento online</span>
+                      <span className="text-emerald-700">Equipamento conectado</span>
                     ) : (
-                      <span className="text-rose-700">Equipamento offline</span>
+                      <span className="text-rose-700">Equipamento sem conexão</span>
                     )}
-                    {b.server.uptime ? <span className="ml-2 text-slate-500">· tempo online {b.server.uptime}</span> : null}
+                    {b.server.uptime ? <span className="ml-2 text-slate-500">· tempo conectado {b.server.uptime}</span> : null}
                   </CardDescription>
                   {b.server.board || b.server.version ? (
                     <p className="mt-1 text-[11px] leading-snug text-slate-600">

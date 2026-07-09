@@ -14,7 +14,7 @@ export function ServerAlertsPanel({ alerts }: Props) {
       <div className="flex items-start gap-3 rounded-xl border border-emerald-200/90 bg-emerald-50/50 px-4 py-3 text-sm text-emerald-900">
         <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" aria-hidden />
         <div>
-          <p className="font-semibold">Nenhum alerta operacional nesta consulta</p>
+          <p className="font-semibold">Nenhum alerta comercial nesta consulta</p>
           <p className="mt-0.5 text-xs text-emerald-800/85">Parâmetros dentro dos limiares definidos para esta fase.</p>
         </div>
       </div>

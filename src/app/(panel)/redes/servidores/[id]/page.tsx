@@ -72,7 +72,7 @@ function buildExecutiveSummary(d: MikrotikServerMonitoringDetailFromApi): string
   const lines = [
     `Servidor: ${d.name} (${d.id})`,
     d.networkNode ? `POP/Node: ${d.networkNode.name} (${d.networkNode.code})` : "POP/Node: —",
-    `Online: ${d.online ? "sim" : "não"}`,
+    `Conectados: ${d.online ? "sim" : "não"}`,
     `Host: ${d.host}:${d.port ?? 8728}`,
     `Identidade ROS: ${d.identityName ?? "—"}`,
     `Versão: ${d.version ?? "—"}`,
@@ -210,7 +210,7 @@ export default function ServidorDetalhePage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `xpdcnet-diagnostico-servidor-${data.id}-${Date.now()}.json`;
+    a.download = `xpdcnet-visão rápida-servidor-${data.id}-${Date.now()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }, [data]);
@@ -261,7 +261,7 @@ export default function ServidorDetalhePage() {
             </Link>
           </Button>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Redes · NOC</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">Redes · Operação</p>
             {loading && !data ? (
               <div className="mt-2 h-8 w-64 animate-pulse rounded bg-slate-200" />
             ) : (
@@ -289,11 +289,11 @@ export default function ServidorDetalhePage() {
                   {data?.online ? (
                     <Badge variant="success" className="gap-1 font-semibold">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" aria-hidden />
-                      Online
+                      Conectados
                     </Badge>
                   ) : data ? (
                     <Badge variant="error" className="border-rose-200/80 bg-rose-50 font-semibold text-rose-800">
-                      Offline
+                      Sem conexão
                     </Badge>
                   ) : null}
                   {data?.isActive === false ? (
@@ -373,10 +373,10 @@ export default function ServidorDetalhePage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base font-semibold text-slate-900">
                     <Server className="h-5 w-5 text-slate-500" aria-hidden />
-                    Painel Executivo NOC
+                    Painel Executivo
                   </CardTitle>
                   <CardDescription>
-                    Visão rápida para monitoramento operacional do servidor.
+                    Visão rápida para monitoramento comercial do servidor.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -384,7 +384,7 @@ export default function ServidorDetalhePage() {
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Status</p>
                       <p className={cn("mt-2 text-lg font-bold", data.online ? "text-emerald-700" : "text-rose-700")}>
-                        {data.online ? "ONLINE" : "OFFLINE"}
+                        {data.online ? "CONECTADO" : "SEM CONEXÃO"}
                       </p>
                     </div>
 
@@ -405,9 +405,9 @@ export default function ServidorDetalhePage() {
                     </div>
 
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">PPPoE</p>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Internet</p>
                       <p className="mt-2 text-sm font-semibold text-slate-900">
-                        Online: {(data.activePppSessionsTotal ?? 0).toLocaleString("pt-BR")}
+                        Conectados: {(data.activePppSessionsTotal ?? 0).toLocaleString("pt-BR")}
                       </p>
                       <p className="mt-1 text-xs text-slate-500">
                         Secrets: {data.pppSecretCount != null ? data.pppSecretCount.toLocaleString("pt-BR") : "—"}
@@ -494,7 +494,7 @@ export default function ServidorDetalhePage() {
               </Card>
               <Card className="border-slate-200/95 shadow-sm ring-1 ring-slate-900/[0.035]">
                 <CardHeader className="pb-2 pt-4">
-                  <CardTitle className="text-sm font-medium text-slate-600">PPPoE (secrets)</CardTitle>
+                  <CardTitle className="text-sm font-medium text-slate-600">Internet (secrets)</CardTitle>
                   <CardDescription className="text-base font-semibold text-slate-900">
                     {data.pppSecretCount != null ? data.pppSecretCount.toLocaleString("pt-BR") : "—"}
                   </CardDescription>
@@ -517,7 +517,7 @@ export default function ServidorDetalhePage() {
             </div>
           </section>
 
-          <section id="servidor-diagnostico-conexao">
+          <section id="servidor-visão rápida-conexao">
             <h2 className="mb-3 text-sm font-semibold text-slate-900">Diagnóstico de conexão</h2>
             <Card className="border-slate-200/95 bg-gradient-to-br from-slate-50/90 to-white shadow-sm ring-1 ring-slate-900/[0.035]">
               <CardContent className="space-y-3 p-5 text-sm">
@@ -647,7 +647,7 @@ export default function ServidorDetalhePage() {
                   </Button>
                   <Button type="button" size="sm" variant="outline" onClick={exportDiagnostic}>
                     <Download className="h-3.5 w-3.5" aria-hidden />
-                    Exportar diagnóstico
+                    Exportar visão rápida
                   </Button>
                   <Button type="button" size="sm" variant="outline" onClick={copyExecutiveSummary}>
                     <ClipboardCopy className="h-3.5 w-3.5" aria-hidden />
@@ -655,11 +655,11 @@ export default function ServidorDetalhePage() {
                   </Button>
                   <Button type="button" size="sm" variant="outline" onClick={copyDiagnostic}>
                     <ClipboardCopy className="h-3.5 w-3.5" aria-hidden />
-                    Copiar diagnóstico
+                    Copiar visão rápida
                   </Button>
                   <Button type="button" size="sm" variant="outline" onClick={() => setJsonOpen(true)}>
                     <FileJson className="h-3.5 w-3.5" aria-hidden />
-                    Ver diagnóstico
+                    Ver visão rápida
                   </Button>
                   {isAdminUser ? (
                     <Button type="button" size="sm" variant="outline" onClick={() => setScriptOpen(true)}>

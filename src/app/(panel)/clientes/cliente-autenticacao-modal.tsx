@@ -72,7 +72,7 @@ export function ClienteAutenticacaoModal({
       open={open}
       onOpenChange={onOpenChange}
       title="Dados de acesso do cliente"
-      description="Organize as credenciais e informações necessárias para liberar e identificar o acesso do cliente."
+      description="Organize dados de acesso do cliente."
       className="max-w-lg"
     >
       <div className="space-y-4">
@@ -152,7 +152,7 @@ export function ClienteAutenticacaoModal({
               onChange={(e) => setLocal((x) => ({ ...x, authType: e.target.value }))}
               className="border-neutral-200"
             >
-              <option value="pppoe">PPPoE</option>
+              <option value="pppoe">Internet</option>
               <option value="hotspot">Hotspot</option>
             </Select>
           </div>

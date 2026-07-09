@@ -39,7 +39,7 @@ export function LoginForm() {
         if (data.code === "DATABASE_UNAVAILABLE") {
           setError("Sistema temporariamente indisponível (banco de dados).");
         } else if (data.code === "NETWORK_ERROR") {
-          setError(data.message || "Não foi possível contactar a API.");
+          setError(data.message || "Não foi possível entrar agora.");
         } else {
           setError(data.message || "Falha no login.");
         }

@@ -10,17 +10,17 @@ function Table({ className, containerClassName, ...props }: TableProps) {
   return (
     <div
       className={cn(
-        "relative w-full overflow-auto rounded-xl border border-slate-200 bg-white shadow-sm",
+        "relative w-full overflow-auto rounded-2xl border border-dcnet-border bg-dcnet-surface shadow-xp-card",
         containerClassName,
       )}
     >
-      <table className={cn("w-full caption-bottom text-sm text-slate-900", className)} {...props} />
+      <table className={cn("w-full caption-bottom text-sm text-dcnet-text", className)} {...props} />
     </div>
   );
 }
 
 function TableHeader({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn("[&_tr]:border-b border-slate-200 bg-slate-50/90", className)} {...props} />;
+  return <thead className={cn("[&_tr]:border-b border-dcnet-border bg-dcnet-surface-muted", className)} {...props} />;
 }
 
 function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
@@ -31,7 +31,7 @@ function TableRow({ className, ...props }: React.HTMLAttributes<HTMLTableRowElem
   return (
     <tr
       className={cn(
-        "border-b border-slate-100 transition-colors hover:bg-slate-50/90 data-[state=selected]:bg-slate-50",
+        "border-b border-dcnet-border/55 transition-colors hover:bg-dcnet-surface-muted data-[state=selected]:bg-dcnet-primary-soft/35",
         className,
       )}
       {...props}
@@ -43,7 +43,7 @@ function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTableCell
   return (
     <th
       className={cn(
-        "h-11 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-slate-600",
+        "h-11 px-4 text-left align-middle text-xs font-semibold uppercase tracking-wide text-dcnet-muted",
         className,
       )}
       {...props}
@@ -52,7 +52,7 @@ function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTableCell
 }
 
 function TableCell({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn("p-3.5 align-middle text-sm text-slate-800", className)} {...props} />;
+  return <td className={cn("p-3.5 align-middle text-sm text-dcnet-secondary", className)} {...props} />;
 }
 
 export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell };

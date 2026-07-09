@@ -83,7 +83,7 @@ export function ServerPppSessionsTable({ sessions, total, truncated, online, ser
   };
 
   const scrollDiagnostics = () => {
-    const el = document.getElementById("servidor-diagnostico-conexao");
+    const el = document.getElementById("servidor-visão rápida-conexao");
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
@@ -157,7 +157,7 @@ export function ServerPppSessionsTable({ sessions, total, truncated, online, ser
 
   if (!online) {
     return (
-      <p className="text-sm text-slate-500">Equipamento offline — não é possível listar sessões PPP activas.</p>
+      <p className="text-sm text-slate-500">Equipamento sem conexão no momento.</p>
     );
   }
 
@@ -165,7 +165,7 @@ export function ServerPppSessionsTable({ sessions, total, truncated, online, ser
     return (
       <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-6 py-10 text-center">
         <Users className="mx-auto h-9 w-9 text-slate-300" aria-hidden />
-        <p className="mt-3 text-sm font-semibold text-slate-800">Nenhum cliente online neste momento</p>
+        <p className="mt-3 text-sm font-semibold text-slate-800">Nenhum cliente conectado no momento</p>
         <p className="mt-1 text-xs text-slate-600">Não há entradas em /ppp/active nesta consulta.</p>
       </div>
     );
@@ -287,7 +287,7 @@ export function ServerPppSessionsTable({ sessions, total, truncated, online, ser
                         variant="outline"
                         className="h-8 px-2 text-[11px]"
                         onClick={scrollDiagnostics}
-                        title="Ir ao bloco de diagnóstico"
+                        title="Ir ao bloco de visão rápida"
                       >
                         <Stethoscope className="h-3.5 w-3.5" aria-hidden />
                       </Button>

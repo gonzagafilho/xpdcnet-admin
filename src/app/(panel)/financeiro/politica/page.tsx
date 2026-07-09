@@ -139,7 +139,7 @@ export default function FinanceiroPoliticaPage() {
         </>
       ) : null}
 
-      {!data && loading ? <p className="text-sm text-neutral-500">A carregar diagnóstico operacional...</p> : null}
+      {!data && loading ? <p className="text-sm text-neutral-500">A carregar visão rápida comercial...</p> : null}
     </div>
   );
 }

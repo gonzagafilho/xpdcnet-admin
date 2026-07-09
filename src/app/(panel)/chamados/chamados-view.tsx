@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Filter, Headphones, Plus, Search } from "lucide-react";
 
-/** Sem endpoint de chamados no backend XPDCNET atual — UI preparada para integração futura. */
+/** Atendimento de chamados ainda em ativação. */
 const CHAMADOS_API_DISPONIVEL = false;
 
 const PAGE_SIZE = 10;
@@ -39,7 +39,7 @@ export function ChamadosView() {
   const visaoMinha = searchParams.get("visao") === "minha";
 
   const [rows] = useState<ChamadoRow[]>([]);
-  /** Reservado para quando existir fetch à API de chamados. */
+  /** Reservado para ativação da lista automática. */
   const loading = false;
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -105,7 +105,7 @@ export function ChamadosView() {
       setToast({
         variant: "error",
         message:
-          "Nenhum dado foi enviado: o backend XPDCNET ainda não expõe API de chamados. Estrutura preparada para evolução.",
+          "Não foi possível enviar agora. Tente novamente.",
       });
       setModalOpen(false);
       return;
@@ -135,19 +135,16 @@ export function ChamadosView() {
           <div>
             <h2 className="text-base font-bold tracking-tight text-neutral-900">Chamados</h2>
             <p className="mt-1 max-w-3xl text-sm text-neutral-600">
-              Central de atendimento operacional.{" "}
+              Central de atendimento rápida.{" "}
               {!CHAMADOS_API_DISPONIVEL ? (
-                <span className="font-medium text-amber-800">
-                  API de chamados ainda não ligada — indicadores e lista aguardam o backend.
-                </span>
+                <span className="font-medium text-amber-800">Atendimento em ativação. Indicadores e lista em breve.</span>
               ) : (
-                <span>Dados em tempo real da API.</span>
+                <span>Dados ao vivo.</span>
               )}
             </p>
             {visaoMinha ? (
               <p className="mt-2 text-xs font-medium text-neutral-500">
-                Visão do menu: <span className="text-neutral-800">Meus chamados</span> (filtro aplicável quando a API
-                existir).
+                Visão do menu: <span className="text-neutral-800">Meus chamados</span> (filtro em breve).
               </p>
             ) : null}
           </div>
@@ -162,7 +159,7 @@ export function ChamadosView() {
           </Button>
         </div>
 
-        {/* Cards de status (valores honestos até existir API) */}
+        {/* Cards de status */}
         <div className="grid gap-3 py-4 sm:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-sm border border-sky-200 bg-sky-50 px-4 py-3 text-sky-950">
             <p className="text-[0.65rem] font-bold uppercase tracking-wide text-sky-900/90">Abertos</p>
@@ -232,7 +229,7 @@ export function ChamadosView() {
                 ? debouncedSearch || visaoMinha
                   ? "Nenhum resultado para os filtros atuais."
                   : "Não há registos."
-                : "O backend ainda não fornece listagem de chamados. Quando o endpoint existir, os dados aparecerão aqui sem alterar o layout."
+                : "O backend ainda não fornece listagem de chamados. Quando o serviço estiver disponível, os dados aparecerão aqui automaticamente."
             }
             action={
               <Button
@@ -315,7 +312,7 @@ export function ChamadosView() {
         open={filtersModalOpen}
         onOpenChange={setFiltersModalOpen}
         title="Filtros avançados"
-        description="Critérios adicionais para a lista de chamados. Campos desativados até existir API de filtragem."
+        description="Filtros extras em breve."
         className="max-w-lg"
       >
         <div className="space-y-5">
@@ -335,7 +332,7 @@ export function ChamadosView() {
               <option value="media">Média</option>
               <option value="baixa">Baixa</option>
             </Select>
-            <p className="text-xs text-neutral-500">Depende da API de chamados.</p>
+            <p className="text-xs text-neutral-500">Disponível em breve.</p>
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Período</Label>
@@ -360,13 +357,11 @@ export function ChamadosView() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         title="Novo chamado"
-        description="Formulário operacional. O registo só será persistido quando existir endpoint no backend."
+        description="Formulário comercial. Envio disponível em breve."
         className="max-w-xl"
       >
         <div className="space-y-4">
-          <div className="rounded-sm border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-950">
-            Integração pendente: nenhuma chamada HTTP será feita ao guardar até a API estar definida.
-          </div>
+          <div className="rounded-sm border border-amber-200 bg-amber-50/80 px-3 py-2 text-xs text-amber-950">Envio disponível em breve.</div>
           <div className="space-y-1.5">
             <Label htmlFor="nc-assunto">Assunto *</Label>
             <Input

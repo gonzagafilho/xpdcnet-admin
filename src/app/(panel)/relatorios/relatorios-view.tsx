@@ -10,7 +10,7 @@ const relatorioCards = [
     description:
       "Comparativo de receitas, inadimplência ou carteira entre anos. Depende de agregações que ainda não estão expostas como relatório único.",
     href: "/relatorios/anual-comparativo",
-    hint: "Rota preparada · sem dados até haver API ou job de consolidação",
+    hint: "Sem dados no momento",
   },
   {
     id: "export",
@@ -23,9 +23,9 @@ const relatorioCards = [
   {
     id: "auditoria",
     title: "Trilho de auditoria",
-    description: "Registo de alterações críticas. O modelo atual da API não inclui histórico para este painel.",
+    description: "Histórico ainda indisponível.",
     href: null as string | null,
-    hint: "Sem endpoint",
+    hint: "Serviço indisponível",
   },
 ] as const;
 

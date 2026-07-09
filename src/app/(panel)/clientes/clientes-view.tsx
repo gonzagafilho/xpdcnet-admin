@@ -74,7 +74,7 @@ function quickStatusAction(client: OperationalClient): StatusAction | null {
   if (client.status === "active") {
     return {
       clientIds: [client._id], target: "disabled", title: "Desativar cliente",
-      description: `Confirmar a desativação cadastral de ${client.fullName}? Nenhuma sessão PPPoE será desconectada.`,
+      description: `Confirmar a desativação cadastral de ${client.fullName}? Nenhuma sessão Internet será desconectada.`,
       confirmLabel: "Desativar",
     };
   }
@@ -280,7 +280,7 @@ export function ClientesView() {
     setOptionsOpen(false);
     try {
       const base = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-      if (!base) throw new Error("NEXT_PUBLIC_API_URL não configurada.");
+      if (!base) throw new Error("URL do sistema não configurada.");
       const token = getSessionToken();
       const query = serverId ? `?serverId=${encodeURIComponent(serverId)}` : "";
       const response = await fetch(`${base}/clients/export.csv${query}`, {
@@ -340,7 +340,7 @@ export function ClientesView() {
         <div className="flex flex-col gap-3 border-b border-slate-200 p-4 lg:flex-row lg:items-center">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por nome, CPF/CNPJ, telefone, e-mail ou login PPPoE" className="pl-9" />
+            <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por nome, CPF/CNPJ, telefone, e-mail ou login de acesso" className="pl-9" />
           </div>
           <Button type="button" variant="outline" onClick={() => setShowFilters((value) => !value)}><Filter className="h-4 w-4" /> Mais filtros</Button>
           <Button type="button" onClick={openCreate} className="bg-emerald-600 hover:bg-emerald-700"><Plus className="h-4 w-4" /> Novo cliente</Button>

@@ -5,8 +5,13 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
 import { userFacingApiError } from "@/lib/user-facing-api-error";
 import type { ExecutiveDashboardFromApi } from "@/lib/api-types";
+import { AlertTriangle, BarChart3, CheckCircle2, ShieldAlert, ShieldCheck, TimerReset, Wallet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AlertBanner } from "@/components/ui/alert-banner";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
+import { StatCard } from "@/components/ui/stat-card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 function pct(v: number): string {
@@ -44,9 +49,9 @@ export default function DashboardExecutivoPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-neutral-900">Dashboard executivo operacional</h1>
-          <p className="text-sm text-neutral-600">
-            Leitura consolidada da política financeira, execução de fila e divergência de rede.
+          <h1 className="text-xl font-bold tracking-tight text-dcnet-text">Painel executivo</h1>
+          <p className="text-sm text-dcnet-muted">
+            Resumo para decisões rápidas.
           </p>
         </div>
         <div className="flex gap-2">
@@ -59,52 +64,71 @@ export default function DashboardExecutivoPage() {
         </div>
       </div>
 
-      {error ? <p className="rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">{error}</p> : null}
+      {error ? <AlertBanner tone="error">{error}</AlertBanner> : null}
 
       {data ? (
         <>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Card><CardContent className="pt-5"><p className="text-xs text-neutral-500">Vão bloquear hoje</p><p className="text-2xl font-bold">{data.executive.willBlockToday}</p></CardContent></Card>
-            <Card><CardContent className="pt-5"><p className="text-xs text-neutral-500">Em carência</p><p className="text-2xl font-bold">{data.executive.inGrace}</p></CardContent></Card>
-            <Card><CardContent className="pt-5"><p className="text-xs text-neutral-500">Já bloqueados</p><p className="text-2xl font-bold">{data.executive.alreadyBlocked}</p></CardContent></Card>
-            <Card><CardContent className="pt-5"><p className="text-xs text-neutral-500">Protegidos</p><p className="text-2xl font-bold">{data.executive.protected}</p></CardContent></Card>
-            <Card><CardContent className="pt-5"><p className="text-xs text-neutral-500">Divergentes</p><p className="text-2xl font-bold text-red-700">{data.executive.divergent}</p></CardContent></Card>
-            <Card><CardContent className="pt-5"><p className="text-xs text-neutral-500">Falharam hoje</p><p className="text-2xl font-bold text-amber-700">{data.executive.failedExecutionsToday}</p></CardContent></Card>
-            <Card><CardContent className="pt-5"><p className="text-xs text-neutral-500">Execuções ok hoje</p><p className="text-2xl font-bold text-emerald-700">{data.executive.doneExecutionsToday}</p></CardContent></Card>
-            <Card><CardContent className="pt-5"><p className="text-xs text-neutral-500">Taxa sucesso operacional</p><p className="text-2xl font-bold">{pct(data.executive.operationalSuccessRate)}</p></CardContent></Card>
+            <StatCard label="Vão bloquear hoje" value={data.executive.willBlockToday} icon={ShieldAlert} tone="warning" compact />
+            <StatCard label="Em carência" value={data.executive.inGrace} icon={TimerReset} tone="info" compact />
+            <StatCard label="Já bloqueados" value={data.executive.alreadyBlocked} icon={AlertTriangle} tone="error" compact />
+            <StatCard label="Protegidos" value={data.executive.protected} icon={ShieldCheck} tone="success" compact />
+            <StatCard label="Divergentes" value={data.executive.divergent} icon={Wallet} tone="error" compact />
+            <StatCard label="Falharam hoje" value={data.executive.failedExecutionsToday} icon={AlertTriangle} tone="warning" compact />
+            <StatCard label="Execuções ok hoje" value={data.executive.doneExecutionsToday} icon={CheckCircle2} tone="success" compact />
+            <StatCard label="Taxa sucesso" value={pct(data.executive.operationalSuccessRate)} icon={BarChart3} tone="primary" compact />
           </div>
 
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Falhas de execução hoje ({data.details.failedJobsToday.length})</CardTitle>
+              <CardTitle className="text-base">Ações com falha hoje ({data.details.failedJobsToday.length})</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Tentativas</TableHead>
-                    <TableHead>Executado em</TableHead>
-                    <TableHead>Erro</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.details.failedJobsToday.map((f) => (
-                    <TableRow key={f.id}>
-                      <TableCell>{f.clientName}</TableCell>
-                      <TableCell>{f.attempts}</TableCell>
-                      <TableCell>{f.executedAt ? new Date(f.executedAt).toLocaleString("pt-BR") : "-"}</TableCell>
-                      <TableCell className="text-xs text-neutral-700">{f.lastError || "-"}</TableCell>
+              {data.details.failedJobsToday.length ? (
+                <Table containerClassName="rounded-none border-x-0 border-b-0 shadow-none">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead>Tentativas</TableHead>
+                      <TableHead>Executado em</TableHead>
+                      <TableHead>Erro</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {data.details.failedJobsToday.map((f) => (
+                      <TableRow key={f.id}>
+                        <TableCell>{f.clientName}</TableCell>
+                        <TableCell>{f.attempts}</TableCell>
+                        <TableCell>{f.executedAt ? new Date(f.executedAt).toLocaleString("pt-BR") : "-"}</TableCell>
+                        <TableCell className="text-xs text-dcnet-secondary">{f.lastError || "-"}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="p-5">
+                  <EmptyState
+                    icon={<CheckCircle2 className="h-5 w-5" />}
+                    title="Nenhuma falha registrada hoje"
+                    description="Tudo está estável hoje."
+                  />
+                </div>
+              )}
             </CardContent>
           </Card>
         </>
       ) : null}
 
-      {!data && loading ? <p className="text-sm text-neutral-500">A carregar visão executiva...</p> : null}
+      {!data && loading ? (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, index) => (
+            <div key={index} className="xp-card-surface h-24 p-4">
+              <Skeleton className="h-3 w-28" />
+              <Skeleton className="mt-4 h-7 w-20" />
+            </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

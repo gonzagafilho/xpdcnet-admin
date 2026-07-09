@@ -98,8 +98,8 @@ const TARGET_FIELDS = [
   ["state", "UF"],
   ["plan", "Plano"],
   ["contract", "Contrato"],
-  ["pppoeUsername", "Login PPPoE"],
-  ["pppoePassword", "Senha PPPoE"],
+  ["pppoeUsername", "Login Internet"],
+  ["pppoePassword", "Senha Internet"],
   ["concentrator", "Concentrador"],
 ] as const;
 
@@ -227,7 +227,7 @@ function ImportarClientesContent() {
         retry: false,
       });
       setJob(result);
-      setNotice(`${result.report.importedRows} clientes importados. Nenhuma sincronização RouterOS foi executada.`);
+      setNotice(`${result.report.importedRows} clientes importados. Nenhuma sincronização Equipamento foi executada.`);
       await load();
     } catch (err) {
       setError(userError(err));
@@ -240,7 +240,7 @@ function ImportarClientesContent() {
     setError("");
     try {
       const base = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "");
-      if (!base) throw new Error("NEXT_PUBLIC_API_URL não configurada.");
+      if (!base) throw new Error("URL do sistema não configurada.");
       const headers = new Headers();
       const token = getSessionToken();
       if (token) headers.set("Authorization", `Bearer ${token}`);
@@ -336,9 +336,9 @@ function ImportarClientesContent() {
               <CardHeader><CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-emerald-700" /> Proteções ativas</CardTitle></CardHeader>
               <CardContent className="space-y-3 text-sm text-slate-600">
                 <p>Clientes existentes nunca são sobrescritos.</p>
-                <p>CPF/CNPJ e login PPPoE são revalidados na confirmação.</p>
+                <p>CPF/CNPJ e login de acesso são revalidados na confirmação.</p>
                 <p>Novos clientes entram como pendentes.</p>
-                <p>Nenhuma ação RouterOS é executada.</p>
+                <p>Nenhuma ação Equipamento é executada.</p>
               </CardContent>
             </Card>
           </div>
@@ -362,15 +362,15 @@ function ImportarClientesContent() {
               <Summary report={job.report} />
 
               <Card>
-                <CardHeader><CardTitle>Pré-visualização</CardTitle><CardDescription>Até 50 registros. Senhas PPPoE nunca são exibidas.</CardDescription></CardHeader>
+                <CardHeader><CardTitle>Pré-visualização</CardTitle><CardDescription>Até 50 registros. Senhas Internet nunca são exibidas.</CardDescription></CardHeader>
                 <CardContent>
                   <Table>
-                    <TableHeader><TableRow><TableHead>Linha</TableHead><TableHead>Cliente</TableHead><TableHead>CPF/CNPJ</TableHead><TableHead>Plano</TableHead><TableHead>PPPoE</TableHead><TableHead>Situação</TableHead></TableRow></TableHeader>
+                    <TableHeader><TableRow><TableHead>Linha</TableHead><TableHead>Cliente</TableHead><TableHead>CPF/CNPJ</TableHead><TableHead>Plano</TableHead><TableHead>Internet</TableHead><TableHead>Situação</TableHead></TableRow></TableHeader>
                     <TableBody>
                       {job.previewRows.map((row) => (
                         <TableRow key={row.rowNumber}>
                           <TableCell>{row.rowNumber}</TableCell>
-                          <TableCell><p className="font-medium">{row.fullName || "Sem nome"}</p><p className="text-xs text-slate-500">{row.accessCount} acesso(s) PPPoE</p></TableCell>
+                          <TableCell><p className="font-medium">{row.fullName || "Sem nome"}</p><p className="text-xs text-slate-500">{row.accessCount} acesso(s) Internet</p></TableCell>
                           <TableCell className="font-mono text-xs">{row.document || "—"}</TableCell>
                           <TableCell>{row.accesses.map((access) => <p key={`${row.rowNumber}-${access.username}`} className="text-xs">{access.planName || "—"}</p>)}</TableCell>
                           <TableCell>{row.accesses.map((access) => <div key={access.username} className="mb-1 last:mb-0"><p className="font-mono text-xs">{access.username || "—"}</p><p className="text-xs text-slate-500">{access.matchedPppoe ? "Encontrado em snapshot" : "Sem correspondência persistida"}</p></div>)}</TableCell>
@@ -409,7 +409,7 @@ export default function ImportarClientesPage() {
 function Summary({ report }: { report: ImportJob["report"] }) {
   const items = [
     ["Clientes únicos", report.totalRows, Users, "text-slate-700"],
-    ["Acessos PPPoE", report.totalAccessRows, FileSpreadsheet, "text-sky-700"],
+    ["Acessos de internet", report.totalAccessRows, FileSpreadsheet, "text-sky-700"],
     ["Multiacesso", report.multiAccessCustomers, ShieldCheck, "text-violet-700"],
     ["Válidos", report.validRows, CheckCircle2, "text-emerald-700"],
     ["Duplicidades críticas", report.criticalDuplicateRows, AlertTriangle, "text-amber-700"],

@@ -67,9 +67,9 @@ function statusLabelPt(s: MikrotikSyncJobFromApi["status"]): string {
 
 function executionModeLabelPt(mode: string | null | undefined): string {
   if (mode == null || mode === "") return "—";
-  if (mode === "simulate") return "Simulação (sem RouterOS)";
+  if (mode === "simulate") return "Simulação (sem Equipamento)";
   if (mode === "dry-run") return "Dry-run (validação, sem socket)";
-  if (mode === "live") return "Live (RouterOS)";
+  if (mode === "live") return "Live (Equipamento)";
   return mode;
 }
 
@@ -77,7 +77,7 @@ function executionModeLabelPt(mode: string | null | undefined): string {
 function triggerReasonDescriptionPt(reason: string | null | undefined): string | null {
   if (!reason) return null;
   const map: Record<string, string> = {
-    TRUST_RELEASE_EXPIRED: "Confiança expirada — re-sync agendado (sem RouterOS nesta etapa)",
+    TRUST_RELEASE_EXPIRED: "Confiança expirada — re-sync agendado (sem Equipamento nesta etapa)",
     FINANCE_ROLLUP: "Consolidação financeira alterou o estado do cliente — re-sync enfileirado",
   };
   return map[reason] ?? null;
@@ -363,7 +363,7 @@ export function FilaSyncView() {
             Fila de Sincronização
           </h1>
           <p className="text-sm text-neutral-600">
-            Jobs MikroTik Sync (MikrotikSyncJob). Operação e reenvio de falhas — sem execução RouterOS no painel.
+            Jobs MikroTik Sync (MikrotikSyncJob). Operação e reenvio de falhas — sem execução Equipamento no painel.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -421,7 +421,7 @@ export function FilaSyncView() {
               <Label htmlFor="sync-client">ID do cliente</Label>
               <Input
                 id="sync-client"
-                placeholder="ObjectId (MongoDB)"
+                placeholder="ID"
                 value={clientIdFilter}
                 onChange={(e) => setClientIdFilter(e.target.value)}
                 className="font-mono text-xs"
@@ -431,7 +431,7 @@ export function FilaSyncView() {
               <Label htmlFor="sync-server">ID do servidor MikroTik</Label>
               <Input
                 id="sync-server"
-                placeholder="ObjectId (MongoDB)"
+                placeholder="ID"
                 value={serverIdFilter}
                 onChange={(e) => setServerIdFilter(e.target.value)}
                 className="font-mono text-xs"
