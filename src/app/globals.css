@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * DC NET Design System
+ * Paleta institucional para a camada visual do painel operacional.
+ */
+:root {
+  --background: #ecf3ff;
+  --foreground: #0f172a;
+  --surface: #ffffff;
+  --surface-muted: #f7faff;
+  --border: #d3e4ff;
+  --border-strong: #b5d0f8;
+  --text-primary: #0f172a;
+  --text-secondary: #1e3a6d;
+  --text-muted: #66789e;
+
+  --primary: #0a66cc;
+  --primary-dark: #084f9f;
+  --primary-soft: #e7f1ff;
+
+  --success: #149159;
+  --success-soft: #e9fbf3;
+  --error: #d14343;
+  --error-soft: #fff1f1;
+  --warning: #dc7c1f;
+  --warning-soft: #fff4e8;
+  --info: #64748b;
+  --info-soft: #f1f5f9;
+
+  --ring: #8db9ef;
+  --nav-background: #051a3a;
+  --nav-text: #f5f9ff;
+  --nav-border: #1c3f74;
+  --topbar-bg: rgba(255, 255, 255, 0.9);
+
+  --shadow-xs: 0 1px 2px rgb(10 36 90 / 0.05);
+  --shadow-sm: 0 6px 14px rgb(10 36 90 / 0.08);
+  --shadow-md: 0 14px 28px rgb(10 36 90 / 0.12);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  color: var(--foreground);
+  background:
+    radial-gradient(1200px 560px at 92% -8%, rgb(10 102 204 / 0.14), transparent),
+    radial-gradient(920px 480px at -10% 10%, rgb(20 145 89 / 0.1), transparent),
+    var(--background);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer components {
+  .xp-card-surface {
+    @apply rounded-2xl border border-dcnet-border bg-dcnet-surface shadow-xp-card;
+  }
+
+  .xp-section-title {
+    @apply text-base font-semibold tracking-tight text-dcnet-text;
+  }
+
+  .xp-section-subtitle {
+    @apply text-sm text-dcnet-muted;
+  }
+
+  .xp-empty-surface {
+    @apply rounded-2xl border border-dashed border-dcnet-border-strong bg-dcnet-surface-muted;
+  }
+
+  .xp-page-transition {
+    animation: xp-fade-in 280ms ease-out;
+  }
+
+  .xp-skeleton {
+    @apply animate-pulse rounded-lg bg-dcnet-info-soft;
+  }
+}
+
+@keyframes xp-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
